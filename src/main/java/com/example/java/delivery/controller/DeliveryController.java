@@ -1,0 +1,15 @@
+package com.example.java.delivery.controller;
+
+import org.springframework.stereotype.Controller;
+
+import com.example.java.delivery.service.DeliveryService;
+
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequiredArgsConstructor
+public class DeliveryController {
+
+	private final DeliveryService deliveryService;
+	
+}
