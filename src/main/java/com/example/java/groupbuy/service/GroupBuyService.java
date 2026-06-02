@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GroupBuyService {
-
+	
     private final GroupBuyRepository groupBuyRepository;
     private final GroupBuyOptionsRepository groupBuyOptionsRepository;
 
@@ -35,7 +35,14 @@ public class GroupBuyService {
      * @param dto        공구 기본 정보 (max_count는 무시하고 옵션 합으로 계산)
      * @param optionDtos 옵션별 발주수량 목록 (최소 1개)
      * @return 생성된 공구 seq
+     * 
+     * @Transactional: 이 어노테이션이 붙은 메서드 안의 DB 작업을
+     * 전부 한 묶음으로 처리함
+     * 공구 1건 저장하고, 옵션 3개 저장하는 도중에 에러가 나면,
+     * 이미 저장한 공구 1건도 전부 취소됨
      */
+    
+    // 공동 구매 생성 메서드
     @Transactional
     public Long create(GroupBuyDto dto, List<GroupBuyOptionsDto> optionDtos) {
         if (optionDtos == null || optionDtos.isEmpty()) {
