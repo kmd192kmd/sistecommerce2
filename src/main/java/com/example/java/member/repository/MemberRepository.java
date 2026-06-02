@@ -8,4 +8,6 @@ import com.example.java.member.entity.Member;
 
 public interface MemberRepository extends JpaRepository<Member, Long>{
 	Optional<Member> findByUsername(String username);
+	
+	
 }
