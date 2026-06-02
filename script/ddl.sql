@@ -1242,3 +1242,10 @@ COMMENT ON COLUMN product.updated_date IS '수정일';
 COMMENT ON COLUMN product.status IS 'NORMAL / DELETED';
 COMMENT ON COLUMN cart_log.status IS '0: 담기, 1: 삭제 2:구매';
 COMMENT ON COLUMN memberships.status IS 'active/canceled/expired/none';
+
+
+ALTER TABLE memberships MODIFY (
+    billing_key varchar2(200) NULL,
+    started_at  timestamp NULL,
+    expire_at   timestamp NULL
+);

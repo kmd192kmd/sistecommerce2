@@ -32,7 +32,7 @@ public class NotificationPreference {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_seq", nullable = false)
-    private Member member;
+    private Member memberSeq;
 
     @Column(name = "email_yn", length = 1, nullable = false)
     @Builder.Default
