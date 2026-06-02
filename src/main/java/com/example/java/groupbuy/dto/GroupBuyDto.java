@@ -2,6 +2,7 @@ package com.example.java.groupbuy.dto;
 
 import java.time.LocalDateTime;
 import com.example.java.groupbuy.entity.GroupBuy;
+import com.example.java.groupbuy.entity.GroupBuyStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,7 +26,7 @@ public class GroupBuyDto {
     private Integer maxCount;
     private Integer originalPrice;
     private Integer finalPrice;
-    private String status;
+    private GroupBuyStatus status;
 
     // 엔티티를 Dto로 변환하는 메서드
     public static GroupBuyDto toDto(GroupBuy entity) {
