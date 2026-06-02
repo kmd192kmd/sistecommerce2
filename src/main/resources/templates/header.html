@@ -1,0 +1,59 @@
+<header th:fragment="header">
+  <link rel="stylesheet" th:href="@{/header.css}">
+  <div class="header-top">
+    <div class="header-inner header-row" style="height: 32px;">
+      <div class="header-links">
+        <a class="header-link" href="#">공지사항</a>
+        <a class="header-link" href="#">이벤트</a>
+        <a class="header-link" href="#">고객센터</a>
+      </div>
+
+      <div class="header-links">
+          <th:block th:if="${auth != null}">
+              <a class="header-link" href="/member/logout">로그아웃</a>
+              <a class="header-link" href="#">마이페이지</a>
+          </th:block>
+          <th:block th:if="${auth == null}">
+              <a class="header-link" href="/member/login">로그인</a>
+              <a class="header-link" href="#">회원가입</a>
+          </th:block>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-main">
+    <div class="header-inner header-row" style="padding: 1.25rem 1rem; gap: 2.5rem;">
+      <a href="#" class="header-logo">
+        <span class="logo-main">GOLD</span>
+        <span class="logo-sub">MARKET</span>
+      </a>
+
+      <div class="header-search">
+        <form class="header-search-box">
+          <input type="text" placeholder="상품을 검색하세요">
+          <button type="submit">검색</button>
+        </form>
+      </div>
+
+      <div class="header-icons">
+        <a href="#" class="header-icon-link">회원</a>
+        <a href="#" class="header-icon-link">장바구니</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-nav">
+    <div class="header-inner header-nav-inner">
+      <button class="header-menu-btn" type="button">☰ 전체카테고리</button>
+      <nav class="header-nav-links">
+        <a href="#">쇼핑몰</a>
+        <a href="#">공동구매</a>
+        <a href="#">특가</a>
+        <a href="#">브랜드관</a>
+        <a href="#">이벤트</a>
+      </nav>
+    </div>
+  </div>
+
+  
+</header>
