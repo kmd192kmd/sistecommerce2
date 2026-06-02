@@ -1,26 +1,71 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>로그인</title>
-</head>
-<body>
-    <h2>로그인</h2>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
-    <div th:if="${error}">
-        <p th:text="${error}" style="color:red;"></p>
-    </div>
+<head th:replace="~{fragments/layout :: head('Gold Market | 로그인')}"></head>
 
-    <form action="/member/login" method="post">
-        <div>
-            <label>아이디</label>
-            <input type="text" name="username" />
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <main class="max-w-screen-wide mx-auto px-4 py-16 flex justify-center">
+        <div class="w-full max-w-md bg-white border border-gray-200 p-10">
+
+            <h2 class="text-2xl font-black text-slate-900 mb-1">로그인</h2>
+            <p class="text-xs text-gray-400 mb-8">Gold Market에 오신 것을 환영합니다.</p>
+
+            <!-- 에러 메시지 -->
+            <div th:if="${error}" class="mb-6 bg-red-50 border border-red-200 px-4 py-3">
+                <p th:text="${error}" class="text-xs text-red-600"></p>
+            </div>
+
+            <form th:action="@{/member/login}" method="post" class="space-y-5">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-700">아이디</label>
+                    <input type="text" name="username"
+                        class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                        placeholder="아이디를 입력하세요" />
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-700">비밀번호</label>
+                    <input type="password" name="password"
+                        class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                        placeholder="비밀번호를 입력하세요" />
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 font-bold text-sm py-3 transition-colors">
+                    로그인
+                </button>
+            </form>
+
+            <div class="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
+                <a href="#" class="hover:text-amber-600">아이디 찾기</a>
+                <span>|</span>
+                <a href="#" class="hover:text-amber-600">비밀번호 찾기</a>
+                <span>|</span>
+                <a th:href="@{/members/signup}" class="hover:text-amber-600">회원가입</a>
+            </div>
+
+            <div class="mt-8 border-t border-gray-100 pt-6 space-y-3">
+                <button
+                    class="w-full border border-gray-200 bg-yellow-300 hover:bg-yellow-400 text-slate-900 font-bold text-sm py-2.5 transition-colors">
+                    카카오 로그인
+                </button>
+                <button
+                    class="w-full border border-gray-200 bg-green-500 hover:bg-green-600 text-white font-bold text-sm py-2.5 transition-colors">
+                    네이버 로그인
+                </button>
+                <button
+                    class="w-full border border-gray-200 bg-white-500 hover:bg-green-600 text-black font-bold text-sm py-2.5 transition-colors">
+                    구글 로그인
+                </button>
+            </div>
         </div>
-        <div>
-            <label>비밀번호</label>
-            <input type="password" name="password" />
-        </div>
-        <button type="submit">로그인</button>
-    </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
+
 </html>

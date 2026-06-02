@@ -3,12 +3,16 @@ package com.example.java.delivery.entity;
 import java.time.LocalDateTime;
 
 import com.example.java.delivery.dto.DeliveryDto;
+import com.example.java.orders.controller.entity.Orders;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -57,14 +61,20 @@ public class Delivery {
 	@Column(name = "distance_surcharge", nullable = false)
 	private Integer distance_surcharge = 0;
 	
-	@Column(name = "tracking_number", nullable = false)
+	@Column(name = "total_delivery_fee", nullable = false)
 	private Integer total_delivery_fee;
 	
-//	private deliveryCompany;
-//	
-//	private orders;
-//	
-//	private purchase_order;
+	@OneToOne
+	@JoinColumn(name = "seq")
+	private DeliveryCompany deliveryCompany;
+	
+//	@OneToOne
+//	@JoinColumn(name = "seq")
+//	private Orders orders;
+	
+//	@OneToOne
+//	@JoinColumn(name = "seq")
+//	private Purchase_order purchase_order;
 	
 	public DeliveryDto toDto() {
 		

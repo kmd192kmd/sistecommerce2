@@ -2,6 +2,8 @@ package com.example.java.member.controller;
 
 import com.example.java.member.dto.MemberDto;
 import com.example.java.member.service.MemberLoginService;
+import com.example.java.storefront.SampleProducts;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -40,5 +42,12 @@ public class MemberController {
     public String logout(HttpSession session) {
         memberLoginService.logout(session);
         return "redirect:/";
+    }
+    
+    // 마이페이지 메인 = 주문목록 (MYP-MAIN-01 / MEM-ORD-01)
+    @GetMapping("")
+    public String mypageOrders(Model model) {
+        model.addAttribute("orders", SampleProducts.orders());
+        return "mypage/orders";
     }
 }

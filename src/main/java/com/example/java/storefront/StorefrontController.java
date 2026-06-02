@@ -57,10 +57,5 @@ public class StorefrontController {
         return "order/checkout";
     }
 
-    // 마이페이지 메인 = 주문목록 (MYP-MAIN-01 / MEM-ORD-01)
-    @GetMapping("/mypage/orders")
-    public String mypageOrders(Model model) {
-        model.addAttribute("orders", SampleProducts.orders());
-        return "mypage/orders";
-    }
+    
 }
