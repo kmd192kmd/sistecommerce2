@@ -10,52 +10,43 @@
     <aside class="w-full lg:w-64 flex-shrink-0 bg-white p-5 border border-gray-200">
         <div class="mb-8">
             <h2 class="text-base font-black text-slate-900 border-b-2 border-slate-900 pb-2 mb-4 flex items-center gap-2">
-                <span class="w-1.5 h-4 bg-amber-500"></span> CATEGORY
+                <span class="w-1.5 h-4 bg-amber-500"></span> SORT BY
             </h2>
-            <ul class="space-y-2 text-sm font-medium text-gray-700">
+            <ul class="space-y-2 text-sm font-bold text-gray-700">
                 <li>
-                    <details class="group" open>
-                        <summary class="flex justify-between items-center cursor-pointer list-none py-1 hover:text-amber-600">
-                            <span>식품</span>
-                            <span class="transition group-open:rotate-180">▾</span>
-                        </summary>
-                        <ul class="pl-4 mt-1 space-y-1 text-xs text-gray-500">
-                            <li><a href="#" class="block py-1 hover:text-amber-500">유제품</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">육류</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">채소</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">어류</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">즉석식품</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">음료</a></li>
-                        </ul>
-                    </details>
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='salesDesc')}" 
+                       class="block px-3 py-2 border transition-colors"
+                       th:classappend="${sort == null or sort == 'salesDesc' or sort == ''} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        ✓ 판매량순
+                    </a>
                 </li>
                 <li>
-                    <details class="group">
-                        <summary class="flex justify-between items-center cursor-pointer list-none py-1 hover:text-amber-600">
-                            <span>의류</span>
-                            <span class="transition group-open:rotate-180">▾</span>
-                        </summary>
-                        <ul class="pl-4 mt-1 space-y-1 text-xs text-gray-500">
-                            <li><a href="#" class="block py-1 hover:text-amber-500">상의</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">하의</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">신발</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">잡화</a></li>
-                        </ul>
-                    </details>
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='priceAsc')}" 
+                       class="block px-3 py-2 border transition-colors"
+                       th:classappend="${sort == 'priceAsc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        낮은 가격순
+                    </a>
                 </li>
                 <li>
-                    <details class="group">
-                        <summary class="flex justify-between items-center cursor-pointer list-none py-1 hover:text-amber-600">
-                            <span>전자제품</span>
-                            <span class="transition group-open:rotate-180">▾</span>
-                        </summary>
-                        <ul class="pl-4 mt-1 space-y-1 text-xs text-gray-500">
-                            <li><a href="#" class="block py-1 hover:text-amber-500">스마트폰 / 태블릿</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">컴퓨터</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">PC 주변기기</a></li>
-                            <li><a href="#" class="block py-1 hover:text-amber-500">콘솔/영상</a></li>
-                        </ul>
-                    </details>
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='priceDesc')}" 
+                       class="block px-3 py-2 border transition-colors"
+                       th:classappend="${sort == 'priceDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        높은 가격순
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='newest')}" 
+                       class="block px-3 py-2 border transition-colors"
+                       th:classappend="${sort == 'newest'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        최신순
+                    </a>
+                </li>
+                <li>
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='ratingDesc')}" 
+                       class="block px-3 py-2 border transition-colors"
+                       th:classappend="${sort == 'ratingDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        별점순
+                    </a>
                 </li>
             </ul>
         </div>
@@ -101,33 +92,7 @@
 
     <section class="flex-1 min-w-0">
         
-        <div class="bg-white p-4 border border-gray-200 mb-6 space-y-4">
-            <form action="/products" method="get" class="relative">
-                <input type="text" name="keyword" placeholder="상품명을 검색해보세요." th:value="${param.keyword}"
-                       class="w-full border border-gray-300 py-2.5 px-4 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-gray-400 transition-colors">
-                <button type="submit" class="absolute right-0 top-0 h-full px-4 text-gray-500 hover:text-amber-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </button>
-            </form>
-            
-            <div class="flex items-center gap-2 text-xs">
-                <span class="font-bold text-gray-500">최근 검색어:</span>
-                <div class="flex gap-2">
-                    <a href="#" class="bg-gray-100 px-2 py-0.5 text-gray-600 hover:bg-gray-200">닭가슴살</a>
-                    <a href="#" class="bg-gray-100 px-2 py-0.5 text-gray-600 hover:bg-gray-200">기계식 키보드</a>
-                </div>
-            </div>
 
-            <hr class="border-gray-100">
-
-            <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
-                <a th:href="@{/products(sort='salesDesc')}" class="px-3 py-1.5 border border-slate-900 bg-slate-900 text-white">✓ 판매량순</a>
-                <a th:href="@{/products(sort='priceAsc')}" class="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 hover:border-amber-500 hover:text-amber-600">낮은 가격순</a>
-                <a th:href="@{/products(sort='priceDesc')}" class="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 hover:border-amber-500 hover:text-amber-600">높은 가격순</a>
-                <a th:href="@{/products(sort='newest')}" class="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 hover:border-amber-500 hover:text-amber-600">최신순</a>
-                <a th:href="@{/products(sort='ratingDesc')}" class="px-3 py-1.5 border border-gray-200 bg-white text-gray-600 hover:border-amber-500 hover:text-amber-600">별점순</a>
-            </div>
-        </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             
@@ -166,13 +131,28 @@
         </div>
 
         <div th:if="${not #lists.isEmpty(productList)}" class="mt-12 flex justify-center items-center gap-1 text-sm font-bold">
-            <a href="#" class="px-3 py-1 text-gray-400 hover:text-amber-600 mr-2">&larr; Previous</a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center bg-slate-900 text-white">1</a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600">2</a>
-            <a href="#" class="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600">3</a>
-            <span class="px-2 text-gray-400">...</span>
-            <a href="#" class="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600">10</a>
-            <a href="#" class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-2">Next &rarr;</a>
+            <!-- 이전 페이지 -->
+            <a th:if="${productPage.hasPrevious()}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, page=${productPage.number - 1})}" 
+               class="px-3 py-1 text-gray-600 hover:text-amber-600 mr-2">&larr; Previous</a>
+            <span th:unless="${productPage.hasPrevious()}" 
+                  class="px-3 py-1 text-gray-400 mr-2">&larr; Previous</span>
+                  
+            <!-- 페이지 번호 목록 -->
+            <th:block th:if="${productPage.totalPages > 0}">
+                <a th:each="i : ${#numbers.sequence(0, productPage.totalPages - 1)}"
+                   th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, page=${i})}"
+                   class="w-8 h-8 flex items-center justify-center border font-bold"
+                   th:classappend="${i == productPage.number} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600'"
+                   th:text="${i + 1}">1</a>
+            </th:block>
+            
+            <!-- 다음 페이지 -->
+            <a th:if="${productPage.hasNext()}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, page=${productPage.number + 1})}" 
+               class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-2">Next &rarr;</a>
+            <span th:unless="${productPage.hasNext()}" 
+                  class="px-3 py-1 text-gray-400 ml-2">Next &rarr;</span>
         </div>
     </section>
 

@@ -1,0 +1,749 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>쇼핑몰</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol.numbered-list.numbered-list-digits-2 {
+	padding-inline-start: 2em;
+}
+
+ol.numbered-list.numbered-list-digits-3plus {
+	padding-inline-start: 2.4em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="364e87e4-dd3c-804e-bb83-efc2e102e198" class="page sans"><header><h1 class="page-title" dir="auto">쇼핑몰</h1><p class="page-description" dir="auto"></p></header><div class="page-body"><div style="display:contents" dir="auto"><h2 id="364e87e4-dd3c-80b3-9b36-df1b610ff178" class="">카테고리</h2></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8048-bde1-e355267a700f" class="toggle"><li><details open=""><summary>식품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80a7-813c-e69a1c886619" class="toggle"><li><details open=""><summary>유제품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80fc-9aff-dad25bae5b3b" class="bulleted-list"><li style="list-style-type:disc">요구르트</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c3-998e-f84ffc5cc31d" class="bulleted-list"><li style="list-style-type:disc">우유</li></ul></div><div style="display:contents" dir="auto"><div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-807e-98de-ebc7cc8b7e50" class="bulleted-list"><li style="list-style-type:disc">치즈</li></ul></div></div></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c2-b3a5-e1ba51288670" class="toggle"><li><details open=""><summary>육류</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8053-9f08-fed9fa9c649f" class="bulleted-list"><li style="list-style-type:disc">소고기</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8058-b613-fab468b699ef" class="bulleted-list"><li style="list-style-type:disc">돼지고기</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-805e-acd3-e9c62f3cfd94" class="bulleted-list"><li style="list-style-type:disc">닭고기</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-806e-8208-e2ea43b9eec0" class="toggle"><li><details open=""><summary>채소</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-807c-af07-fb652fb7dee8" class="bulleted-list"><li style="list-style-type:disc">잎채소</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-805a-98ef-f9100e96310c" class="bulleted-list"><li style="list-style-type:disc">뿌리채소</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8073-b144-fb681ad3178b" class="bulleted-list"><li style="list-style-type:disc">열매채소</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80b5-bd04-c57946061f10" class="toggle"><li><details open=""><summary>어류</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80e2-9c8d-d02e08ff86c3" class="bulleted-list"><li style="list-style-type:disc">생선</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80a2-b007-d5733d4f27c7" class="bulleted-list"><li style="list-style-type:disc">조개/갑각류</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80a7-bfb5-d9ef55e48655" class="bulleted-list"><li style="list-style-type:disc">건어물</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80fd-814c-ebaebfe155dc" class="toggle"><li><details open=""><summary>즉석식품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8005-821c-fa825b09744a" class="bulleted-list"><li style="list-style-type:disc">밀키트</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80a7-b9e6-f646db49eaa6" class="bulleted-list"><li style="list-style-type:disc">즉석밥</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80ca-a233-deb1477daa7e" class="bulleted-list"><li style="list-style-type:disc">냉동식품</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80be-b4cf-d743e48e2cf6" class="bulleted-list"><li style="list-style-type:disc">라면</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80ee-9269-fbd433d43f20" class="toggle"><li><details open=""><summary>음료</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80fc-9a41-d80df083f9c4" class="bulleted-list"><li style="list-style-type:disc">탄산음료</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80ff-8787-cc0101cd9309" class="bulleted-list"><li style="list-style-type:disc">주스</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-801b-9eb9-f9e3f9929753" class="bulleted-list"><li style="list-style-type:disc">커피</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-804e-82c8-f6a720f9bc85" class="bulleted-list"><li style="list-style-type:disc">차</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c7-8f69-f98654d520ba" class="bulleted-list"><li style="list-style-type:disc">생수</li></ul></div></details></li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><p id="36ce87e4-dd3c-8048-aa18-e82e14af684b" class="">
+</p></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c0-8f00-e138fc1e60ce" class="toggle"><li><details open=""><summary>생활용품  (보류)</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c7-8d91-e8bf0779cee6" class="toggle"><li><details open=""><summary>주방용품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8015-8ef8-f4fb10a101bb" class="bulleted-list"><li style="list-style-type:disc">조리도구</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8029-a7f1-e4657e9a4527" class="bulleted-list"><li style="list-style-type:disc">식기/컵</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-804f-816b-e6103eb11797" class="bulleted-list"><li style="list-style-type:disc">냄비/프라이팬</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80dd-ba04-c0f3bb513799" class="toggle"><li><details open=""><summary>청소용품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-808e-854d-db6e45aad8a0" class="bulleted-list"><li style="list-style-type:disc">청소도구</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80cb-8b2f-f0c16bfa045b" class="bulleted-list"><li style="list-style-type:disc">걸레/청소포</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8045-9659-e320babd3a4e" class="bulleted-list"><li style="list-style-type:disc">쓰레기통</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80a7-be7f-e20263ca4a25" class="toggle"><li><details open=""><summary>수납용품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80db-aa72-c791915c00fb" class="bulleted-list"><li style="list-style-type:disc">리빙박스</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80e9-af1c-cef816fd39a2" class="bulleted-list"><li style="list-style-type:disc">바구니/정리함</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c0-b75b-ebd12e2cddd2" class="bulleted-list"><li style="list-style-type:disc">옷걸이/행거</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-802a-ab66-f67b5e44683c" class="toggle"><li><details open=""><summary>욕실용품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8001-8da1-fca35c50602d" class="bulleted-list"><li style="list-style-type:disc">샤워용품</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-804a-ad2e-f22775c2c409" class="bulleted-list"><li style="list-style-type:disc">수건/타월</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8037-9b4a-c96cf45a8a1b" class="bulleted-list"><li style="list-style-type:disc">욕실매트</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80ce-9d70-ccf57bce6f34" class="toggle"><li><details open=""><summary>세정용품</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80b6-b04f-dc9a68af04c3" class="bulleted-list"><li style="list-style-type:disc">주방세제</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8052-a085-fe3d8ab62605" class="bulleted-list"><li style="list-style-type:disc">세탁세제</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80fe-8fff-e21efcffe54f" class="bulleted-list"><li style="list-style-type:disc">욕실세정제</li></ul></div></details></li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80a8-957c-d08f67f5bb77" class="toggle"><li><details open=""><summary>의류</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8079-b0d9-c67321b469ae" class="toggle"><li><details open=""><summary>상의</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80f9-b2d5-e8c23a3cdfee" class="bulleted-list"><li style="list-style-type:disc">티셔츠</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-801c-b30f-da71f01af150" class="bulleted-list"><li style="list-style-type:disc">맨투맨/후드티</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80fd-b77e-e8e5ebad7136" class="bulleted-list"><li style="list-style-type:disc">셔츠</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-806d-ab9d-ea7f8e9476a5" class="bulleted-list"><li style="list-style-type:disc">아우터</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-802d-a1ec-ca2fe2512114" class="toggle"><li><details open=""><summary>하의</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80d8-bfea-f9b24bb69731" class="bulleted-list"><li style="list-style-type:disc">면바지</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8071-adb8-d31b3932e84a" class="bulleted-list"><li style="list-style-type:disc">청바지</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8031-9666-d091c798169f" class="bulleted-list"><li style="list-style-type:disc">반바지</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80ae-bd24-f426c7ed3d81" class="bulleted-list"><li style="list-style-type:disc">치마</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80d4-99f3-fc3f79eb4e21" class="toggle"><li><details open=""><summary>신발</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8012-9462-de776f0ca1ab" class="bulleted-list"><li style="list-style-type:disc">구두</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-807a-a817-c29c58eea6b6" class="bulleted-list"><li style="list-style-type:disc">슬리퍼/샌들</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80da-bb0f-f2b7bafa3067" class="bulleted-list"><li style="list-style-type:disc">운동화</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8048-92a3-f2522720647a" class="toggle"><li><details open=""><summary>잡화</summary><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-80c8-8780-c69bd9649692" class="bulleted-list"><li style="list-style-type:disc">모자</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8042-b0cd-dbb52205c1a7" class="bulleted-list"><li style="list-style-type:disc">목도리</li></ul></div><div style="display:contents" dir="auto"><ul id="364e87e4-dd3c-8003-b0cc-e81708a14a84" class="bulleted-list"><li style="list-style-type:disc">장갑</li></ul></div></details></li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-8059-8d9d-c3a4ba44ed68" class="toggle"><li><details open=""><summary>전자제품</summary><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80bb-bee9-eea8ce75a7a0" class="toggle"><li><details open=""><summary>스마트폰 / 태블릿</summary><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80ea-a73e-e5665993189c" class="bulleted-list"><li style="list-style-type:disc">스마트폰</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-808d-8c56-c4b917b3cd6b" class="bulleted-list"><li style="list-style-type:disc">태블릿</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80a8-833f-d2bb44178a91" class="bulleted-list"><li style="list-style-type:disc">스마트워치</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-8049-9e5f-e1747c93fcf8" class="toggle"><li><details open=""><summary>컴퓨터</summary><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-805f-b1d8-d75506be965d" class="bulleted-list"><li style="list-style-type:disc">노트북</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-8025-89c5-c69f9378ab66" class="bulleted-list"><li style="list-style-type:disc">데스크탑 완본체</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-8043-ad0c-f62bd16d31d7" class="toggle"><li><details open=""><summary>PC 주변기기</summary><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80ec-8efa-c92af269eae9" class="bulleted-list"><li style="list-style-type:disc">마우스</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-8025-8636-e57dc10975ff" class="bulleted-list"><li style="list-style-type:disc">키보드</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80dd-85dc-ec34d32bdd73" class="bulleted-list"><li style="list-style-type:disc">헤드폰</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80dc-8637-ec4416a53d11" class="bulleted-list"><li style="list-style-type:disc">이어폰</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-8029-bf27-dc53fad0f752" class="toggle"><li><details open=""><summary>콘솔/영상</summary><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80bf-a961-e5692bc019b6" class="bulleted-list"><li style="list-style-type:disc">게임 콘솔</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-806b-8adc-cb8fcb778242" class="bulleted-list"><li style="list-style-type:disc">카메라</li></ul></div></details></li></ul></div><div style="display:contents" dir="auto"><p id="367e87e4-dd3c-803f-a204-d0803b74fcbb" class="">
+</p></div></details></li></ul></div><div style="display:contents" dir="auto"><p id="365e87e4-dd3c-80f2-8769-fc8877a796ea" class="">
+</p></div><div style="display:contents" dir="ltr"><figure id="365e87e4-dd3c-808a-8c82-d61bef419088" class="image"><a href="image.png"><img style="width:609px" src="image.png"/></a></figure></div><div style="display:contents" dir="auto"><h2 id="364e87e4-dd3c-80c9-94ae-ea78ac04b699" class="">요구분석서</h2></div><div style="display:contents" dir="auto"><h2 id="231efc38-1ab8-40c3-82ed-688f0380404d" class="">1.1 상품 목록 조회</h2></div><div style="display:contents" dir="auto"><h3 id="d0706d2a-175d-4d8b-8747-a4e2ab062642" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="d738ab7d-ab92-4669-ba8f-c4c03bb96f76" class="bulleted-list"><li style="list-style-type:disc">사용자는 등록된 상품 목록을 조회할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="a9a2b2d6-917b-446b-96b5-61f6efd04326" class="bulleted-list"><li style="list-style-type:disc">상품 목록에는 상품명, 대표 이미지, 가격, 판매상태, 별점, 리뷰 수가 표시되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="f8eef256-7546-46c0-8f62-f37a514d5342" class="bulleted-list"><li style="list-style-type:disc">상품 목록은 판매량순을 기본 정렬 기준으로 하되 가격, 최신, 별점 순서로도 조회할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8022-9145-f2d96baa841d" class="bulleted-list"><li style="list-style-type:disc">상품 목록은 가격, 별점, 핫딜여부로 필터링이 가능해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="f678d301-4ae0-484b-83e9-92b32b70bd13" class="bulleted-list"><li style="list-style-type:disc">상품이 많을 경우 페이징 방식으로 조회할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-80c5-9bfd-cd83e4a35799" class="bulleted-list"><li style="list-style-type:disc">상품 목록은 카테고리 별로 필터링이 가능해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="6ad8379c-60d5-4ccb-b05e-d83bd9c8bb9d" class="bulleted-list"><li style="list-style-type:disc">단종(판매중지)된 상품은 숨김 처리를 한 후 일반 사용자에게 노출되지 않아야 한다<strong>.</strong></li></ul></div><div style="display:contents" dir="auto"><ul id="968ea551-ad01-41cc-a8b7-db43caebe691" class="bulleted-list"><li style="list-style-type:disc">품절 상품은 목록에 표시할 수 있지만, 구매는 불가능해야 한다. </li></ul></div><div style="display:contents" dir="auto"><ul id="3ba271dd-1743-447b-af15-e7afeaafd650" class="bulleted-list"><li style="list-style-type:disc">사용자는 상품명을 기준으로 상품을 검색할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8055-ad63-da9330cdbc61" class="bulleted-list"><li style="list-style-type:disc">사용자는 최근 검색한 검색어를 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="8d3a2f24-dd81-4ad6-9807-d5e1aea2bc08" class="bulleted-list"><li style="list-style-type:disc">입력한 검색어가 상품명에 포함된 상품을 조회할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="0d1d93ab-4c6d-40bf-bb96-7c43216df011" class="bulleted-list"><li style="list-style-type:disc">대소문자, 띄어쓰기 차이에 영향을 최소화하여 검색할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="349c426f-92b9-4309-b117-fb7bed4e5f1b" class="bulleted-list"><li style="list-style-type:disc">검색 결과는 상품 목록 형태로 제공되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8073-b3a9-e7f94d52253c" class="bulleted-list"><li style="list-style-type:disc">최근 조회한 상품을 목록 형태로 제공해야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="327a15d9-3954-4fc8-a635-f7622a237250" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="efd29806-a7db-4b4c-a39f-aa611f8a9348" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="628c508f-c4ee-4529-8d41-3240c9ef6dea"><th id="i`_J" class="simple-table-header-color simple-table-header">항목</th><th id="A;jf" class="simple-table-header-color simple-table-header" style="width:508px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="3a2bb953-590e-41ae-bdd4-69957da12a96"><td id="i`_J" class="">상품명</td><td id="A;jf" class="" style="width:508px">최소 2자 이상, 최대 50자 이하로 입력한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="0764f59e-e823-4ff5-9881-573f4acb1815"><td id="i`_J" class="">상품명 검색어</td><td id="A;jf" class="" style="width:508px">최소 1자 이상 입력 시 검색 가능하다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="4f451293-96d5-4811-883d-c779cf255b4d"><td id="i`_J" class="">상품명 검색 방식</td><td id="A;jf" class="" style="width:508px">입력한 검색어가 상품명에 포함되어 있으면 검색 결과에 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="8487871e-e233-402c-83b0-8f1fa12a7da6"><td id="i`_J" class="">상품명 대소문자 처리</td><td id="A;jf" class="" style="width:508px">영문 대소문자는 구분하지 않는다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="a73e94bd-8f50-48ef-8346-a9dc7bd53ddc"><td id="i`_J" class="">상품명 띄어쓰기 처리</td><td id="A;jf" class="" style="width:508px">띄어쓰기 차이를 최소화하여 검색 가능하도록 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="b8de8193-12c5-45d4-bf45-8b51da3c1297"><td id="i`_J" class="">대표 이미지 형식</td><td id="A;jf" class="" style="width:508px">JPG, JPEG, PNG, WEBP 형식을 허용한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="b2271d77-1daa-483b-9c16-e3351e3e0b3c"><td id="i`_J" class="">대표 이미지 용량</td><td id="A;jf" class="" style="width:508px">1개당 최대 5MB 이하로 제한한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="389b1ed4-9c0a-48dc-83e8-235ab19394fc"><td id="i`_J" class="">대표 이미지 필수 여부</td><td id="A;jf" class="" style="width:508px">상품 등록 시 대표 이미지는 필수로 등록해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="352689bd-5fba-45e0-a474-18d157020c2c"><td id="i`_J" class="">상품 가격</td><td id="A;jf" class="" style="width:508px">0원 이상 입력 가능하며, 음수는 허용하지 않는다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="d9765436-0ffb-47e4-90aa-012438907fde"><td id="i`_J" class="">판매상태</td><td id="A;jf" class="" style="width:508px">판매중, 품절, 판매중지 상태로 구분한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="e09ac332-1220-447b-ba76-b8d9c2945b0e"><td id="i`_J" class="">별점</td><td id="A;jf" class="" style="width:508px">1점부터 5점까지 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="c885e059-6b9d-4f52-9066-9c2e1f4c3b7b"><td id="i`_J" class="">평균 별점</td><td id="A;jf" class="" style="width:508px">리뷰 별점의 평균값을 소수점 첫째 자리까지 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="8ac59de7-1a5e-466f-9356-47b0dd62fb0f"><td id="i`_J" class="">페이징</td><td id="A;jf" class="" style="width:508px">한 페이지당 20개 상품을 기본으로 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="3eb22f92-6838-4fb4-acdb-d2a2ff2bc153"><td id="i`_J" class="">페이지 이동</td><td id="A;jf" class="" style="width:508px">이전, 다음, 페이지 번호 이동이 가능해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="1857f605-d75a-4abf-b451-c9227d02b852"><td id="i`_J" class="">최근 검색어</td><td id="A;jf" class="" style="width:508px">회원 기준 최근 검색어를 최대 10개까지 저장한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="e49e2d47-fe07-4ea1-934b-b1d5565b7dc0"><td id="i`_J" class="">최근 조회 상품</td><td id="A;jf" class="" style="width:508px">회원 기준 최근 조회 상품을 최대 10개까지 표시한다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="99e9d923-571b-4627-b899-319fb4412a53" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="df2e5247-d6a4-4565-9075-46c29a53cd09" class="bulleted-list"><li style="list-style-type:disc">상품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="485a538f-2b1c-4dce-a7b3-969ca52b1784" class="bulleted-list"><li style="list-style-type:disc">상품명</li></ul></div><div style="display:contents" dir="auto"><ul id="31fccea5-cd38-42c0-b3d9-fa78ba5ea993" class="bulleted-list"><li style="list-style-type:disc">상품가격</li></ul></div><div style="display:contents" dir="auto"><ul id="ca716071-4101-4fc3-b9fb-f318f1d30d79" class="bulleted-list"><li style="list-style-type:disc">대표이미지</li></ul></div><div style="display:contents" dir="auto"><ul id="750a8c3a-d826-4e74-bf0c-a58920cf9927" class="bulleted-list"><li style="list-style-type:disc">카테고리</li></ul></div><div style="display:contents" dir="auto"><ul id="2ecdd6f9-f644-42b7-ba7a-3333e70bff96" class="bulleted-list"><li style="list-style-type:disc">판매상태</li></ul></div><div style="display:contents" dir="auto"><ul id="6a62eb02-f04f-4655-9554-d3a4c7d139a1" class="bulleted-list"><li style="list-style-type:disc">평균별점</li></ul></div><div style="display:contents" dir="auto"><ul id="cc363462-61ec-4c24-b494-69d181183386" class="bulleted-list"><li style="list-style-type:disc">리뷰수</li></ul></div><div style="display:contents" dir="auto"><ul id="cd699fe3-1742-49d4-99cd-67c5cb61a0f7" class="bulleted-list"><li style="list-style-type:disc">등록일</li></ul></div><div style="display:contents" dir="auto"><h2 id="c9cd5902-cf6b-46f0-af6e-a6bd97915ad7" class="">1.2 상품 상세 조회</h2></div><div style="display:contents" dir="auto"><h3 id="0aee246f-797b-4136-9065-68b13de49fbd" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="8cc0e464-f0ef-4fec-845e-926e8fca49b6" class="bulleted-list"><li style="list-style-type:disc">사용자는 상품 목록에서 특정 상품을 선택하여 상세 정보를 조회할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="f63aecc8-fa15-4edc-af45-98890b67c7ad" class="bulleted-list"><li style="list-style-type:disc">상품 상세 화면에는 상품명, 가격, 이미지, 설명, 재고, 판매상태(품절), 판매처 정보가 표시되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80ee-8402-c2ca8b6de71d" class="bulleted-list"><li style="list-style-type:disc">사용자는 상품 상세 화면에서 상품 옵션 선택이 가능해야 한다. (색상, 사이즈 등)</li></ul></div><div style="display:contents" dir="auto"><ul id="864099d5-7269-413e-ab28-e407b6e8c205" class="bulleted-list"><li style="list-style-type:disc">상품 상세 화면에는 장바구니 담기, 바로구매 버튼이 제공되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="99714bba-79a7-464d-a729-294ca5694952" class="bulleted-list"><li style="list-style-type:disc">품절 상품은 장바구니 담기와 바로구매가 제한되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="5cab07e5-5005-4f3c-bb32-2665b89607db" class="bulleted-list"><li style="list-style-type:disc">상품 상세 화면에서 리뷰 목록과 평균 별점을 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="ba744b9a-c01e-4886-b210-4f27f14950a8" class="bulleted-list"><li style="list-style-type:disc">상품 상세 화면에서 해당 상품의 가격분석 정보를 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="fbf0d3fa-0694-4505-9bf5-ce0516f66105" class="bulleted-list"><li style="list-style-type:disc">상품이 단종된 경우 일반 사용자는 접근할 수 없어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8079-96e7-c36d8f992573" class="bulleted-list"><li style="list-style-type:disc">일반 사용자는 상품에 대한 문의가 가능해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8025-b8d1-ea0bc3ad9d52" class="bulleted-list"><li style="list-style-type:disc">사용자가 선택한 상품과 유사한 상품을 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-80c5-8992-d7f1cb55a211" class="bulleted-list"><li style="list-style-type:disc">사용자가 상세조회를 할 경우 해당 제품의 조회수를 추가하고 저장해야 한다.</li></ul></div><div style="display:contents" dir="auto"><p id="365e87e4-dd3c-801c-ae38-e3b811ceba9d" class="">
+</p></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-80fe-81c4-f0a654bbe02d" class="bulleted-list"><li style="list-style-type:disc">찜 기능 추가 고려</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-80f6-900b-e4cf00509be4" class="bulleted-list"><li style="list-style-type:disc">재입고 알림 기능 추가 고려</li></ul></div><div style="display:contents" dir="auto"><h2 id="4a5fe0fa-c58a-469e-9a72-534c19243fa7" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="b3be72c3-fb1b-4c42-b007-eb5291213161" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="1e2ad354-9022-4f9f-aa28-94c7f43ad792"><th id="URdF" class="simple-table-header-color simple-table-header">항목</th><th id="FBa_" class="simple-table-header-color simple-table-header" style="width:582.0000152587891px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="c157ca7d-b250-4299-80d7-8f895ca7e2ed"><td id="URdF" class="">상품명 표시</td><td id="FBa_" class="" style="width:582.0000152587891px">50자를 초과하는 경우 말줄임표 처리하거나 줄바꿈 처리한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="a1678dc3-a479-409b-ac07-709765512982"><td id="URdF" class="">상품 설명</td><td id="FBa_" class="" style="width:582.0000152587891px">최소 10자 이상, 최대 2,000자 이하로 입력한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f7b563e2-66f5-4564-90b4-beacb799687a"><td id="URdF" class="">재고 표시</td><td id="FBa_" class="" style="width:582.0000152587891px">재고가 0개이면 품절로 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="9a6843e8-14b4-4a41-ac68-758b5cc74cf9"><td id="URdF" class="">판매상태</td><td id="FBa_" class="" style="width:582.0000152587891px">판매중, 품절, 판매중지 상태로 구분한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="3bc16e77-37b2-4e81-b974-304533766def"><td id="URdF" class="">평균 별점</td><td id="FBa_" class="" style="width:582.0000152587891px">1.0점부터 5.0점까지 소수점 첫째 자리로 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="ff6ba7be-5f0b-40bc-87de-e81817d8b107"><td id="URdF" class="">조회수</td><td id="FBa_" class="" style="width:582.0000152587891px">상품 상세 조회 시 1회 증가한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="00b31aec-419e-4f4b-9a3e-9ab0a3c0bbf4"><td id="URdF" class=""><mark class="highlight-default">조회수 중복 처리</mark></td><td id="FBa_" class="" style="width:582.0000152587891px"><mark class="highlight-default">동일 사용자의 반복 조회는 일정 시간 동안 중복 집계하지 않을 수 있다.</mark></td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="49c21be4-c66b-47d0-9921-8c801b45c7f3" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="1619a7d7-357c-42b9-bcbd-c88115e700c9" class="bulleted-list"><li style="list-style-type:disc">상품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="cf72a58c-6f69-47d1-bf09-2035f3d9cf7e" class="bulleted-list"><li style="list-style-type:disc">판매자번호</li></ul></div><div style="display:contents" dir="auto"><ul id="74795e64-155a-4b99-a010-5c3f57fe92d4" class="bulleted-list"><li style="list-style-type:disc">상품명</li></ul></div><div style="display:contents" dir="auto"><ul id="fc9bca56-3c25-4e2e-96c1-df65e61d7cf8" class="bulleted-list"><li style="list-style-type:disc">상품설명</li></ul></div><div style="display:contents" dir="auto"><ul id="977c5a5e-6557-4fcc-91fe-ffd14e559136" class="bulleted-list"><li style="list-style-type:disc">상품가격</li></ul></div><div style="display:contents" dir="auto"><ul id="33863fd1-8066-4921-ba05-2d5640c1ba93" class="bulleted-list"><li style="list-style-type:disc">상품이미지</li></ul></div><div style="display:contents" dir="auto"><ul id="8b33c8e8-50fa-4a3a-865b-a9392bc87c1b" class="bulleted-list"><li style="list-style-type:disc">재고수량</li></ul></div><div style="display:contents" dir="auto"><ul id="de68c7af-f207-423f-b82f-b4dce258f62b" class="bulleted-list"><li style="list-style-type:disc">카테고리</li></ul></div><div style="display:contents" dir="auto"><ul id="62ee5511-dd71-46f6-ab48-460613dca162" class="bulleted-list"><li style="list-style-type:disc">판매상태</li></ul></div><div style="display:contents" dir="auto"><ul id="ed5c667d-a6d5-456e-a082-5b5f95c1d9c9" class="bulleted-list"><li style="list-style-type:disc">등록일</li></ul></div><div style="display:contents" dir="auto"><ul id="85994d57-793a-4d4e-b60a-45d4bba8e64e" class="bulleted-list"><li style="list-style-type:disc">수정일</li></ul></div><div style="display:contents" dir="auto"><ul id="637f77d4-3b49-472b-a7cc-6c53b55d5915" class="bulleted-list"><li style="list-style-type:disc">평균별점</li></ul></div><div style="display:contents" dir="auto"><ul id="f7b4230d-ae67-4f9f-90a4-6894c4ed48df" class="bulleted-list"><li style="list-style-type:disc">리뷰수</li></ul></div><div style="display:contents" dir="auto"><ul id="f8a84b17-7af7-4d69-91c2-71b51d000383" class="bulleted-list"><li style="list-style-type:disc">판매자명</li></ul></div><div style="display:contents" dir="auto"><ul id="6fcc1d45-8918-4b3d-93ab-b7c91b2e6296" class="bulleted-list"><li style="list-style-type:disc">판매자평점</li></ul></div><div style="display:contents" dir="auto"><h2 id="29c537ea-4cd2-4f09-8f5f-1ba968f25756" class="">1.3 상품 CRUD 기능</h2></div><div style="display:contents" dir="auto"><h3 id="e2e6391e-e75d-4643-b9cb-2f5828f5e035" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="a1af3fba-f201-440c-80f4-a4eadab55d0f" class="bulleted-list"><li style="list-style-type:disc">판매처는 상품을 등록할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="23850cbb-3ad2-40fa-894b-a97176c7b6bf" class="bulleted-list"><li style="list-style-type:disc">판매처는 자신이 등록한 상품을 수정할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="c53f9a8d-2440-42d1-a890-58deb7270599" class="bulleted-list"><li style="list-style-type:disc">판매처는 자신이 등록한 상품을 취소할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-802d-ba9a-de4e830f12c5" class="bulleted-list"><li style="list-style-type:disc"><strong>의류 C,R,U 기능은 사이즈 선택이 가능해야 한다.</strong></li></ul></div><div style="display:contents" dir="auto"><ul id="87cf0706-282d-448c-9959-925dc31657b3" class="bulleted-list"><li style="list-style-type:disc">상품은 검색, 정렬, 필터링이 가능해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="5aa643d4-ac80-440b-b85f-506264ae5b4e" class="bulleted-list"><li style="list-style-type:disc">관리자는 부적절한 상품을 숨김 처리할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="93caa6eb-0cdf-43dd-b4b1-09799b9a0b09" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="27dc15d4-0a55-4a26-a124-884d9ae8263c" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="6355ac83-bebb-413c-befc-a26a385ff8e6"><th id="@{S=" class="simple-table-header-color simple-table-header" style="width:148.00000762939453px">항목</th><th id="DX@T" class="simple-table-header-color simple-table-header" style="width:561.9896240234375px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="888376a7-7700-4ffe-b8d7-87cb74687e37"><td id="@{S=" class="" style="width:148.00000762939453px">상품 등록 권한</td><td id="DX@T" class="" style="width:561.9896240234375px">판매처 계정만 상품을 등록할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="b3464196-38a3-4eec-b00e-18b8623744bb"><td id="@{S=" class="" style="width:148.00000762939453px">상품 수정 권한</td><td id="DX@T" class="" style="width:561.9896240234375px">상품을 등록한 판매처만 수정할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="d663950c-2080-4c26-b363-40d65d8f985c"><td id="@{S=" class="" style="width:148.00000762939453px">상품 취소 권한</td><td id="DX@T" class="" style="width:561.9896240234375px">상품을 등록한 판매처만 취소할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="da88005b-cdb7-4ed2-8856-2ef27502795d"><td id="@{S=" class="" style="width:148.00000762939453px">관리자 권한</td><td id="DX@T" class="" style="width:561.9896240234375px">관리자는 모든 상품을 조회하고 숨김 처리할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="1c766fdb-89d3-4b81-9126-d73c3e0ef996"><td id="@{S=" class="" style="width:148.00000762939453px">상품명</td><td id="DX@T" class="" style="width:561.9896240234375px">최소 2자 이상, 최대 50자 이하로 입력한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="0fa6e87c-7a70-4cc5-a5e6-7bba8d0d16a5"><td id="@{S=" class="" style="width:148.00000762939453px">상품 설명</td><td id="DX@T" class="" style="width:561.9896240234375px">최소 10자 이상, 최대 2,000자 이하로 입력한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="e17dd302-28d1-48ab-8f1a-318dc361f196"><td id="@{S=" class="" style="width:148.00000762939453px">상품 가격</td><td id="DX@T" class="" style="width:561.9896240234375px">0원 이상 입력 가능하며, 음수는 허용하지 않는다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f73282c0-fe95-4251-b3ed-85cf8d9d1251"><td id="@{S=" class="" style="width:148.00000762939453px">상품 재고</td><td id="DX@T" class="" style="width:561.9896240234375px">0개 이상 입력 가능하며, 음수는 허용하지 않는다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="41400cee-493d-429f-b3a2-268ae5543017"><td id="@{S=" class="" style="width:148.00000762939453px">상품 카테고리</td><td id="DX@T" class="" style="width:561.9896240234375px">등록된 카테고리 중 하나를 반드시 선택해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="45a6012d-dd8f-4cad-bd21-d16c2aa7a6f9"><td id="@{S=" class="" style="width:148.00000762939453px">상품 이미지</td><td id="DX@T" class="" style="width:561.9896240234375px">최소 1개 이상 등록해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="20b93e3a-8436-43d0-9eb2-fe0e15d8a260"><td id="@{S=" class="" style="width:148.00000762939453px">상품 이미지 개수</td><td id="DX@T" class="" style="width:561.9896240234375px">최대 10개까지 등록할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="e799c3f4-b76f-473c-a2a2-5c78d2224739"><td id="@{S=" class="" style="width:148.00000762939453px">상품 이미지 형식</td><td id="DX@T" class="" style="width:561.9896240234375px">JPG, JPEG, PNG, WEBP 형식을 허용한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="9d13099d-52c9-4d62-8b2e-f92ac3c9683d"><td id="@{S=" class="" style="width:148.00000762939453px">상품 이미지 용량</td><td id="DX@T" class="" style="width:561.9896240234375px">이미지 1개당 최대 5MB 이하로 제한한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="1d996b72-2ea3-402e-8a21-42535af5a61c"><td id="@{S=" class="" style="width:148.00000762939453px">대표 이미지</td><td id="DX@T" class="" style="width:561.9896240234375px">등록된 이미지 중 1개를 대표 이미지로 지정해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="d38ba391-50d6-4048-8d3d-1b9a7ca7ee2f"><td id="@{S=" class="" style="width:148.00000762939453px">판매상태</td><td id="DX@T" class="" style="width:561.9896240234375px">판매중, 품절, 판매중지 상태로 구분한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="6ed02c34-827a-4f3a-b84a-6c26b7fd618a"><td id="@{S=" class="" style="width:148.00000762939453px">상품 취소 처리</td><td id="DX@T" class="" style="width:561.9896240234375px">상품을 실제 삭제하지 않고 판매중지 상태로 변경한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="c23cacbe-53a7-4a1d-a592-f292785e4f43"><td id="@{S=" class="" style="width:148.00000762939453px">부적절한 상품 처리</td><td id="DX@T" class="" style="width:561.9896240234375px">관리자는 정책 위반 상품을 숨김 처리할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="94e2920b-ad06-4e7b-aa22-5b6abfdc051f"><td id="@{S=" class="" style="width:148.00000762939453px">상품 검색</td><td id="DX@T" class="" style="width:561.9896240234375px">상품명으로 검색할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="282a20de-24e7-4d4e-9d75-10c68943fdf9"><td id="@{S=" class="" style="width:148.00000762939453px">상품 정렬</td><td id="DX@T" class="" style="width:561.9896240234375px">판매량순, 최신순, 가격순, 별점순으로 정렬할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="9c5f1038-2fa8-434c-a76b-a840360e5f58"><td id="@{S=" class="" style="width:148.00000762939453px"><mark class="highlight-default">상품 필터링</mark></td><td id="DX@T" class="" style="width:561.9896240234375px"><mark class="highlight-default">카테고리, 가격, 별점 기준으로 필터링할 수 있다.</mark></td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="422e9a85-772d-4764-aabd-ed970606859b" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="ca891b26-6c54-4409-a58c-1e5d24106c22" class="bulleted-list"><li style="list-style-type:disc">상품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="b5e5e6e7-d5d0-460e-aa73-66112210a169" class="bulleted-list"><li style="list-style-type:disc">판매처번호</li></ul></div><div style="display:contents" dir="auto"><ul id="519c3207-0b78-4fc6-b130-490e80421a4b" class="bulleted-list"><li style="list-style-type:disc">상품명</li></ul></div><div style="display:contents" dir="auto"><ul id="3553ead7-efe0-4bc6-b72c-63cea2dd8525" class="bulleted-list"><li style="list-style-type:disc">상품설명</li></ul></div><div style="display:contents" dir="auto"><ul id="02526c76-14ef-4430-a567-7a3f21207624" class="bulleted-list"><li style="list-style-type:disc">상품가격</li></ul></div><div style="display:contents" dir="auto"><ul id="e41efe95-9c88-4071-a538-027fbef8f770" class="bulleted-list"><li style="list-style-type:disc">카테고리</li></ul></div><div style="display:contents" dir="auto"><ul id="8b6894cc-371e-4c65-a2a9-19de4df722e7" class="bulleted-list"><li style="list-style-type:disc">상품이미지</li></ul></div><div style="display:contents" dir="auto"><ul id="a45d63cf-6203-456f-9ea0-3aaf3a3b5a0f" class="bulleted-list"><li style="list-style-type:disc">재고수량</li></ul></div><div style="display:contents" dir="auto"><ul id="1b676d58-a367-4f20-8cee-0b22e344d07b" class="bulleted-list"><li style="list-style-type:disc">상품상태</li></ul></div><div style="display:contents" dir="auto"><ul id="4a02de62-98ec-4cf7-9918-0eefef4a7783" class="bulleted-list"><li style="list-style-type:disc">등록일</li></ul></div><div style="display:contents" dir="auto"><ul id="2e8192e3-b170-40f2-afa0-31c4738bcaf5" class="bulleted-list"><li style="list-style-type:disc">수정일</li></ul></div><div style="display:contents" dir="auto"><ul id="edbc3ea4-99c6-4084-b073-5f0176b70760" class="bulleted-list"><li style="list-style-type:disc">판매상태</li></ul></div><div style="display:contents" dir="auto"><h2 id="4436e0b0-4c03-4473-833b-9bce5f5c9b14" class="">1.4 장바구니 기능</h2></div><div style="display:contents" dir="auto"><h3 id="8f4a8642-e93f-4086-951d-8dcdeff609c6" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="0a94ecc9-7b41-4c09-a230-e7d3f0f767bd" class="bulleted-list"><li style="list-style-type:disc">회원은 원하는 상품을 장바구니에 담을 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="3612d137-0ec5-4d49-a532-4e20061da08d" class="bulleted-list"><li style="list-style-type:disc">회원은 장바구니 상품 수량을 변경할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="36fad7d8-98f7-4bf6-ae90-00c4d161233f" class="bulleted-list"><li style="list-style-type:disc">회원은 장바구니 상품을 삭제할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="6ecba630-86e1-4e05-badb-136544b7e79d" class="bulleted-list"><li style="list-style-type:disc">회원은 장바구니에서 선택한 상품만 주문할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="1d8b187f-24a5-4bb2-9c13-282cc03c3f3a" class="bulleted-list"><li style="list-style-type:disc">품절되거나 삭제된 상품은 주문할 수 없어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="2633301a-0ea9-42ce-8215-5588db6c3184" class="bulleted-list"><li style="list-style-type:disc">장바구니에 담긴 상품의 총 금액을 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="ca2a8e16-a859-4f09-ad0e-8b62eae44fe5" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="14668b12-a802-4f69-a43c-0d7d620eb893" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="19c0cefd-e659-46c4-b075-e5e4c08dca0c"><th id="~|kR" class="simple-table-header-color simple-table-header" style="width:147.00000762939453px">항목</th><th id="B@A;" class="simple-table-header-color simple-table-header" style="width:555.99658203125px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="68a741df-0106-4499-987f-2f42ff17bbb7"><td id="~|kR" class="" style="width:147.00000762939453px">장바구니 담기</td><td id="B@A;" class="" style="width:555.99658203125px">판매중 상태의 상품만 장바구니에 담을 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="9e6d4257-f204-4936-adb3-61a97c6bba6f"><td id="~|kR" class="" style="width:147.00000762939453px">중복 상품 처리</td><td id="B@A;" class="" style="width:555.99658203125px">이미 장바구니에 담긴 상품을 다시 담으면 기존 수량에 추가하거나 안내 메시지를 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="29dba872-b03e-4c30-9ed0-cda818095972"><td id="~|kR" class="" style="width:147.00000762939453px">상품 수량</td><td id="B@A;" class="" style="width:555.99658203125px">최소 1개 이상 선택해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f6bde366-d751-4f8a-b802-b49754af59cf"><td id="~|kR" class="" style="width:147.00000762939453px">최대 수량</td><td id="B@A;" class="" style="width:555.99658203125px">상품 재고 수량을 초과할 수 없다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="a054c72a-84a5-45ff-b0d9-ce0c7d45f2bd"><td id="~|kR" class="" style="width:147.00000762939453px">수량 변경</td><td id="B@A;" class="" style="width:555.99658203125px">회원은 장바구니 화면에서 상품 수량을 증가 또는 감소시킬 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="7201947a-a2ef-4f53-ab95-3e1dcad2baba"><td id="~|kR" class="" style="width:147.00000762939453px">상품 삭제</td><td id="B@A;" class="" style="width:555.99658203125px">회원은 장바구니에 담긴 상품을 개별 삭제할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="8ddd6ef2-270a-4ea8-a54f-3538a743e6e6"><td id="~|kR" class="" style="width:147.00000762939453px">선택 삭제</td><td id="B@A;" class="" style="width:555.99658203125px">회원은 여러 상품을 선택하여 한 번에 삭제할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="44f98a1e-a783-4404-8761-01c4184ddcba"><td id="~|kR" class="" style="width:147.00000762939453px">전체 삭제</td><td id="B@A;" class="" style="width:555.99658203125px">회원은 장바구니 전체 상품을 삭제할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f4fdc616-1d73-4c75-a331-467f94924307"><td id="~|kR" class="" style="width:147.00000762939453px">선택 주문</td><td id="B@A;" class="" style="width:555.99658203125px">회원은 장바구니 상품 중 선택한 상품만 주문할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f2243ebd-00e1-43d9-b266-5decea4be71f"><td id="~|kR" class="" style="width:147.00000762939453px">총 금액 계산</td><td id="B@A;" class="" style="width:555.99658203125px">선택한 상품의 가격과 수량을 기준으로 총 금액을 계산한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="0e4bb778-4fb6-484c-a807-1a3de64603da"><td id="~|kR" class="" style="width:147.00000762939453px">품절 상품 처리</td><td id="B@A;" class="" style="width:555.99658203125px">품절 상품은 장바구니에는 표시되지만 주문할 수 없다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="ed0e8a06-b2bc-46d3-b8a5-736c3deac502"><td id="~|kR" class="" style="width:147.00000762939453px">판매중지 상품 처리</td><td id="B@A;" class="" style="width:555.99658203125px">판매중지 상품은 주문할 수 없으며 주문 대상에서 제외한다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="5d257c50-4e01-4159-8893-001d1b47fb8b" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="df0cffc7-dd10-423f-bb77-8b80505ab7d8" class="bulleted-list"><li style="list-style-type:disc">장바구니번호</li></ul></div><div style="display:contents" dir="auto"><ul id="fd1c3cc1-a873-4714-828a-05da167abc47" class="bulleted-list"><li style="list-style-type:disc">회원번호</li></ul></div><div style="display:contents" dir="auto"><ul id="e4219cd3-c215-4ea4-98e3-2e697f820c44" class="bulleted-list"><li style="list-style-type:disc">상품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="f28149a5-a5ab-40cc-ad05-ab2d316077fb" class="bulleted-list"><li style="list-style-type:disc">수량</li></ul></div><div style="display:contents" dir="auto"><ul id="1c76f98c-f224-46e0-a402-5cc4bfe435eb" class="bulleted-list"><li style="list-style-type:disc">추가일</li></ul></div><div style="display:contents" dir="auto"><hr id="b88deb64-3faa-4599-a7ec-247c4714d333"/></div><div style="display:contents" dir="auto"><h2 id="95c70c83-ff6e-430a-87b9-c51a1afec794" class="">1.5 주문 기능</h2></div><div style="display:contents" dir="auto"><h3 id="47132b5c-6e9b-45fa-a154-2c1ab8379d23" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="7add9186-b1c8-4cc9-bd7e-3a2014a72675" class="bulleted-list"><li style="list-style-type:disc">회원은 상품을 주문할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="788c6838-99d9-4f1e-bd54-e3c36ebece77" class="bulleted-list"><li style="list-style-type:disc">주문 시 배송지 정보를 입력 또는 선택 할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="7aefa622-da5f-4248-9edb-ecf392d85125" class="bulleted-list"><li style="list-style-type:disc">주문 완료 후 주문 내역이 생성되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="bce1b6ea-2dc8-4079-87bb-37b91067f9dd" class="bulleted-list"><li style="list-style-type:disc">회원은 마이페이지에서 주문 내역을 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="5f0e73f7-83e2-4e19-9634-57e26e923fe7" class="bulleted-list"><li style="list-style-type:disc">주문은 결제 상태, 배송 상태, 취소/반품 상태를 함께 관리해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="a89c7b23-11b2-417d-a9fa-eeab876a5b51" class="bulleted-list"><li style="list-style-type:disc">상품 재고는 주문 완료 또는 결제 완료 시 차감되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h3 id="b2fbcb4a-2dfc-4b1a-9b5a-cdf2ce3f3cd0" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="762ad0d8-11a2-46d6-9836-7a18766b19be" class="bulleted-list"><li style="list-style-type:disc">주문번호</li></ul></div><div style="display:contents" dir="auto"><ul id="761cd696-8cb4-4b39-908a-c33131c561f7" class="bulleted-list"><li style="list-style-type:disc">회원번호</li></ul></div><div style="display:contents" dir="auto"><ul id="cdaa3635-64fc-455f-aa24-9a733342aa09" class="bulleted-list"><li style="list-style-type:disc">주문일</li></ul></div><div style="display:contents" dir="auto"><ul id="16ac0faa-6707-443e-b284-72a79edaa2b8" class="bulleted-list"><li style="list-style-type:disc">주문상태</li></ul></div><div style="display:contents" dir="auto"><ul id="0fd6c1e7-8495-4532-bd19-bd540d91468d" class="bulleted-list"><li style="list-style-type:disc">총 주문금액</li></ul></div><div style="display:contents" dir="auto"><ul id="e2bc3ea1-b037-40ba-a070-da2dc9e05b9d" class="bulleted-list"><li style="list-style-type:disc">배송지</li></ul></div><div style="display:contents" dir="auto"><ul id="7d1ebb13-4ca1-41b6-94a3-9b801846c2fb" class="bulleted-list"><li style="list-style-type:disc">수령인</li></ul></div><div style="display:contents" dir="auto"><ul id="dbb55b83-f6ad-462f-9bda-49b549925883" class="bulleted-list"><li style="list-style-type:disc">연락처</li></ul></div><div style="display:contents" dir="auto"><h2 id="ac5ef493-9596-4941-8ef3-5c1057351d13" class="">1.6 결제시스템</h2></div><div style="display:contents" dir="auto"><h3 id="7a66e3c0-3861-4e66-acc7-4637e8031423" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="1a71f9d9-4d31-476a-9aeb-f4eef7700baa" class="bulleted-list"><li style="list-style-type:disc">회원은 주문 상품에 대해 결제를 진행할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="aa227329-e1c6-491d-81ce-bdba652e599c" class="bulleted-list"><li style="list-style-type:disc">결제수단은 API를 통해 해당하는 수단으로 결제 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="eab220b9-ec42-412b-9d40-a91032926585" class="bulleted-list"><li style="list-style-type:disc">결제 성공 시 주문 상태가 결제완료로 변경되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="1305a29e-698e-4bff-bbd0-bc4c8593e5af" class="bulleted-list"><li style="list-style-type:disc">결제 실패 시 사용자에게 실패 메시지를 보여줘야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="d4dee45c-a32e-43fe-b8bf-82af396668d6" class="bulleted-list"><li style="list-style-type:disc">결제 내역은 주문 내역과 연결되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="45d35bd6-a1c4-4ec0-aa91-356014305a7f" class="bulleted-list"><li style="list-style-type:disc">결제 취소 시 결제 상태가 취소로 변경되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8045-a425-f9cd77f13986" class="bulleted-list"><li style="list-style-type:disc">상품 결제에 핫딜과 쿠폰을 적용할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-80e2-86cf-d11b3071ea3f" class="bulleted-list"><li style="list-style-type:disc">쿠폰 사용에는 특정 조건이 포함될 수 있다.</li></ul></div><div style="display:contents" dir="auto"><ul id="367e87e4-dd3c-80cc-be19-e9860b0ae215" class="bulleted-list"><li style="list-style-type:disc">결제 내역에는 구매한 상품, 원가, 핫딜 적용 할인가, 쿠폰 적용 할인가, 최종 구매가가 기록되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="12af8ab4-f4b2-4df8-a9cd-5277ba85e8b4" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="e8f82a72-f412-4bef-ac3c-9ec25b7f85ed" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="e5b76846-eedd-49cf-8f49-35d862b734bb"><th id="Uvbt" class="simple-table-header-color simple-table-header" style="width:142px">항목</th><th id="WO`{" class="simple-table-header-color simple-table-header" style="width:648.99658203125px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="7f6ecbf0-22d0-4bdd-9ae5-d7ac76971124"><td id="Uvbt" class="" style="width:142px">주문 가능 사용자</td><td id="WO`{" class="" style="width:648.99658203125px">로그인한 회원만 주문할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="32b2c6e7-4ff1-4285-a5ac-8de71f4d74ab"><td id="Uvbt" class="" style="width:142px">주문 가능 상품</td><td id="WO`{" class="" style="width:648.99658203125px">판매중 상태이며 재고가 1개 이상인 상품만 주문할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="0a76e6db-9ac4-4911-a8f3-095d19a22e27"><td id="Uvbt" class="" style="width:142px">주문 수량</td><td id="WO`{" class="" style="width:648.99658203125px">최소 1개 이상이어야 하며 상품 재고 수량을 초과할 수 없다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="61f5c2fb-176b-48e7-b2f8-e8d5b51f1123"><td id="Uvbt" class="" style="width:142px">배송지 입력</td><td id="WO`{" class="" style="width:648.99658203125px">회원은 주문 시 신규 배송지를 직접 입력할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="bacdf01e-9e66-4ae5-a6ae-41cc8d02ad0d"><td id="Uvbt" class="" style="width:142px">배송지 선택</td><td id="WO`{" class="" style="width:648.99658203125px">회원은 기존에 등록된 배송지를 선택할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="0ffbea73-20dc-4dca-a0ab-6b3464b4af3a"><td id="Uvbt" class="" style="width:142px">기본 배송지</td><td id="WO`{" class="" style="width:648.99658203125px">회원이 기본 배송지를 설정한 경우 주문서에 자동 표시할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="2db2c125-68ea-45a0-a18b-f9abd32ba893"><td id="Uvbt" class="" style="width:142px">주문 내역 생성</td><td id="WO`{" class="" style="width:648.99658203125px">주문 완료 시 주문번호가 생성되고 주문 내역이 저장된다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="24801832-108a-4311-9233-15f77c82f7d2"><td id="Uvbt" class="" style="width:142px">주문 상세 생성</td><td id="WO`{" class="" style="width:648.99658203125px">주문에 포함된 상품별 주문 상세 내역이 생성된다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="25c4e095-41bf-4e3c-8abe-ac386d2c08a9"><td id="Uvbt" class="" style="width:142px">주문 상태 관리</td><td id="WO`{" class="" style="width:648.99658203125px">주문접수, 결제완료, 배송준비중, 배송중, 배송완료, 주문취소, 반품요청, 반품완료 상태로 관리한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="6cc473c6-9537-4ec4-b481-3d51c851677c"><td id="Uvbt" class="" style="width:142px">결제 상태 관리</td><td id="WO`{" class="" style="width:648.99658203125px">결제완료, 결제실패, 결제취소, 환불완료 상태를 관리한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="a937cb03-2a5c-4bfc-a619-bf2b43469611"><td id="Uvbt" class="" style="width:142px">배송 상태 관리</td><td id="WO`{" class="" style="width:648.99658203125px">배송준비중, 배송중, 배송완료 상태를 관리한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="695b87f4-c80a-408d-8fab-e1ba79a1ca59"><td id="Uvbt" class="" style="width:142px">취소/반품 상태 관리</td><td id="WO`{" class="" style="width:648.99658203125px">주문취소, 취소완료, 반품요청, 반품승인, 반품완료 상태를 관리한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="dd8e2c63-fbd5-4f34-847a-bb8666aad2fa"><td id="Uvbt" class="" style="width:142px">재고 차감 시점</td><td id="WO`{" class="" style="width:648.99658203125px">결제 완료 시 재고를 차감하는 것을 기본으로 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="77b3c6fa-8956-4e9a-acb0-5a4dd53de753"><td id="Uvbt" class="" style="width:142px">재고 부족 처리</td><td id="WO`{" class="" style="width:648.99658203125px">결제 전 재고가 부족해진 경우 주문을 진행할 수 없다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="6b9d5074-10fd-4096-86be-493f3ec9a19f"><td id="Uvbt" class="" style="width:142px">주문 상세 조회</td><td id="WO`{" class="" style="width:648.99658203125px">회원은 주문 상품, 배송지, 결제상태, 배송상태, 취소/반품 상태를 확인할 수 있다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="7280960a-6c05-42fe-819b-ceb8af7186a6" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="0e7562ea-60e8-4c55-b7e9-11a31f9c1061" class="bulleted-list"><li style="list-style-type:disc">결제번호</li></ul></div><div style="display:contents" dir="auto"><ul id="481dc643-fccc-4c5d-b0d6-0324ee9774d8" class="bulleted-list"><li style="list-style-type:disc">주문번호</li></ul></div><div style="display:contents" dir="auto"><ul id="ac98fa1a-b33a-4bab-9007-f14d7199715e" class="bulleted-list"><li style="list-style-type:disc">회원번호</li></ul></div><div style="display:contents" dir="auto"><ul id="06c082e2-532c-46cd-9bbb-c0e097375669" class="bulleted-list"><li style="list-style-type:disc">결제금액</li></ul></div><div style="display:contents" dir="auto"><ul id="b4c24f72-25f9-427e-a106-d33ab4c0be85" class="bulleted-list"><li style="list-style-type:disc">결제수단</li></ul></div><div style="display:contents" dir="auto"><ul id="d70fb9a4-2268-4c8f-bfad-595b0ac3b597" class="bulleted-list"><li style="list-style-type:disc">결제상태</li></ul></div><div style="display:contents" dir="auto"><ul id="49fc52a4-050e-44d3-8390-25e93b6bcc0d" class="bulleted-list"><li style="list-style-type:disc">결제일</li></ul></div><div style="display:contents" dir="auto"><ul id="5f3a00f8-d20c-4291-b468-d4fc5bde4ac9" class="bulleted-list"><li style="list-style-type:disc">결제취소일</li></ul></div><div style="display:contents" dir="auto"><h2 id="e4df2713-39af-467d-b349-52c65978cd6e" class="">1.7 배송 기능</h2></div><div style="display:contents" dir="auto"><h3 id="2c57d64c-6866-4f30-9102-c72bcf6bf59d" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="14a5cef3-43ac-4465-91d2-073c149cf0e4" class="bulleted-list"><li style="list-style-type:disc">판매처는 주문 상품의 배송 정보를 등록할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80da-9ea4-d2a7f8eddabe" class="bulleted-list"><li style="list-style-type:disc">결제완료후 배송시작까지 2~3일의 텀이 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="e7ba77ee-5f33-4e17-bfb3-ad92517dec9b" class="bulleted-list"><li style="list-style-type:disc">회원은 주문한 상품의 배송 상태를 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="7de00416-bb46-4dc5-b198-e7d5a7c357ac" class="bulleted-list"><li style="list-style-type:disc">배송 상태는 단계별(시작전, 배송중, 도착완료)로 변경되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="8c58453f-727f-409b-8b12-c0827cc8bc5f" class="bulleted-list"><li style="list-style-type:disc">운송장 번호를 등록할 수 있어야 한다.(배송api 미사용시 UUID를 이용하여 가상으로 구현)</li></ul></div><div style="display:contents" dir="auto"><ul id="2063eb5a-1bce-492e-b2e9-ab5264617772" class="bulleted-list"><li style="list-style-type:disc">배송관련하여 관리자에게 문의가 가능해야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="9a957aa6-2c85-4dd1-af26-52abc060848e" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="38a8e235-57c8-4452-a470-41c5c1d7ff37" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="4c630042-0fa0-4e6d-a361-a5f8fcdc5136"><th id="MVek" class="simple-table-header-color simple-table-header" style="width:150.00000762939453px">항목</th><th id="U{sA" class="simple-table-header-color simple-table-header" style="width:559.0000152587891px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="0a91d0e5-1cbc-47db-ab4d-8a46a5c46838"><td id="MVek" class="" style="width:150.00000762939453px">배송 조회 권한</td><td id="U{sA" class="" style="width:559.0000152587891px">주문한 회원 본인, 해당 판매처, 관리자만 배송 정보를 조회할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="6aaa13db-d5a8-4a5e-b4ce-da60ec85a2d4"><td id="MVek" class="" style="width:150.00000762939453px">배송 상태</td><td id="U{sA" class="" style="width:559.0000152587891px">시작전, 배송중, 도착완료 상태로 관리한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f9f67b27-786a-425a-9712-4fd6beb9da6c"><td id="MVek" class="" style="width:150.00000762939453px">운송장 번호</td><td id="U{sA" class="" style="width:559.0000152587891px">판매처가 직접 입력하거나 시스템이 UUID 기반으로 자동 생성한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="aa80b3ed-3afb-4e18-9cb7-f0a971f98697"><td id="MVek" class="" style="width:150.00000762939453px">운송장 번호 중복</td><td id="U{sA" class="" style="width:559.0000152587891px">동일한 운송장 번호는 중복 등록되지 않도록 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="7f83a685-b47a-40ae-9dcd-561900a72b1b"><td id="MVek" class="" style="width:150.00000762939453px">배송 완료 처리</td><td id="U{sA" class="" style="width:559.0000152587891px">배송중 상태에서만 도착완료로 변경할 수 있다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="ca128737-26ed-4c2b-8499-9303b022b400" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="093c3924-177b-4c26-aa30-b5affe3065c1" class="bulleted-list"><li style="list-style-type:disc">배송번호(주문번호는 한번의 주문에 1개지만, 배송번호는 하나의 주문에 여러 택배사가 배송을 하게 됨)</li></ul></div><div style="display:contents" dir="auto"><ul id="2b31cd3d-6fd4-489c-99fd-e7bc1886d783" class="bulleted-list"><li style="list-style-type:disc">주문번호</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-808e-bbf3-dc2c4e6c217d" class="bulleted-list"><li style="list-style-type:disc">주문상세번호(부분 배송을 위해 필요함)</li></ul></div><div style="display:contents" dir="auto"><ul id="3c8ac79d-d7f7-480c-b0fa-335ea219caea" class="bulleted-list"><li style="list-style-type:disc">택배사</li></ul></div><div style="display:contents" dir="auto"><ul id="0b745fed-1142-4a25-9219-74a05730c40b" class="bulleted-list"><li style="list-style-type:disc">운송장번호</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80ec-8c2e-d2cde589e5e1" class="bulleted-list"><li style="list-style-type:disc">도착예정일</li></ul></div><div style="display:contents" dir="auto"><ul id="359ddc56-f3a0-4130-b643-85850754bb3d" class="bulleted-list"><li style="list-style-type:disc">배송상태</li></ul></div><div style="display:contents" dir="auto"><ul id="eaeebb8c-0066-4c67-b8fe-cbd675eeeb23" class="bulleted-list"><li style="list-style-type:disc">발송일</li></ul></div><div style="display:contents" dir="auto"><ul id="10487c7e-25d2-4a0b-ada5-bb71f34e935d" class="bulleted-list"><li style="list-style-type:disc">배송완료일시</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-802c-9307-e348aac270b8" class="bulleted-list"><li style="list-style-type:disc">수령인 이름</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8015-b962-c578396a2f68" class="bulleted-list"><li style="list-style-type:disc">수령인 연락처</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80cf-83c1-dc5ba840e236" class="bulleted-list"><li style="list-style-type:disc">배송지 주소</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8088-8c5d-fcf6a1a869e6" class="bulleted-list"><li style="list-style-type:disc">배송 요청사항</li></ul></div><div style="display:contents" dir="auto"><h2 id="1486fa98-fc61-433c-823e-edbe6cdc489d" class="">1.8 반품 기능</h2></div><div style="display:contents" dir="auto"><h3 id="6e811a69-a7eb-43cf-a64c-42f36eb670a1" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="429b0431-d242-4e6d-9aed-5c31459913ea" class="bulleted-list"><li style="list-style-type:disc">회원은 배송완료된 상품에 대해 조건에 따라 반품을 요청할 수 있어야 한다.(7일 이내만 반품 가능)</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80c8-a7e3-e6601b36aac2" class="bulleted-list"><li style="list-style-type:disc">반품 테이블은 회원ID, 택배사, 출발시간, 도착예정일, 발송일시,  배송지 주소, 배송 요청사항를 등록할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="d5512e4c-87be-456f-8609-550b0f35a90e" class="bulleted-list"><li style="list-style-type:disc">반품 요청 시 반품 사유를 입력해야 한다.(상태코드로)</li></ul></div><div style="display:contents" dir="auto"><ul id="2487ffae-4c48-403e-9f35-d9b90e49e4eb" class="bulleted-list"><li style="list-style-type:disc">판매처 또는 관리자는 반품 요청을 승인/거절할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="f88b6d0a-e426-437a-bde1-fba22055c2db" class="bulleted-list"><li style="list-style-type:disc">반품 승인 시 환불 절차가 진행되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="646df53b-8a59-44c7-b36f-dda16843e3f1" class="bulleted-list"><li style="list-style-type:disc">반품 완료 시 주문 상태(반품중/반품완료)와 결제 상태(환불완료)가 함께 변경되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="0379a1f8-3964-4be0-9e23-7d01892a349d" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="007b55d0-e4ac-4417-995f-57ca7ce000b5" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="9a783de2-06ca-4fee-becc-cc57908d6213"><th id="vCGE" class="simple-table-header-color simple-table-header" style="width:175.00000762939453px">항목</th><th id="tNt`" class="simple-table-header-color simple-table-header" style="width:513.99658203125px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="e7e93dff-110b-4461-830a-f2319fdd3428"><td id="vCGE" class="" style="width:175.00000762939453px">반품 가능 상태</td><td id="tNt`" class="" style="width:513.99658203125px">배송완료 상태의 주문 상품만 반품 요청이 가능하다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="1647b517-b211-42fa-ac20-41c222a4b159"><td id="vCGE" class="" style="width:175.00000762939453px">반품 가능 기간</td><td id="tNt`" class="" style="width:513.99658203125px">배송완료일 기준 7일 이내에만 반품 요청이 가능하다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="ec562552-e588-449b-9901-7f85994d7e2a"><td id="vCGE" class="" style="width:175.00000762939453px">주문 상태 변경</td><td id="tNt`" class="" style="width:513.99658203125px">반품 요청 후 주문 상태를 <code>반품요청</code>, 승인 후 <code>반품중</code>, 완료 후 <code>반품완료</code>로 변경한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="c58a37cd-10fd-4dc8-b433-3fdad2c5c319"><td id="vCGE" class="" style="width:175.00000762939453px">결제 상태 변경</td><td id="tNt`" class="" style="width:513.99658203125px">환불 완료 시 결제 상태를 <code>환불완료</code>로 변경한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="3b6b07a8-b1f6-4ec8-87d0-241fec89aa53"><td id="vCGE" class="" style="width:175.00000762939453px">재고 복구</td><td id="tNt`" class="" style="width:513.99658203125px">반품 완료 후 상품 상태에 따라 재고를 복구할 수 있다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="44297dda-f609-4989-bd6f-36a86c73bef9" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="b4f69c2b-e33d-49bf-bd78-cc1e1a878c4b" class="bulleted-list"><li style="list-style-type:disc">반품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="296848f1-9936-4cd0-b322-e04fc3af94f7" class="bulleted-list"><li style="list-style-type:disc">주문번호</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80ff-9065-c79fa3a32764" class="bulleted-list"><li style="list-style-type:disc">주문상세번호</li></ul></div><div style="display:contents" dir="auto"><ul id="fce2792c-1858-43be-b07b-991116106b05" class="bulleted-list"><li style="list-style-type:disc">회원번호</li></ul></div><div style="display:contents" dir="auto"><ul id="9a24f012-3ef8-4f7c-bcee-76942e1d94a9" class="bulleted-list"><li style="list-style-type:disc">반품사유코드</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8068-9720-dd6e9c4aa21a" class="bulleted-list"><li style="list-style-type:disc">반품사유상세</li></ul></div><div style="display:contents" dir="auto"><ul id="b6813ef8-067d-447c-b0fb-b87d66e4ad2d" class="bulleted-list"><li style="list-style-type:disc">반품상태</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8018-8e36-fb61df043a3c" class="bulleted-list"><li style="list-style-type:disc">반품운송장번호</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80dd-bb20-ee392323bd0d" class="bulleted-list"><li style="list-style-type:disc">반품거절사유</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8076-b776-ee761a0cc0e6" class="bulleted-list"><li style="list-style-type:disc">환불예정금액</li></ul></div><div style="display:contents" dir="auto"><ul id="08778e9a-bd03-458b-a1be-f9e9d522823c" class="bulleted-list"><li style="list-style-type:disc">요청일시</li></ul></div><div style="display:contents" dir="auto"><ul id="6b225123-76a0-4b8d-961d-3b3c580a7cf7" class="bulleted-list"><li style="list-style-type:disc">처리일시</li></ul></div><div style="display:contents" dir="auto"><h2 id="c77c9c29-ae52-4e59-9573-bf5dd43b9795" class="">1.9 주문취소 기능</h2></div><div style="display:contents" dir="auto"><h3 id="2508a470-a2f5-4428-a6ef-1f54f4b3eae4" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="01156247-5ea0-4457-a2ff-47973021f162" class="bulleted-list"><li style="list-style-type:disc">회원은 결제완료 후 배송이 시작되기 전까지 주문취소를 요청할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="3540c18e-d9a8-4caa-ae50-248202cb870a" class="bulleted-list"><li style="list-style-type:disc">배송중 또는 배송완료 상태에서는 주문취소가 불가능하고 반품으로 처리해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="2f882436-dc8a-4829-ba67-a92aa9b1682b" class="bulleted-list"><li style="list-style-type:disc">주문취소 시 취소 사유를 입력할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="b0c4f21c-decc-43cd-95aa-92fb255a086d" class="bulleted-list"><li style="list-style-type:disc">주문취소가 완료되면 결제 취소 또는 환불 처리가 진행되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="3b42924e-4b27-46b6-884e-14899f81eaa3" class="bulleted-list"><li style="list-style-type:disc">취소된 주문은 주문 내역에서 상태를 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="3af73a41-05dd-42fb-89b4-013a8ef36247" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="3500c7df-9e81-4d31-86c8-7f901ed5214e" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="dcc013c4-8612-4be6-8660-d346058eeaad"><th id="UhW&gt;" class="simple-table-header-color simple-table-header" style="width:153.57986450195312px">항목</th><th id="Js}f" class="simple-table-header-color simple-table-header" style="width:485.98614501953125px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="ada4fe3a-518a-4ea6-acda-4d7ed0273434"><td id="UhW&gt;" class="" style="width:153.57986450195312px">주문취소 가능 상태</td><td id="Js}f" class="" style="width:485.98614501953125px">결제완료, 배송시작 전 상태에서만 주문취소가 가능하다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="fac31cb7-ae25-415e-b491-81b4441749eb"><td id="UhW&gt;" class="" style="width:153.57986450195312px">주문취소 불가 상태</td><td id="Js}f" class="" style="width:485.98614501953125px">배송중, 배송완료, 반품중, 반품완료 상태에서는 주문취소가 불가능하다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="21e38d7e-7002-460e-a6cf-057d8c24d1a8"><td id="UhW&gt;" class="" style="width:153.57986450195312px">주문 상태 변경</td><td id="Js}f" class="" style="width:485.98614501953125px">주문취소 완료 시 주문 상태를 <code>주문취소</code> 또는 <code>취소완료</code>로 변경한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f2054ebb-0d50-4c1a-9d09-81594a255785"><td id="UhW&gt;" class="" style="width:153.57986450195312px">결제 상태 변경</td><td id="Js}f" class="" style="width:485.98614501953125px">결제 취소 완료 시 결제 상태를 <code>결제취소</code> 또는 <code>환불완료</code>로 변경한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="3eed60d7-8dd9-4834-8603-bb98a799fade"><td id="UhW&gt;" class="" style="width:153.57986450195312px">재고 복구</td><td id="Js}f" class="" style="width:485.98614501953125px">주문취소 완료 시 차감된 상품 재고를 복구한다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="c2bd86e1-f65a-4f07-ba15-7c049d86a453" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="65fd917c-d200-44da-b39c-2cf68347010c" class="bulleted-list"><li style="list-style-type:disc">취소번호</li></ul></div><div style="display:contents" dir="auto"><ul id="c008e794-af0d-43c5-97cf-a8dfab44bfdc" class="bulleted-list"><li style="list-style-type:disc">주문번호</li></ul></div><div style="display:contents" dir="auto"><ul id="5bc80e56-e8a0-4cd0-ad58-a216eeb203a0" class="bulleted-list"><li style="list-style-type:disc">회원번호</li></ul></div><div style="display:contents" dir="auto"><ul id="c37704b6-4d66-452e-8a8d-208e5e39087d" class="bulleted-list"><li style="list-style-type:disc">취소사유</li></ul></div><div style="display:contents" dir="auto"><ul id="1c0c5774-9d47-4c79-b255-235e64e7f480" class="bulleted-list"><li style="list-style-type:disc">취소상태</li></ul></div><div style="display:contents" dir="auto"><ul id="494b4bc8-1dc4-4b3e-a961-a65170e79521" class="bulleted-list"><li style="list-style-type:disc">요청일</li></ul></div><div style="display:contents" dir="auto"><ul id="6e8fd85a-413b-43c8-bb73-616a5517f067" class="bulleted-list"><li style="list-style-type:disc">처리일</li></ul></div><div style="display:contents" dir="auto"><h2 id="640b1a3d-7a56-44da-b544-42ed50e58167" class="">1.10 핫딜 기능</h2></div><div style="display:contents" dir="auto"><h3 id="bf2aee3b-f579-415e-8819-56b3f8c5826c" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="a9cd179d-bd40-4e3a-b802-c5fca14e68bb" class="bulleted-list"><li style="list-style-type:disc">관리자는 특정 상품을 핫딜 상품으로 등록할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="a1c2f980-e574-47fe-a737-f56280b4c0c3" class="bulleted-list"><li style="list-style-type:disc">핫딜 상품은 일반 상품보다 할인된 가격으로 노출되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="3011ec4c-45c2-404c-8599-495f7f10b7de" class="bulleted-list"><li style="list-style-type:disc">핫딜은 진행 기간, 수량 한정을 가져야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="e5c0878b-9a51-49ec-b9a0-9c5f7f6b4ec5" class="bulleted-list"><li style="list-style-type:disc">사용자는 핫딜 상품 목록을 별도로 조회할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="2200f3d9-703b-4bd7-9ef9-a91224e79bbf" class="bulleted-list"><li style="list-style-type:disc">핫딜 상품은 메인 화면 또는 상품 목록 상단에 노출될 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="b0790ec7-5702-4555-9806-50e01d4a47ca" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="5f51fadc-eb49-4671-ab02-dfae87549647" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="bfe6c97b-f9d4-4dd7-92d1-81238898e8e5"><th id="BbIX" class="simple-table-header-color simple-table-header">항목</th><th id=":l~O" class="simple-table-header-color simple-table-header" style="width:583.0000152587891px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="7fa7604c-5b6a-4bc0-820d-79bc3cbf8ba9"><td id="BbIX" class="">핫딜 대상 상품</td><td id=":l~O" class="" style="width:583.0000152587891px">판매중 상태의 상품만 핫딜로 등록할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="69426df3-1a42-46b6-b0ac-b7b279e1a6d6"><td id="BbIX" class="">핫딜 불가 상품</td><td id=":l~O" class="" style="width:583.0000152587891px">품절, 판매중지 상품은 핫딜로 등록할 수 없다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="b0695d63-94ee-4b91-8352-e3712e11fcbd"><td id="BbIX" class="">할인율</td><td id=":l~O" class="" style="width:583.0000152587891px">기존 가격과 할인가를 기준으로 자동 계산할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="956ea799-946a-4304-b69f-68cd6321175c"><td id="BbIX" class="">핫딜 시작일</td><td id=":l~O" class="" style="width:583.0000152587891px">현재 시점 이후 날짜 또는 즉시 시작으로 설정할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="0d8609fe-21fb-43ec-a4e2-4dafce9fa12c"><td id="BbIX" class="">핫딜 종료일</td><td id=":l~O" class="" style="width:583.0000152587891px">시작일보다 이후 날짜여야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="d004a882-aa40-4d02-a758-73bfcda3a304"><td id="BbIX" class="">자동 종료</td><td id=":l~O" class="" style="width:583.0000152587891px">종료일이 지나면 핫딜 상태를 종료로 변경하고 일반 상품 가격으로 노출한다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="18cd6d8a-8c19-46c0-891b-fc08a0029e68" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="8b52bdef-0a29-4360-b1ae-1615db765236" class="bulleted-list"><li style="list-style-type:disc">핫딜번호</li></ul></div><div style="display:contents" dir="auto"><ul id="be9d525f-f87e-4f81-9634-c14afc0995fa" class="bulleted-list"><li style="list-style-type:disc">상품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="470782a7-8d2f-4126-99a3-b24a91900d01" class="bulleted-list"><li style="list-style-type:disc">기존가격</li></ul></div><div style="display:contents" dir="auto"><ul id="a9f15ece-3f6a-40f4-80fa-07b7349fc619" class="bulleted-list"><li style="list-style-type:disc">할인가격</li></ul></div><div style="display:contents" dir="auto"><ul id="79d3008e-5a17-484f-a316-db97c1dd8dca" class="bulleted-list"><li style="list-style-type:disc">할인율</li></ul></div><div style="display:contents" dir="auto"><ul id="17a993c1-1309-4d57-a1cc-0468e85f1078" class="bulleted-list"><li style="list-style-type:disc">시작일</li></ul></div><div style="display:contents" dir="auto"><ul id="e92f0b61-3938-43ac-904d-311ff8cb7069" class="bulleted-list"><li style="list-style-type:disc">종료일</li></ul></div><div style="display:contents" dir="auto"><ul id="72d4e7bc-f957-4230-8c86-443b59f4d666" class="bulleted-list"><li style="list-style-type:disc">핫딜상태</li></ul></div><div style="display:contents" dir="auto"><h2 id="ed6dc83f-0e7a-428b-8bb5-0c4201f0ef59" class="">1.11 가격분석 기능(기본 기능 구현 후 고려)</h2></div><div style="display:contents" dir="auto"><h3 id="96ab09ca-e810-4b5c-8bb6-1f0434b46327" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="d2bdf7b6-df4d-4777-923f-187407417561" class="bulleted-list"><li style="list-style-type:disc">사용자는 특정 상품 또는 동일 카테고리의 다른 상품간의 가격 차이를 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="04715318-38ea-4aa5-a60e-90f7bff20f5e" class="bulleted-list"><li style="list-style-type:disc">평균 거래가, 최저가, 최고가를 제공할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="1e5faeae-8b5f-4d68-9794-496701533523" class="bulleted-list"><li style="list-style-type:disc">상품 상세 페이지에서 유사 상품의 시세를 보여줄 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="840e795e-5cf0-4e8a-a612-b36bd748febf" class="bulleted-list"><li style="list-style-type:disc">판매처는 상품 등록 시 참고 시세를 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="a59f2b17-8a5f-4860-ae7c-4bea8071a0b3" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="403fb031-fee6-4a86-9f56-b09fbe077a9f" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="870a4e71-0886-441a-9f59-deaeb9124835"><th id="|o{R" class="simple-table-header-color simple-table-header">항목</th><th id="b\^u" class="simple-table-header-color simple-table-header" style="width:582.0000152587891px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="d93871c4-ae36-495e-b0b0-50df11e36148"><td id="|o{R" class="">가격분석 대상</td><td id="b\^u" class="" style="width:582.0000152587891px">동일 카테고리에 속한 상품을 기준으로 분석한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="a119a601-f686-4a7a-85cc-81453bbc1e30"><td id="|o{R" class="">평균 거래가</td><td id="b\^u" class="" style="width:582.0000152587891px">분석 대상 상품들의 거래 가격 평균을 제공한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="d5559c65-5829-4deb-9e75-02cce7cbe04c"><td id="|o{R" class="">데이터 부족 처리</td><td id="b\^u" class="" style="width:582.0000152587891px">분석 가능한 거래 데이터가 부족한 경우 안내 메시지를 표시한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f3ab7a34-8c73-4cf7-a7c4-5d4c01bb0d2d"><td id="|o{R" class=""><mark class="highlight-default">분석 주기</mark></td><td id="b\^u" class="" style="width:582.0000152587891px"><mark class="highlight-default">거래 데이터가 추가될 때마다 갱신할 수 있다.</mark></td></tr></div><div style="display:contents" dir="ltr"><tr id="4fe993d9-bf32-41eb-8057-5e151404a064"><td id="|o{R" class="">가격 비교</td><td id="b\^u" class="" style="width:582.0000152587891px">현재 상품 가격과 평균 거래가의 차이를 표시할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="a8743175-e0e0-4617-95c2-76f946361df2"><td id="|o{R" class="">가격 차이 표시</td><td id="b\^u" class="" style="width:582.0000152587891px">평균가 대비 높음, 낮음, 적정 등의 안내 문구를 표시할 수 있다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="4e116b5b-0fef-43a8-8ca3-08a54103565f" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="1146caee-7bdf-4bb4-9c3f-e3aa0c55d619" class="bulleted-list"><li style="list-style-type:disc">분석번호</li></ul></div><div style="display:contents" dir="auto"><ul id="ae4e31af-aee4-4835-9069-d29577f62b76" class="bulleted-list"><li style="list-style-type:disc">상품명/키워드</li></ul></div><div style="display:contents" dir="auto"><ul id="891d1b53-92bf-4261-a719-0d6c52233c4b" class="bulleted-list"><li style="list-style-type:disc">카테고리</li></ul></div><div style="display:contents" dir="auto"><ul id="1d6c2169-982e-4bf5-a627-c8aa7ee78c5d" class="bulleted-list"><li style="list-style-type:disc">평균가</li></ul></div><div style="display:contents" dir="auto"><ul id="62022f11-5b17-4440-95b0-c430c899fe3f" class="bulleted-list"><li style="list-style-type:disc">최저가</li></ul></div><div style="display:contents" dir="auto"><ul id="1e6f8737-126c-4a73-9ce2-252b09bb399c" class="bulleted-list"><li style="list-style-type:disc">최고가</li></ul></div><div style="display:contents" dir="auto"><h2 id="10dedd45-1fb8-4e91-a0de-443f6ee26716" class="">1.12 별점/리뷰 기능</h2></div><div style="display:contents" dir="auto"><h3 id="39f6c2fa-6733-42d6-b7fe-17dc74e5d158" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="c41364d1-4ee2-4d0e-92ad-d8664cc778ed" class="bulleted-list"><li style="list-style-type:disc">회원은 구매 완료 또는 배송완료된 상품에 대해 리뷰를 작성할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="069852cb-b939-4ea3-bead-7f8ff7af07a9" class="bulleted-list"><li style="list-style-type:disc">리뷰 작성 시 별점을 함께 등록할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="ca23f883-a169-4367-b394-3b5409755c14" class="bulleted-list"><li style="list-style-type:disc">별점은 1점부터 5점까지 선택할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="8465a6bf-8da5-400e-bbce-60ae9298ad01" class="bulleted-list"><li style="list-style-type:disc">회원은 자신이 작성한 리뷰를 수정/삭제할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8090-ab5e-f8a495d7b9a8" class="bulleted-list"><li style="list-style-type:disc">회원은 다른 회원의 부적절한 리뷰를 신고할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="127fdabf-badb-4bbe-a93b-db2bc37a7802" class="bulleted-list"><li style="list-style-type:disc">상품 상세 페이지에서 리뷰 목록과 평균 별점을 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="2b33e1b7-af87-4352-9632-d0895dc06074" class="bulleted-list"><li style="list-style-type:disc">판매처는 자신이 판매한 상품에 대한 리뷰와 평점을 확인할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="1138bd3e-d8f9-4596-aa6d-0c89a176f0b6" class="bulleted-list"><li style="list-style-type:disc">관리자는 부적절한 리뷰를 삭제 또는 숨김 처리할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-8009-89fc-e3d814440a60" class="bulleted-list"><li style="list-style-type:disc">리뷰의 개수가 많아지면 무한 스크롤 형식으로 추가로 표시되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="365e87e4-dd3c-802f-9582-c335b0c26f3c" class="bulleted-list"><li style="list-style-type:disc">사진 등록 가능</li></ul></div><div style="display:contents" dir="auto"><h2 id="40cedb00-00a8-4d61-a061-1d9c778b827a" class="">상세 조건</h2></div><div style="display:contents" dir="ltr"><table id="ae9912cc-0251-489e-bd23-664b4c9ac6da" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="87f37717-1ae7-4886-adf7-fbcb68449feb"><th id="{izR" class="simple-table-header-color simple-table-header" style="width:166.00000762939453px">항목</th><th id="&lt;`J{" class="simple-table-header-color simple-table-header" style="width:536.99658203125px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="82ac88d6-1a5a-4556-8dc7-8bc5b1daa3f7"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 작성 기준</td><td id="&lt;`J{" class="" style="width:536.99658203125px">하나의 주문 상품당 리뷰는 1개만 작성할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="c0db04f2-3966-47df-99df-ac6311d30b9b"><td id="{izR" class="" style="width:166.00000762939453px">별점 등록</td><td id="&lt;`J{" class="" style="width:536.99658203125px">리뷰 작성 시 별점은 필수로 등록해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="723a7b31-773d-4dd1-8db5-aac6bd9907d8"><td id="{izR" class="" style="width:166.00000762939453px">별점 범위</td><td id="&lt;`J{" class="" style="width:536.99658203125px">1점부터 5점까지 선택할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="965d60fe-f113-427f-9a4c-2c8a417cd887"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 내용</td><td id="&lt;`J{" class="" style="width:536.99658203125px">최소 10자 이상, 최대 1,000자 이하로 입력한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="fed8fa4e-9be6-476a-a28c-43ed26206fd7"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 사진 개수</td><td id="&lt;`J{" class="" style="width:536.99658203125px">최대 5장까지 등록할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="4701ecc8-5bd5-4b81-a300-4fff15a5ea70"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 사진 용량</td><td id="&lt;`J{" class="" style="width:536.99658203125px">사진 1장당 최대 5MB 이하로 제한한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="900264a7-58b4-47c9-b800-215d2a7600c0"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 사진 형식</td><td id="&lt;`J{" class="" style="width:536.99658203125px">JPG, JPEG, PNG, WEBP 형식을 허용한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="f85af70d-1f75-48b9-8234-82093fac141b"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 수정</td><td id="&lt;`J{" class="" style="width:536.99658203125px">작성자 본인만 리뷰를 수정할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="e9a8915a-b3a9-4b35-af8a-6ebcc0ef2981"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 삭제</td><td id="&lt;`J{" class="" style="width:536.99658203125px">작성자 본인만 리뷰를 삭제할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="ad4daeeb-0a02-46b5-883c-8b51cec00005"><td id="{izR" class="" style="width:166.00000762939453px"><mark class="highlight-default">리뷰 숨김 처리</mark></td><td id="&lt;`J{" class="" style="width:536.99658203125px"><mark class="highlight-default">관리자는 부적절한 리뷰를 숨김 처리할 수 있다.</mark></td></tr></div><div style="display:contents" dir="ltr"><tr id="401526ee-b486-489e-9772-809b4484604d"><td id="{izR" class="" style="width:166.00000762939453px">평균 별점 계산</td><td id="&lt;`J{" class="" style="width:536.99658203125px">공개 상태의 리뷰 별점을 기준으로 평균 별점을 계산한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="b49da113-227d-46c3-9c0b-59a3031903f1"><td id="{izR" class="" style="width:166.00000762939453px">리뷰 목록 조회</td><td id="&lt;`J{" class="" style="width:536.99658203125px">상품 상세 페이지에서 리뷰 목록을 조회할 수 있다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="e9744325-b785-45fd-b45c-695ad7f7318f"><td id="{izR" class="" style="width:166.00000762939453px">무한 스크롤</td><td id="&lt;`J{" class="" style="width:536.99658203125px">리뷰가 많을 경우 일정 개수씩 추가로 불러온다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="53beabfb-2ba8-40bd-9250-7f0f616ca207"><td id="{izR" class="" style="width:166.00000762939453px">판매처 리뷰 조회</td><td id="&lt;`J{" class="" style="width:536.99658203125px">판매처는 자신이 판매한 상품의 리뷰와 평점을 확인할 수 있다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h3 id="a3c39819-80e7-4bc1-bc18-a5d60a130a51" class="">주요 데이터</h3></div><div style="display:contents" dir="auto"><ul id="dd741d9b-f732-4e0c-8693-68b3060a3bec" class="bulleted-list"><li style="list-style-type:disc">리뷰번호</li></ul></div><div style="display:contents" dir="auto"><ul id="b2f7807c-12f4-4bad-a5a7-163624748150" class="bulleted-list"><li style="list-style-type:disc">주문번호</li></ul></div><div style="display:contents" dir="auto"><ul id="52e91613-6139-4b4c-b3aa-65c88ff8eac3" class="bulleted-list"><li style="list-style-type:disc">상품번호</li></ul></div><div style="display:contents" dir="auto"><ul id="ab38bd8f-7e33-48be-9ebf-e1e7de43f011" class="bulleted-list"><li style="list-style-type:disc">작성자번호</li></ul></div><div style="display:contents" dir="auto"><ul id="31d59423-cf1b-4859-b8ca-1d67f396e994" class="bulleted-list"><li style="list-style-type:disc">별점</li></ul></div><div style="display:contents" dir="auto"><ul id="d2fb6d9c-a9d2-4ddf-85fe-1fdd2f785037" class="bulleted-list"><li style="list-style-type:disc">리뷰내용</li></ul></div><div style="display:contents" dir="auto"><ul id="c38c000f-f655-4750-a823-ec0a334ffbab" class="bulleted-list"><li style="list-style-type:disc">리뷰이미지</li></ul></div><div style="display:contents" dir="auto"><div><div style="display:contents" dir="auto"><ul id="5ba66eb1-e0a0-4fbf-bceb-48c21247a248" class="bulleted-list"><li style="list-style-type:disc">작성일</li></ul></div></div></div><div style="display:contents" dir="auto"><ul id="f94bf1f3-714a-4fb1-9662-0b76f333b3ac" class="bulleted-list"><li style="list-style-type:disc">수정일</li></ul></div><div style="display:contents" dir="auto"><ul id="979b2ab2-dd42-429a-a9fd-98b89fd6a0d7" class="bulleted-list"><li style="list-style-type:disc">공개여부</li></ul></div><div style="display:contents" dir="auto"><p id="366e87e4-dd3c-80b5-be2a-e42976121923" class="">
+</p></div><div style="display:contents" dir="auto"><h2 id="366e87e4-dd3c-8026-8ecb-d62ec4fd4cfc" class="">1.13 쿠폰 기능</h2></div><div style="display:contents" dir="auto"><h3 id="366e87e4-dd3c-803d-afed-d3f2e7774e90" class="">요구사항</h3></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-805b-b1a2-ec3f33d8df24" class="bulleted-list"><li style="list-style-type:disc">사용자는 결제 화면에서 쿠폰을 사용할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80ab-87e8-c4ddeff7e485" class="bulleted-list"><li style="list-style-type:disc">쿠폰은 총 결제액의 n% 할인과 정가 n￦ 할인 두 가지가 존재하며, 모든 쿠폰의 할인 가격은 최종 결제 금액을 기준으로 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80b9-a5e5-fd943c311dfd" class="bulleted-list"><li style="list-style-type:disc">쿠폰은 한 번의 결제 당 한 장의 쿠폰만 사용할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8079-b8ec-fe9f7ab98e1a" class="bulleted-list"><li style="list-style-type:disc">구독제 회원의 경우 특정 기간마다 쿠폰이 주어진다. (ex : 한 달에 5000원 두 장 등)</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8048-941d-db8e618448a9" class="bulleted-list"><li style="list-style-type:disc">쿠폰에는 사용 가능, 사용 완료, 기간 만료 상태가 존재해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-80a3-9634-c5159c33aef6" class="bulleted-list"><li style="list-style-type:disc">쿠폰에는 최소 주문 금액이 존재해야 한다.</li></ul></div><div style="display:contents" dir="ltr"><table id="7b39cfdf-f67a-429a-9b54-069e0d4c5a84" class="simple-table"><thead class="simple-table-header"><div style="display:contents" dir="ltr"><tr id="b5ea98ac-3c0f-4e5c-8ad8-0463546a58a2"><th id="CF`Q" class="simple-table-header-color simple-table-header">항목</th><th id="F?nc" class="simple-table-header-color simple-table-header" style="width:396px">조건</th></tr></div></thead><tbody><div style="display:contents" dir="ltr"><tr id="d09d4c38-257e-4c81-89c4-2da21a37864f"><td id="CF`Q" class="">쿠폰 이름</td><td id="F?nc" class="" style="width:396px">쿠폰 이름은 중복이 될 수 없다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="366e87e4-dd3c-806d-9342-d474f2ca263f"><td id="CF`Q" class="">할인 가격</td><td id="F?nc" class="" style="width:396px">% 할인의 경우 0~100 사이의 값을 저장해야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="366e87e4-dd3c-8024-917e-fcb6ea2e8966"><td id="CF`Q" class="">최소 주문 금액</td><td id="F?nc" class="" style="width:396px">n￦ 할인의 경우 최소 주문 금액은 할인 가격보다 높아야 한다.</td></tr></div><div style="display:contents" dir="ltr"><tr id="366e87e4-dd3c-80da-a7ad-de47c1a70477"><td id="CF`Q" class="">쿠폰 상태</td><td id="F?nc" class="" style="width:396px">유효 기간/사용 여부에 따라 자동으로 상태가 변경되어야 한다.</td></tr></div></tbody></table></div><div style="display:contents" dir="auto"><h2 id="3d4f677e-6073-4cba-a6d9-28861847e436" class="">2. 비기능 요구사항</h2></div><div style="display:contents" dir="auto"><h2 id="d2513a72-4db7-47c1-abae-8de0dc9fc3a2" class="">2.1 보안</h2></div><div style="display:contents" dir="auto"><ul id="9b2befad-e90c-4057-8428-0282d90a6a75" class="bulleted-list"><li style="list-style-type:disc">회원 비밀번호는 암호화하여 저장해야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="005dbfaf-3cd5-4893-8462-d6f053e701f8" class="bulleted-list"><li style="list-style-type:disc">로그인한 회원만 장바구니, 주문, 결제, 리뷰 기능을 사용할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="4a748b42-4175-4dae-b5b0-3c8619666f4a" class="bulleted-list"><li style="list-style-type:disc">본인의 주문, 장바구니, 리뷰만 수정/삭제할 수 있어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="0effb281-3a35-40be-98c1-5cc7ac288a7d" class="bulleted-list"><li style="list-style-type:disc">관리자 권한이 필요한 기능은 일반회원이 접근할 수 없어야 한다.</li></ul></div><div style="display:contents" dir="auto"><h2 id="b6a89f86-00a1-40e0-bc38-5414b420278d" class="">2.2 데이터 무결성</h2></div><div style="display:contents" dir="auto"><ul id="d32bcaf4-d29a-461e-8991-eab6a1832c07" class="bulleted-list"><li style="list-style-type:disc">주문이 완료되면 상품 재고가 정확히 차감되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="78a84041-d13a-4f40-b861-c79cb40d9db1" class="bulleted-list"><li style="list-style-type:disc">결제 실패 시 주문 상태가 결제완료로 변경되면 안 된다.</li></ul></div><div style="display:contents" dir="auto"><ul id="da8ce202-f33c-478c-b7ba-dbff25fbf062" class="bulleted-list"><li style="list-style-type:disc">주문취소 또는 반품 완료 시 재고와 결제 상태가 함께 처리되어야 한다.</li></ul></div><div style="display:contents" dir="auto"><ul id="2277b586-2b76-46f4-bd9b-b7e578d9cd8b" class="bulleted-list"><li style="list-style-type:disc">삭제된 상품은 주문할 수 없어야 한다.</li></ul></div><div style="display:contents" dir="auto"><p id="366e87e4-dd3c-80dc-b945-f0de0cddebc2" class="">
+</p></div><div style="display:contents" dir="auto"><h2 id="366e87e4-dd3c-80b9-b4fa-f3cc7d92dd1a" class="">3. 적립금</h2></div><div style="display:contents" dir="auto"><ul id="366e87e4-dd3c-8000-9b0e-fcdc761760cf" class="bulleted-list"><li style="list-style-type:disc">여유가 되면 구현하기로 한다.</li></ul></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>

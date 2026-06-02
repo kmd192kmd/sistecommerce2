@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Market | 데스크톱 와이드 웹 포털</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+    <div class="w-full bg-[#fafafa] border-b border-gray-200 text-[11px] text-[#555555]">
+        <div class="max-w-[1400px] mx-auto px-4 h-8 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="#" class="text-amber-600 font-bold hover:underline">👑 골드배송</a>
+                <a href="#" class="hover:underline">골드프레시</a>
+                <a href="#" class="hover:underline">골드멤버십 존</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="hover:underline">로그인</a>
+                <a href="#" class="hover:underline">회원가입</a>
+                <a href="#" class="hover:underline">고객센터</a>
+                <a href="#" class="hover:underline">마이골드</a>
+            </div>
+        </div>
+    </div>
+
+    <header class="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-[1400px] mx-auto px-4 py-5 flex items-center justify-between gap-10">
+            
+            <a href="#" class="text-3xl font-black tracking-tighter flex items-center shrink-0">
+                <span class="text-slate-900">GOLD</span><span class="text-amber-500">MARKET</span>
+            </a>
+
+            <div class="flex-1 max-w-2xl hidden md:block">
+                <div class="relative flex border-[3px] border-amber-500 bg-white">
+                    <input type="text" placeholder="프리미엄 엄선 상품, 가전, 신선식품 검색!" 
+                           class="w-full px-4 py-2 text-sm focus:outline-none text-gray-900 font-medium placeholder-gray-400" />
+                    <button class="px-2 text-gray-300 hover:text-gray-500"><i data-lucide="mic" class="w-4 h-4"></i></button>
+                    <button class="bg-amber-500 hover:bg-amber-600 text-white px-6 flex items-center justify-center transition-colors shrink-0">
+                        <i data-lucide="search" class="w-5 h-5 stroke-[2.5]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-7 text-[#555555] shrink-0">
+                <a href="#" class="flex flex-col items-center justify-center hover:text-amber-600 text-xs font-semibold">
+                    <i data-lucide="user" class="w-5 h-5 stroke-[1.5] mb-0.5"></i>
+                    <span>마이골드</span>
+                </a>
+                <a href="#" class="flex flex-col items-center justify-center hover:text-amber-600 text-xs font-semibold relative">
+                    <i data-lucide="shopping-cart" class="w-5 h-5 stroke-[1.5] mb-0.5"></i>
+                    <span>장바구니</span>
+                    <span class="absolute -top-1 -right-2 bg-amber-600 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center">12</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 text-white">
+            <div class="max-w-[1400px] mx-auto px-4 h-10 flex items-center text-sm font-bold">
+                <button class="bg-slate-800 h-full px-6 flex items-center gap-2 hover:bg-slate-700 transition-colors text-amber-400">
+                    <i data-lucide="menu" class="w-4 h-4"></i> 카테고리
+                </button>
+                <div class="flex items-center space-x-7 ml-6 text-xs font-semibold text-gray-300">
+                    <a href="#" class="hover:text-amber-400">골드배송</a>
+                    <a href="#" class="hover:text-amber-400">골드프레시</a>
+                    <a href="#" class="text-amber-400 flex items-center gap-1"><i data-lucide="gem" class="w-3.5 h-3.5 fill-amber-400"></i> 골드박스 특가</a>
+                    <a href="#" class="hover:text-amber-400">정기배송</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="w-full bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 text-white border-b border-slate-800">
+        <div class="max-w-[1400px] mx-auto px-4 h-80 flex items-center justify-between relative">
+            <div class="space-y-4 max-w-xl z-10">
+                <span class="bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-0.5 tracking-wider">GOLD 타임딜</span>
+                <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                    단 일주일, 골드클래스 대개방<br><span class="text-amber-400">식품/생활/가전</span> 주말 창고개방
+                </h1>
+                <p class="text-gray-400 text-xs font-light">골드멤버십 회원 전용 선착순 무제한 중복 할인쿠폰 및 카드사 즉시할인</p>
+            </div>
+            <div class="hidden lg:block w-72 h-52 bg-white/5 border border-white/10 p-5 backdrop-blur-sm">
+                <p class="text-xs font-bold text-amber-400">GOLD LIVE ZONE</p>
+                <div class="mt-4 w-full h-32 bg-black/40 flex items-center justify-center text-[11px] text-gray-500">
+                    실시간 라이브 특가 송출 중
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-[1400px] mx-auto px-4 mt-12 pb-32 space-y-16">
+        
+        <section class="space-y-4">
+            <div class="flex items-end justify-between border-b-2 border-slate-900 pb-2">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <span class="w-1.5 h-5 bg-amber-500"></span> 
+                    ⑩ 골드박스 단 하루 특가
+                </h3>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover">
+                    </div>
+                    <div class="pt-3 space-y-1.5">
+                        <h4 class="text-xs text-gray-700 line-clamp-2 leading-normal group-hover:text-amber-600 group-hover:underline">[골드프레시] 엄선 한돈 대패 삼겹살 1kg (냉동)</h4>
+                        <div>
+                            <div class="text-[11px] text-gray-400 line-through">21,900원</div>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-amber-700 font-extrabold text-base">14,900</span><span class="text-xs font-bold">원</span>
+                                <span class="text-amber-600 text-[9px] font-bold ml-1 border border-amber-500 px-1 bg-amber-50">골드프레시</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-1">리뷰 4,215</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover">
+                    </div>
+                    <div class="pt-3 space-y-1.5">
+                        <h4 class="text-xs text-gray-700 line-clamp-2 leading-normal group-hover:text-amber-600 group-hover:underline">최고급 호텔식 타올 수건 40수 고중량 10장 세트</h4>
+                        <div>
+                            <div class="text-[11px] text-gray-400 line-through">32,000원</div>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-amber-700 font-extrabold text-base">19,800</span><span class="text-xs font-bold">원</span>
+                                <span class="text-amber-600 text-[10px] font-black ml-1">👑골드배송</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-1">리뷰 890</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1595541913571-36573b7a696f?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover">
+                    </div>
+                    <div class="pt-3 space-y-1.5">
+                        <h4 class="text-xs text-gray-700 line-clamp-2 leading-normal group-hover:text-amber-600 group-hover:underline">이중 미세모 파스텔 인체공학 칫솔 12개입 세트</h4>
+                        <div>
+                            <div class="text-[11px] text-gray-400 line-through">15,900원</div>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-amber-700 font-extrabold text-base">9,900</span><span class="text-xs font-bold">원</span>
+                                <span class="text-amber-600 text-[10px] font-black ml-1">👑골드배송</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-1">리뷰 1,510</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1585515320310-259814833e62?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover">
+                    </div>
+                    <div class="pt-3 space-y-1.5">
+                        <h4 class="text-xs text-gray-700 line-clamp-2 leading-normal group-hover:text-amber-600 group-hover:underline">파워 하이토크 진공 블렌더 믹서기 대용량 1500W</h4>
+                        <div>
+                            <div class="text-[11px] text-gray-400 line-through">119,000원</div>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-amber-700 font-extrabold text-base">79,000</span><span class="text-xs font-bold">원</span>
+                                <span class="text-amber-600 text-[10px] font-black ml-1">👑골드배송</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 mt-1">리뷰 240</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-4">
+            <div class="flex items-end justify-between border-b-2 border-slate-900 pb-2">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <span class="w-1.5 h-5 bg-slate-900"></span> 
+                    ⑪ 실시간 인기 베스트 상품 (1~12위 웹 카탈로그)
+                </h3>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
+                
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">1</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">스마트 패드 프로 에디션 11인치 Wi-Fi 128GB</h4>
+                        <p class="text-sm font-black text-gray-900">549,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★★ <span class="text-gray-400 font-normal">(3,104)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">2</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">액티브 노이즈캔슬링 무선 하이파이 오버이어 헤드폰</h4>
+                        <p class="text-sm font-black text-gray-900">189,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★☆ <span class="text-gray-400 font-normal">(784)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">3</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">[골드프레시] 통밀 벨기에 버터 와플 믹스 600g</h4>
+                        <p class="text-sm font-black text-gray-900">8,900원</p>
+                        <span class="text-amber-600 text-[9px] font-bold border border-amber-500 px-1 bg-amber-50">골드프레시</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★★ <span class="text-gray-400 font-normal">(1,412)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">4</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">VLOG 브이로그 입문용 가성비 미러리스 디카 세트</h4>
+                        <p class="text-sm font-black text-gray-900">499,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★☆ <span class="text-gray-400 font-normal">(182)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">5</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">비즈니스 사무용 광시야각 FHD 15인치 슬림 노트북</h4>
+                        <p class="text-sm font-black text-gray-900">890,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★☆ <span class="text-gray-400 font-normal">(95)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">6</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">레트로 클래식 아세테이트 자외선 차단 블랙 선글라스</h4>
+                        <p class="text-sm font-black text-gray-900">29,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★☆ <span class="text-gray-400 font-normal">(410)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">7</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">유기농 순면 규조토 항균 욕실 발매트 워셔블</h4>
+                        <p class="text-sm font-black text-gray-900">14,200원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★★ <span class="text-gray-400 font-normal">(233)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">8</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">에어 트레이닝 고탄성 스포츠 피트니스 러닝화</h4>
+                        <p class="text-sm font-black text-gray-900">69,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★★ <span class="text-gray-400 font-normal">(1,150)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">9</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">미니멀 가죽 미드나잇 아날로그 쿼츠 손목시계</h4>
+                        <p class="text-sm font-black text-gray-900">45,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★☆ <span class="text-gray-400 font-normal">(84)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">10</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">헤리티지 프리미엄 베이스 강화 유선 스튜디오 헤드폰</h4>
+                        <p class="text-sm font-black text-gray-900">89,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★☆ <span class="text-gray-400 font-normal">(142)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1503602642458-232111445657?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">11</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">북유럽 빈티지 솔리드 내추럴 원목 다용도 인테리어 스툴</h4>
+                        <p class="text-sm font-black text-gray-900">38,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★★ <span class="text-gray-400 font-normal">(195)</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                    <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-111556532299-8f662fc26c06?q=80&w=300&auto=format&fit=crop" class="w-full h-full object-cover">
+                        <span class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">12</span>
+                    </div>
+                    <div class="pt-2 space-y-1">
+                        <h4 class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">올데이 테크 통기성 메쉬 오프화이트 스니커즈 단품</h4>
+                        <p class="text-sm font-black text-gray-900">52,000원</p>
+                        <span class="text-amber-600 text-[10px] font-black">👑골드배송</span>
+                        <div class="text-[10px] text-amber-500 font-bold">★★★★★ <span class="text-gray-400 font-normal">(612)</span></div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 text-[11px] text-gray-500 py-10">
+        <div class="max-w-[1400px] mx-auto px-4 text-center md:text-left leading-relaxed">
+            <p class="font-bold text-gray-700">골드마켓 커머스 주식회사 | 대표이사 : 홍길동 | 서울시 강남구 테헤란로 000</p>
+            <p>사업자등록번호 : 123-45-67890 | 통신판매업신고 : 제 2026-서울강남-0000호</p>
+            <p class="text-[10px] text-gray-400 mt-2">&copy; 2026 Gold Market Premium Flat Desktop Template. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Market | 데스크톱 프리미엄 웹 포털</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* 기본 리셋 및 전역 스타일 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #f4f5f7;
+            color: #1e293b;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        button {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* 공통 레이아웃 컨테이너 (PC 웹 규격: 1400px 와이드 가이드) */
+        .web-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 1. 최상단 유틸리티 탑바 */
+        .top-bar {
+            width: 100%;
+            background-color: #fafafa;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11px;
+            color: #555555;
+        }
+        .top-bar-content {
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .top-bar-left, .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .top-bar-left a.bold-point {
+            color: #d97706;
+            font-weight: 700;
+        }
+        .top-bar a:hover {
+            text-decoration: underline;
+        }
+
+        /* 2. 메인 헤더 영역 */
+        .main-header {
+            width: 100%;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        .header-content {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 40px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .logo .logo-dark { color: #0f172a; }
+        .logo .logo-gold { color: #f59e0b; }
+
+        /* ⑧ 와이드 검색창 디자인 */
+        .search-container {
+            flex-1;
+            max-width: 640px;
+            width: 100%;
+        }
+        .search-box-wrap {
+            display: flex;
+            border: 3px solid #f59e0b;
+            border-radius: 4px;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 16px;
+            font-size: 14px;
+            border: none;
+            outline: none;
+            font-weight: 500;
+        }
+        .search-mic-btn {
+            padding: 0 10px;
+            color: #cbd5e1;
+        }
+        .search-mic-btn:hover { color: #94a3b8; }
+        .search-submit-btn {
+            background-color: #f59e0b;
+            color: #ffffff;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .search-submit-btn:hover {
+            background-color: #d97706;
+        }
+
+        /* 헤더 마이메뉴 및 장바구니 */
+        .header-menu {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            color: #475569;
+            flex-shrink: 0;
+        }
+        .menu-item-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 500;
+            position: relative;
+        }
+        .menu-item-btn:hover { color: #d97706; }
+        .cart-badge {
+            position: absolute;
+            top: -4px;
+            right: 2px;
+            background-color: #d97706;
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 700;
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ⑦ 카테고리 네비게이션 바 */
+        .nav-bar {
+            width: 100%;
+            background-color: #0f172a;
+            color: #ffffff;
+        }
+        .nav-content {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .category-trigger {
+            background-color: #1e293b;
+            height: 100%;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #f59e0b;
+            transition: background-color 0.2s;
+        }
+        .category-trigger:hover { background-color: #334155; }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            margin-left: 24px;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+        .nav-links a:hover { color: #f59e0b; }
+        .nav-links a.highlight {
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ⑨ [요청사항 반영] 화면 가로로 100% 꽉 차는 대형 풀 와이드 배너 */
+        .full-wide-banner {
+            width: 100%;
+            background: linear-gradient(to right, #0f172a, #1e293b, #0f172a);
+            border-bottom: 1px solid #1e293b;
+            color: #ffffff;
+        }
+        .banner-inner {
+            height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+        .banner-text-box {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+        .banner-tag {
+            align-self: flex-start;
+            background-color: #f59e0b;
+            color: #0f172a;
+            font-size: 11px;
+            font-weight: 900;
+            padding: 3px 10px;
+            border-radius: 2px;
+        }
+        .banner-title {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: -1px;
+        }
+        .banner-title span { color: #f59e0b; }
+        .banner-desc {
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 300;
+        }
+        .banner-widget {
+            width: 320px;
+            height: 220px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            backdrop-filter: blur(8px);
+        }
+        .widget-tag { color: #f59e0b; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+        .widget-title { font-weight: 700; font-size: 16px; margin-top: 4px; color: #f8fafc; }
+        .widget-visual {
+            width: 100%;
+            height: 100px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #64748b;
+            letter-spacing: 2px;
+        }
+
+        /* 본문 상품 메인 랩 */
+        .main-content {
+            margin-top: 48px;
+            margin-bottom: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 56px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f172a;
+        }
+        .title-indicator {
+            width: 6px;
+            height: 22px;
+            background-color: #f59e0b;
+            border-radius: 2px;
+        }
+        .section-title.popular .title-indicator {
+            background-color: #0f172a;
+        }
+
+        /* ⑩ 핫딜 섹션 (가로 4열 배치) */
+        .grid-4-cols {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        /* ⑪ [요청사항 반영] 인기 상품 섹션 (PC 최적화 고밀도 가로 6열 배치) */
+        .grid-6-cols {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+        }
+
+        /* 웹 포탈형 고가독성 상품 카드 공통 디자인 */
+        .product-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+        .product-card:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+        .image-area {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #f8fafc;
+            position: relative;
+        }
+        .image-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        .product-card:hover .image-area img {
+            transform: scale(1.03);
+        }
+        .card-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 2px;
+            color: #ffffff;
+        }
+        .badge-hot { background-color: #ef4444; }
+        
+        .info-area {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+            gap: 12px;
+        }
+        .product-name {
+            font-size: 13px;
+            font-weight: 400;
+            color: #334155;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 36px;
+        }
+        .product-card:hover .product-name {
+            color: #d97706;
+            text-decoration: underline;
+        }
+        .price-wrap {
+            display: flex;
+            flex-direction: column;
+        }
+        .original-price {
+            font-size: 11px;
+            color: #94a3b8;
+            text-decoration: line-through;
+        }
+        .sale-price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-top: 2px;
+        }
+        .sale-price {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .price-unit { font-size: 12px; font-weight: 700; }
+        .ship-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #d97706;
+            margin-top: 4px;
+            display: inline-block;
+        }
+        .fresh-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #d97706;
+            border: 1px solid #f59e0b;
+            background-color: #fffbeb;
+            padding: 1px 4px;
+            border-radius: 2px;
+            margin-top: 4px;
+            display: inline-block;
+            align-self: flex-start;
+        }
+        .review-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #f59e0b;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        .review-count {
+            color: #64748b;
+            font-weight: 400;
+            margin-left: 2px;
+        }
+
+        /* 12. 대형 포털형 와이드 푸터 */
+        .main-footer {
+            width: 100%;
+            background-color: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 48px 0;
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.8;
+        }
+        .footer-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .footer-company-info strong {
+            color: #334155;
+        }
+        .copyright {
+            color: #cbd5e1;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="web-container top-bar-content">
+            <div class="top-bar-left">
+                <a href="#" class="bold-point">👑 골드배송 케어</a>
+                <a href="#">골드프레시관</a>
+                <a href="#">골드멤버십 혜택존</a>
+            </div>
+            <div class="top-bar-right">
+                <a href="#">로그인</a>
+                <a href="#">회원가입</a>
+                <a href="#">고객센터</a>
+                <a href="#">마이골드</a>
+            </div>
+        </div>
+    </div>
+
+    <header class="main-header">
+        <div class="web-container header-content">
+            <a href="#" class="logo">
+                <span class="logo-dark">GOLD</span><span class="logo-gold">MARKET</span>
+            </a>
+
+            <div class="search-container">
+                <div class="search-box-wrap">
+                    <input type="text" placeholder="프리미엄 엄선 식품, 주방 리빙, 가전제품 검색!" class="search-input" />
+                    <button class="search-mic-btn"><i data-lucide="mic" style="width: 16px; height: 16px;"></i></button>
+                    <button class="search-submit-btn">
+                        <i data-lucide="search" style="width: 20px; height: 20px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="header-menu">
+                <a href="#" class="menu-item-btn">
+                    <i data-lucide="user" style="width: 24px; height: 24px; stroke-width: 1.5;"></i>
+                    <span style="margin-top: 4px;">마이골드</span>
+                </a>
+                <a href="#" class="menu-item-btn">
+                    <i data-lucide="shopping-cart" style="width: 24px; height: 24px; stroke-width: 1.5;"></i>
+                    <span style="margin-top: 4px;">장바구니</span>
+                    <span class="cart-badge">12</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <div class="web-container nav-content">
+                <button class="category-trigger">
+                    <i data-lucide="menu" style="width: 16px; height: 16px;"></i> 전체 카테고리
+                </button>
+                <div class="nav-links">
+                    <a href="#" class="highlight">골드배송 홈</a>
+                    <a href="#">골드프레시 신선관</a>
+                    <a href="#" class="highlight"><i data-lucide="gem" style="width: 14px; height: 14px; fill: #f59e0b;"></i> 골드박스 타임딜</a>
+                    <a href="#">정기대량배송</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="full-wide-banner">
+        <div class="web-container banner-inner">
+            <div class="banner-text-box">
+                <span class="banner-tag">GOLD 타임 위크</span>
+                <h1 class="banner-title">
+                    단 일주일, 골드클래스 대개방<br>
+                    <span>식품/생활/주방 가전</span> 역대급 패키지 특가
+                </h1>
+                <p class="banner-desc">골드멤버십 회원 전용 선착순 무제한 중복 할인쿠폰 및 카드사 7% 즉시할인 연동</p>
+            </div>
+            
+            <div class="banner-widget">
+                <div>
+                    <span class="widget-tag">GOLD LIVE</span>
+                    <h3 class="widget-title">LG 싱크케어 식기세척기 방송</h3>
+                </div>
+                <div class="widget-visual">
+                    LIVE ZONE 실시간 송출중
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="web-container main-content">
+        
+        <section>
+            <div class="section-header">
+                <h3 class="section-title">
+                    <span class="title-indicator"></span> ⑩ 골드박스 단 하루 특가
+                </h3>
+            </div>
+            
+            <div class="grid-4-cols">
+                <div class="product-card">
+                    <div class="image-area">
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop" alt="삼겹살">
+                        <span class="card-badge badge-hot">HOT딜</span>
+                    </div>
+                    <div class="info-area">
+                        <h4 class="product-name">[골드프레시] 엄선 한돈 냉장 대패 삼겹살 1kg 기획팩</h4>
+                        <div class="price-wrap">
+                            <span class="original-price">21,900원</span>
+                            <div class="sale-price-row">
+                                <span class="sale-price" style="color: #b45309;">14,900</span><span class="price-unit">원</span>
+                                <span class="fresh-label">골드프레시</span>
+                            </div>
+                            <div class="review-row">★★★★★<span class="review-count">(4,215)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="image-area">
+                        <img src="https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=400&auto=format&fit=crop" alt="수건">
+                    </div>
+                    <div class="info-area">
+                        <h4 class="product-name">최고급 호텔식 타올 코튼 수건 40수 고중량 10장 세트 무지형</h4>
+                        <div class="price-wrap">
+                            <span class="original-price">32,000원</span>
+                            <div class="sale-price-row">
+                                <span class="sale-price" style="color: #b45309;">19,800</span><span class="price-unit">원</span>
+                                <span class="ship-label">👑골드배송</span>
+                            </div>
+                            <div class="review-row">★★★★★<span class="review-count">(890)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="image-area">
+                        <img src="https://images.unsplash.com/photo-1595541913571-36573b7a696f?q=80&w=400&auto=format&fit=crop" alt="칫솔">
+                    </div>
+                    <div class="info-area">
+                        <h4 class="product-name">이중 미세모 파스텔 탄력 칫솔 12개입 온가족 패키지 에디션</h4>
+                        <div class="price-wrap">
+                            <span class="original-price">15,900원</span>
+                            <div class="sale-price-row">
+                                <span class="sale-price" style="color: #b45309;">9,900</span><span class="price-unit">원</span>
+                                <span class="ship-label">👑골드배송</span>
+                            </div>
+                            <div class="review-row">★★★★☆<span class="review-count">(1,510)</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="product-card">
+                    <div class="image-area">
+                        <img src="https://images.unsplash.com/photo-1585515320310-259814833e62?q=80&w=400&auto=format&fit=crop" alt="믹서기">
+                    </div>
+                    <div class="info-area">
+                        <h4 class="product-name">파워 하이토크 진공 블렌더 초고속 믹서기 대용량 1500W 오토케어</h4>
+                        <div class="price-wrap">
+                            <span class="original-price">119,000원</span>
+                            <div class="sale-price-row">
+                                <span class="sale-price" style="color: #b45309;">79,000</span><span class="price-unit">원</span>
+                                <span class="ship-label">👑골드배송</span>
+                            </div>
+                            <div class="review-row">★★★★★<span class="review-count">(240)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-header">
+                <h3 class="section-title popular">
+                    <span class="title-indicator"></span> ⑪ 실시간 주간 카테고리 베스트 (12개 특가 목록)
+                </h3>
+            </div>
+            
+            <div class="grid-6-cols">
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=300&auto=format&fit=crop" alt="패드"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">스마트 패드 프로 에디션 11인치 Wi-Fi 128GB</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">549,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★★<span class="review-count">(3,104)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=300&auto=format&fit=crop" alt="헤드폰"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">액티브 노이즈캔슬링 무선 하이파이 블루투스 헤드폰 H1</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">189,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★☆<span class="review-count">(784)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=300&auto=format&fit=crop" alt="와플"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">[골드프레시] 통밀 벨기에 버터 와플 믹스 간편세트 600g</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">8,900<span class="price-unit">원</span></span>
+                            <span class="fresh-label">골드프레시</span>
+                            <div class="review-row">★★★★★<span class="review-count">(1,412)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?q=80&w=300&auto=format&fit=crop" alt="카메라"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">VLOG 브이로그 유튜브 입문용 미러리스 카메라 번들셋</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">499,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★☆<span class="review-count">(182)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1531297484001-80022131f5a1?q=80&w=300&auto=format&fit=crop" alt="노트북"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">고해상도 광시야각 인텔 오피스 사무용 15인치 가성비 노트북</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">890,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★☆<span class="review-count">(95)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?q=80&w=300&auto=format&fit=crop" alt="선글라스"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">모던 레트로 스퀘어 선글라스 UV 완전차단 블랙에디션</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">29,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★☆<span class="review-count">(410)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?q=80&w=300&auto=format&fit=crop" alt="발매트"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">유기농 순면 규조토 항균 욕실 발매트 미끄럼방지 워셔블</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">14,200<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★★<span class="review-count">(233)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=300&auto=format&fit=crop" alt="러닝화"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">에어 매트릭스 테크 초경량 고탄성 피트니스 트레이닝 러닝화</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">69,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★★<span class="review-count">(1,150)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=300&auto=format&fit=crop" alt="시계"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">미니멀 가죽 미드나잇 쿼츠 아날로그 클래식 손목시계</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">45,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★☆<span class="review-count">(84)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=300&auto=format&fit=crop" alt="유선헤드폰"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">헤리티지 오디오 프리미엄 베이스 강화 유선 스튜디오 헤드폰</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">89,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★☆<span class="review-count">(142)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-1503602642458-232111445657?q=80&w=300&auto=format&fit=crop" alt="의자"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">북유럽 빈티지 솔리드 애쉬 원목 다용도 인테리어 스툴 의자</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">38,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★★<span class="review-count">(195)</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="image-area"><img src="https://images.unsplash.com/photo-111556532299-8f662fc26c06?q=80&w=300&auto=format&fit=crop" alt="스니커즈"></div>
+                    <div class="info-area">
+                        <h4 class="product-name">올데이 컴포트 통기성 메쉬 매트릭스 화이트 스니커즈 단품</h4>
+                        <div class="price-wrap">
+                            <span class="sale-price">52,000<span class="price-unit">원</span></span>
+                            <span class="ship-label">👑골드배송</span>
+                            <div class="review-row">★★★★★<span class="review-count">(612)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="main-footer">
+        <div class="web-container footer-inner">
+            <div class="footer-company-info">
+                <p><strong>골드마켓 커머스 주식회사</strong> | 대표이사 : 홍길동 | 서울시 강남구 테헤란로 000</p>
+                <p>사업자등록번호 : 123-45-67890 | 통신판매업신고 : 제 2026-서울강남-0000호</p>
+                <p class="copyright">&copy; 2026 Gold Market Premium Desktop Vanilla CSS Template. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>s
