@@ -9,8 +9,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @Getter
+@Setter
+@ToString
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -35,6 +39,9 @@ public class MemberDto {
     private String loginType;
     private LocalDateTime joinedAt;
     private LocalDateTime lastLoginAt;
+
+    // 회원가입 시 마케팅 수신 동의 여부 (notification_preferences 테이블에 저장)
+    private Boolean marketing;
 
     // Entity → DTO
     public static MemberDto from(Member member) {

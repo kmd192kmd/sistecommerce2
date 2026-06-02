@@ -15,7 +15,7 @@
             
             <div><p>마케팅 동의 여부: <span th:text="${session.marketing}" style="color: red; font-weight: bold;"></span></p></div>
 
-            <form method="post" class="space-y-5">
+            <form th:action="@{/member/signup}" method="post" class="space-y-5">
 
                 <!-- 아이디 -->
                 <div class="space-y-1">
@@ -23,7 +23,7 @@
                     <div class="flex gap-2">
                         <input type="text" name="username"
                             class="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                            placeholder="아이디를 입력하세요" />
+                            placeholder="아이디를 입력하세요" required/>
                         <button type="button"
                             class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 text-xs font-bold px-4 py-2.5 transition-colors">
                             중복확인
@@ -36,7 +36,7 @@
                     <label class="text-xs font-bold text-gray-700">비밀번호 <span class="text-red-500">*</span></label>
                     <input type="password" name="password"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="비밀번호를 입력하세요" />
+                        placeholder="비밀번호를 입력하세요" required/>
                 </div>
 
                 <!-- 비밀번호 확인 -->
@@ -44,7 +44,7 @@
                     <label class="text-xs font-bold text-gray-700">비밀번호 확인 <span class="text-red-500">*</span></label>
                     <input type="password" name="passwordConfirm"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="비밀번호를 다시 입력하세요" />
+                        placeholder="비밀번호를 다시 입력하세요" required/>
                 </div>
 
                 <!-- 닉네임 -->
@@ -53,7 +53,7 @@
                     <div class="flex gap-2">
                         <input type="text" name="nickname"
                             class="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                            placeholder="닉네임을 입력하세요" />
+                            placeholder="닉네임을 입력하세요" required/>
                         <button type="button"
                             class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 text-xs font-bold px-4 py-2.5 transition-colors">
                             중복확인
@@ -66,7 +66,7 @@
                     <label class="text-xs font-bold text-gray-700">이름 <span class="text-red-500">*</span></label>
                     <input type="text" name="name"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="이름을 입력하세요" />
+                        placeholder="이름을 입력하세요" required/>
                 </div>
 
                 <!-- 이메일 -->
@@ -75,7 +75,7 @@
                     <div class="flex gap-2">
                         <input type="email" name="email"
                             class="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                            placeholder="이메일을 입력하세요" />
+                            placeholder="이메일을 입력하세요" required/>
                         <button type="button"
                             class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 text-xs font-bold px-4 py-2.5 transition-colors">
                             인증메일 발송
@@ -93,7 +93,7 @@
 
                 <!-- 성별 -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-gray-700">성별</label>
+                    <label class="text-xs font-bold text-gray-700" required>성별</label>
                     <div class="flex gap-3">
                         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
                             <input type="radio" name="gender" value="M" class="accent-amber-500" /> 남성
@@ -109,29 +109,6 @@
                     <label class="text-xs font-bold text-gray-700">생년월일</label>
                     <input type="date" name="birth"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors" />
-                </div>
-
-                <!-- 약관 동의 -->
-                <div class="border border-gray-200 p-4 space-y-2 mt-2">
-                    <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
-                        <input type="checkbox" class="accent-amber-500" /> 전체 동의
-                    </label>
-                    <div class="border-t border-gray-100 pt-2 space-y-1.5">
-                        <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                            <input type="checkbox" name="terms" class="accent-amber-500" />
-                            <span>[필수] 이용약관 동의</span>
-                            <a href="#" class="ml-auto text-gray-400 hover:text-amber-600">보기</a>
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                            <input type="checkbox" name="privacy" class="accent-amber-500" />
-                            <span>[필수] 개인정보 처리방침 동의</span>
-                            <a href="#" class="ml-auto text-gray-400 hover:text-amber-600">보기</a>
-                        </label>
-                        <label class="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                            <input type="checkbox" name="marketing" class="accent-amber-500" />
-                            <span>[선택] 마케팅 정보 수신 동의</span>
-                        </label>
-                    </div>
                 </div>
 
                 <button type="submit"

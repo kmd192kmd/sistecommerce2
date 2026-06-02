@@ -61,9 +61,9 @@ public class MemberController {
     
     @GetMapping("/signup/terms")
     public String signupTerms() {
-        return "/member/signup-terms";
+        return "member/signup-terms";
     }
-    
+
     @PostMapping("/signup/terms")
     public String signupTermsOk(
             @RequestParam(name = "marketing", defaultValue = "false") boolean marketing,
@@ -74,13 +74,18 @@ public class MemberController {
     
     @GetMapping("/signup")
     public String signup() {
-        return "/member/signup";
+        return "member/signup";
     }
     
     @PostMapping("/signup")
-    public String signupOk() {
+    public String signupOk(@ModelAttribute MemberDto memberDto, HttpSession session) {
+    	// TODO: 회원가입 서비스 구현 후 처리
     	
-    	return "";
+    	// 마케팅 추가 
+    	memberDto.setMarketing((Boolean)session.getAttribute("marketing"));
+    	
+    	
+    	return "redirect:/";
     }
     
     
