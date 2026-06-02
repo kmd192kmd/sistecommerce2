@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('쇼핑몰 | 상품 목록')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 쇼핑몰 목록 화면 (SHOP-PRD-01) -->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+
+    <!-- 검색/정렬 바 -->
+    <section class="bg-white border border-gray-200 p-4 mb-6">
+        <form th:action="@{/products}" method="get" class="flex border-2 border-amber-500 mb-3">
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="상품명으로 검색"
+                   class="w-full px-4 py-2 text-sm focus:outline-none" />
+            <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-6 text-sm font-bold">검색</button>
+        </form>
+        <div class="flex flex-wrap gap-2 text-xs font-semibold">
+            <a th:href="@{/products(sort='new')}" class="px-3 py-1 bg-slate-900 text-white">✓ 신상품순</a>
+            <a th:href="@{/products(sort='priceAsc')}" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">낮은가격순</a>
+            <a th:href="@{/products(sort='priceDesc')}" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">높은가격순</a>
+            <a th:href="@{/products(sort='salesDesc')}" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">판매량순</a>
+            <a th:href="@{/products(sort='rating')}" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">별점순</a>
+        </div>
+    </section>
+
+    <!-- 상품 그리드 -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+        <a th:each="p : ${products}" th:href="@{/products/{seq}(seq=${p.seq})}"
+           class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+            <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                <img th:src="${p.image}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            </div>
+            <div class="pt-3 space-y-1">
+                <h4 th:text="${p.name}" class="text-xs text-gray-700 line-clamp-2 leading-normal group-hover:text-amber-600 group-hover:underline">상품명</h4>
+                <div th:if="${p.originalPrice > 0}" th:text="${#numbers.formatInteger(p.originalPrice, 0, 'COMMA')} + '원'"
+                     class="text-[11px] text-gray-400 line-through">원가</div>
+                <div class="flex items-baseline gap-1">
+                    <span th:if="${p.discountRate > 0}" th:text="${p.discountRate} + '%'" class="text-red-500 font-black text-sm">0%</span>
+                    <span th:text="${#numbers.formatInteger(p.price, 0, 'COMMA')}" class="text-gray-900 font-extrabold text-base">0</span>
+                    <span class="text-xs font-bold">원</span>
+                </div>
+                <div class="text-[10px] text-gray-400">
+                    <span class="text-amber-500 font-bold" th:text="${p.rating}">★★★★★</span>
+                    <span th:text="'(' + ${#numbers.formatInteger(p.reviewCount, 0, 'COMMA')} + ')'">(0)</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- 페이징 (10개 단위) -->
+    <nav class="flex items-center justify-center gap-1 mt-10 text-sm">
+        <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white text-gray-400 hover:bg-gray-50">← 이전</a>
+        <a href="#" class="px-3 py-1.5 border border-amber-500 bg-amber-500 text-white font-bold">1</a>
+        <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">2</a>
+        <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">3</a>
+        <span class="px-2 text-gray-400">…</span>
+        <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">10</a>
+        <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">다음 →</a>
+    </nav>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

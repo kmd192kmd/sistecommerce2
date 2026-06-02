@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('공동구매 | 목록')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 공동구매 목록 화면 (GB-01) -->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+
+    <div class="flex items-center gap-3 mb-6">
+        <h2 class="text-2xl font-black flex items-center gap-2"><i data-lucide="gem" class="w-6 h-6 text-amber-500"></i> 공동구매</h2>
+        <span class="text-xs text-gray-500">정해진 인원이 모이면 고정 할인가로! 미달 시 전원 환불.</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
+
+        <!-- 필터 (#6) -->
+        <aside class="bg-white border border-gray-200 p-4 h-fit space-y-5 text-sm">
+            <div>
+                <h3 class="font-bold mb-2">진행 상태</h3>
+                <label class="flex items-center gap-2 text-gray-600 mb-1"><input type="checkbox" checked> 진행 중</label>
+                <label class="flex items-center gap-2 text-gray-600"><input type="checkbox"> 마감됨</label>
+            </div>
+            <div>
+                <h3 class="font-bold mb-2">카테고리</h3>
+                <label class="flex items-center gap-2 text-gray-600 mb-1"><input type="checkbox" checked> 전자기기</label>
+                <label class="flex items-center gap-2 text-gray-600 mb-1"><input type="checkbox"> 생활용품</label>
+                <label class="flex items-center gap-2 text-gray-600"><input type="checkbox"> 식품</label>
+            </div>
+            <div>
+                <h3 class="font-bold mb-2">가격대</h3>
+                <input type="range" class="w-full accent-amber-500">
+            </div>
+        </aside>
+
+        <!-- 목록 (#3 #4) -->
+        <div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                <a th:each="g : ${groupBuys}" th:href="@{/group-buys/{seq}(seq=${g.seq})}"
+                   class="bg-white border border-gray-200 overflow-hidden group hover:border-amber-400 transition-colors">
+                    <div class="aspect-video bg-gray-50 relative overflow-hidden">
+                        <img th:src="${g.image}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                        <!-- 마감 남은 시간 (오른쪽 위) -->
+                        <span th:text="${g.remainText}"
+                              class="absolute top-2 right-2 bg-slate-900/85 text-amber-400 text-[11px] font-bold px-2 py-1">마감까지</span>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        <h4 th:text="${g.name}" class="text-sm font-semibold line-clamp-2 group-hover:text-amber-600">공구 상품명</h4>
+                        <div>
+                            <span class="text-[11px] text-gray-400 line-through"
+                                  th:text="${#numbers.formatInteger(g.originalPrice, 0, 'COMMA')} + '원'">정가</span>
+                            <div class="flex items-baseline gap-1">
+                                <span th:text="${g.discountRate} + '%'" class="text-red-500 font-black text-sm">35%</span>
+                                <span th:text="${#numbers.formatInteger(g.finalPrice, 0, 'COMMA')}" class="text-amber-700 font-extrabold text-lg">0</span>
+                                <span class="text-xs font-bold">원</span>
+                            </div>
+                        </div>
+                        <!-- 공구 진행도 (최대 인원 대비) -->
+                        <div>
+                            <div class="flex justify-between text-[11px] font-bold mb-1">
+                                <span class="text-amber-600" th:text="${g.currentCount} + '명 참여'">78명 참여</span>
+                                <span class="text-gray-400" th:text="'최소 ' + ${g.minCount} + '명'">최소 100명</span>
+                            </div>
+                            <div class="w-full h-2 bg-gray-100 overflow-hidden">
+                                <div class="h-full bg-amber-500" th:style="'width:' + ${g.progress} + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 무한 스크롤 (#5) -->
+            <div class="text-center text-xs text-gray-400 py-8" id="infinite-sentinel">
+                스크롤하면 더 많은 공구가 표시됩니다…
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 공통 푸터. 사용: <div th:replace="~{fragments/footer :: footer}"></div> -->
+<footer th:fragment="footer" class="bg-white border-t border-gray-200 text-[11px] text-gray-500 py-10 mt-16">
+    <div class="max-w-screen-wide mx-auto px-4 space-y-4">
+        <div class="flex flex-wrap gap-x-6 gap-y-2 font-bold text-gray-700 border-b border-gray-100 pb-4">
+            <a href="#" class="hover:underline">회사소개</a>
+            <a href="#" class="hover:underline text-amber-600">개인정보처리방침</a>
+            <a href="#" class="hover:underline">이용약관</a>
+            <a href="#" class="hover:underline">입점안내</a>
+            <a href="#" class="hover:underline">고객센터</a>
+        </div>
+        <p class="font-bold text-gray-700">골드마켓 커머스 주식회사 | 대표이사 : 홍길동 | 서울시 강남구 테헤란로 000</p>
+        <p>사업자등록번호 : 123-45-67890 | 통신판매업신고 : 제 2026-서울강남-0000호</p>
+        <p class="text-[10px] text-gray-400">&copy; 2026 Gold Market. All rights reserved.</p>
+    </div>
+</footer>
+</body>
+</html>

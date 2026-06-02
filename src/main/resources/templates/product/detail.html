@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('상품 상세')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 상품 상세 화면 (SHOP-PRD-02) -->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32" th:object="${product}">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-white p-6 border border-gray-200">
+        <!-- 상품 이미지 (#1) -->
+        <div class="aspect-square bg-gray-50 overflow-hidden">
+            <img th:src="*{image}" alt="" class="w-full h-full object-cover">
+        </div>
+
+        <!-- 상품 설명 (#2) -->
+        <div class="flex flex-col">
+            <div class="flex items-start justify-between">
+                <h1 th:text="*{name}" class="text-2xl font-bold leading-snug">상품명</h1>
+                <button type="button" class="text-gray-300 hover:text-red-500" title="찜">
+                    <i data-lucide="heart" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="mt-2 text-[13px] text-amber-500 font-bold">
+                <span th:text="*{rating}">★★★★★</span>
+                <span class="text-gray-400 font-normal" th:text="'(' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">(1,950)</span>
+            </div>
+
+            <div class="mt-6 space-y-1 border-y border-gray-100 py-5">
+                <p th:if="*{originalPrice > 0}" class="text-sm text-gray-400 line-through"
+                   th:text="'시세가 ' + ${#numbers.formatInteger(product.originalPrice, 0, 'COMMA')} + '원'">시세가</p>
+                <p class="flex items-baseline gap-2">
+                    <span th:if="*{discountRate > 0}" th:text="*{discountRate} + '%'" class="text-red-500 font-black text-2xl">0%</span>
+                    <span th:text="${#numbers.formatInteger(product.price, 0, 'COMMA')}" class="text-3xl font-black">0</span>
+                    <span class="text-lg font-bold">원</span>
+                </p>
+            </div>
+
+            <!-- 옵션 선택 (#3) -->
+            <div class="mt-6">
+                <label class="block text-xs font-bold text-gray-500 mb-1">옵션 선택</label>
+                <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+                    <option value="">옵션을 선택하세요</option>
+                    <option th:each="opt : *{options}" th:value="${opt}" th:text="${opt}">옵션</option>
+                </select>
+            </div>
+
+            <!-- 수량 + 버튼 (#4 #5 #6) -->
+            <div class="mt-4 flex items-center gap-3">
+                <div class="flex items-center border border-gray-300">
+                    <button type="button" class="px-3 py-2 text-gray-500 hover:bg-gray-50">−</button>
+                    <input type="text" value="1" class="w-12 text-center text-sm border-x border-gray-300 py-2" />
+                    <button type="button" class="px-3 py-2 text-gray-500 hover:bg-gray-50">+</button>
+                </div>
+                <button type="button" class="flex-1 border-2 border-amber-500 text-amber-600 font-bold py-2.5 text-sm hover:bg-amber-50">장바구니 담기</button>
+                <button type="button" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 text-sm">바로구매</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 탭: 상품상세 / 리뷰 (#7 #8) -->
+    <div class="mt-8 bg-white border border-gray-200">
+        <div class="flex border-b border-gray-200 text-sm font-bold">
+            <button type="button" class="flex-1 py-3 border-b-2 border-amber-500 text-amber-600">상품 상세</button>
+            <button type="button" class="flex-1 py-3 text-gray-500 hover:text-gray-800"
+                    th:text="'상품평 (' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">상품평 (1,950)</button>
+        </div>
+        <!-- 상품 상세 설명 (#9) -->
+        <div class="p-8 text-sm text-gray-700 leading-relaxed min-h-[300px]">
+            <p th:text="*{description}">상품 상세 설명</p>
+        </div>
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

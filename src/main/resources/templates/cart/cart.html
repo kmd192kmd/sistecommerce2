@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('장바구니')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 장바구니 (CART-MAIN-01) -->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+
+    <h2 class="text-xl font-black bg-gray-100 px-5 py-4">장바구니</h2>
+
+    <form th:action="@{/order/checkout}" method="get">
+        <div class="bg-white border border-gray-200 border-t-0">
+            <!-- 항목 (#1 #2) -->
+            <div th:each="item : ${cartItems}" class="flex items-center gap-4 p-5 border-b border-gray-100">
+                <input type="checkbox" name="select" th:value="${item.seq}" checked class="w-5 h-5 accent-amber-500">
+                <div class="w-24 h-24 bg-gray-50 shrink-0 overflow-hidden">
+                    <img th:src="${item.image}" alt="" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                    <h4 th:text="${item.name}" class="text-sm font-semibold">상품명</h4>
+                    <p class="text-xs text-gray-500 mt-1" th:text="'옵션: ' + ${item.option}">옵션</p>
+                    <div class="mt-2 flex items-center border border-gray-300 w-fit">
+                        <button type="button" class="px-2.5 py-1 text-gray-500 hover:bg-gray-50">−</button>
+                        <input type="text" th:value="${item.qty}" class="w-10 text-center text-sm border-x border-gray-300 py-1">
+                        <button type="button" class="px-2.5 py-1 text-gray-500 hover:bg-gray-50">+</button>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-black" th:text="${#numbers.formatInteger(item.price * item.qty, 0, 'COMMA')} + '원'">시세가</p>
+                    <button type="button" class="mt-2 text-gray-300 hover:text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 구매 (#3) -->
+        <div class="flex justify-center mt-8">
+            <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-16 py-3.5">구매하기</button>
+        </div>
+    </form>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

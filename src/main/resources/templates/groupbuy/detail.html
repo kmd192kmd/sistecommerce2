@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('공동구매 상세')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!--
+  공동구매 상세 화면 (GB-02).
+  ★ A방식 데모: 실시간성이 강한 "구매 패널"(진행도/마감 카운트다운/옵션 매진/대기열)은
+     React 가 담당하도록 mount 자리를 비워둔다. 나머지(이미지·설명·헤더/푸터)는 Thymeleaf.
+
+  현재는 React 번들이 아직 없어서 <noscript> 대신 서버 렌더 fallback 을 같이 둔다.
+  React 도입 시:
+    1) /src 에 groupbuy-detail 진입점 작성 → Vite build → /js/groupbuy-detail.js 산출
+    2) 아래 fallback 제거 후 <script th:src="@{/js/groupbuy-detail.js}" type="module"> 활성화
+    3) React 컴포넌트가 data-gb-id 로 REST(GET /api/group-buys/{id}) 호출해 실시간 렌더
+-->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32" th:object="${groupBuy}">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-white p-6 border border-gray-200">
+        <!-- 상품 이미지 (#1) — 정적이라 Thymeleaf -->
+        <div class="aspect-square bg-gray-50 overflow-hidden">
+            <img th:src="*{image}" alt="" class="w-full h-full object-cover">
+        </div>
+
+        <!-- ▼▼▼ 동적 구매 패널: React mount 지점 (#2 #3 #4 #5) ▼▼▼ -->
+        <div id="gb-detail-root" th:attr="data-gb-id=*{seq}">
+            <!-- ↓ React 미탑재 동안 보여줄 서버 렌더 fallback (React 붙이면 이 블록을 React 가 덮어씀) -->
+            <div class="flex items-start justify-between">
+                <h1 th:text="*{name}" class="text-2xl font-bold leading-snug">공구 상품명</h1>
+                <span th:text="'마감까지 ' + *{remainText}" class="shrink-0 bg-slate-900 text-amber-400 text-xs font-bold px-2 py-1">마감까지</span>
+            </div>
+            <div class="mt-2 text-[13px] text-amber-500 font-bold">
+                <span th:text="*{rating} ?: '★★★★★'">★★★★★</span>
+            </div>
+
+            <div class="mt-6 space-y-1 border-y border-gray-100 py-5">
+                <p class="text-sm text-gray-400">
+                    정가 <span class="line-through" th:text="${#numbers.formatInteger(groupBuy.originalPrice, 0, 'COMMA')} + '원'">정가</span>
+                </p>
+                <p class="flex items-baseline gap-2">
+                    <span th:text="*{discountRate} + '%'" class="text-red-500 font-black text-2xl">35%</span>
+                    <span th:text="${#numbers.formatInteger(groupBuy.finalPrice, 0, 'COMMA')}" class="text-3xl font-black">0</span>
+                    <span class="text-lg font-bold">원</span>
+                </p>
+            </div>
+
+            <!-- 공구 진행도 -->
+            <div class="mt-5">
+                <div class="flex justify-between text-xs font-bold mb-1">
+                    <span class="text-amber-600" th:text="*{currentCount} + '명 참여'">78명 참여</span>
+                    <span class="text-gray-400" th:text="'목표 ' + *{minCount} + '명'">목표 100명</span>
+                </div>
+                <div class="w-full h-3 bg-gray-100 overflow-hidden">
+                    <div class="h-full bg-amber-500" th:style="'width:' + *{progress} + '%'"></div>
+                </div>
+            </div>
+
+            <!-- 옵션 선택: 잔여 수량 비공개, 매진 여부만 표시 (CLAUDE.md 규칙) -->
+            <div class="mt-6">
+                <label class="block text-xs font-bold text-gray-500 mb-1">옵션 선택</label>
+                <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+                    <option value="">옵션을 선택하세요</option>
+                    <option value="A">기본형</option>
+                    <option value="B" disabled>대용량 (매진)</option>
+                </select>
+            </div>
+
+            <!-- 참여(바로구매). 매진/마감 시 '대기열 등록하기'로 전환 (React가 상태 따라 분기) -->
+            <button type="button" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 text-sm">
+                바로구매 (공구 참여)
+            </button>
+            <p class="mt-2 text-[11px] text-gray-400">※ 공구 상품은 쿠폰·핫딜 적용 불가 / 1인 1상품, 수량 1개 고정</p>
+            <!-- ↑ fallback 끝 -->
+        </div>
+        <!-- ▲▲▲ React mount 지점 끝 ▲▲▲ -->
+    </div>
+
+    <!-- 탭: 상품상세 / 리뷰 (#6 #7) — 정적이라 Thymeleaf -->
+    <div class="mt-8 bg-white border border-gray-200">
+        <div class="flex border-b border-gray-200 text-sm font-bold">
+            <button type="button" class="flex-1 py-3 border-b-2 border-amber-500 text-amber-600">상품 상세</button>
+            <button type="button" class="flex-1 py-3 text-gray-500 hover:text-gray-800">상품평</button>
+        </div>
+        <div class="p-8 text-sm text-gray-700 leading-relaxed min-h-[300px]">
+            <p th:text="*{description}">상품 상세 설명</p>
+        </div>
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<!-- React 도입 시 활성화 (현재는 fallback 사용)
+<script type="module" th:src="@{/js/groupbuy-detail.js}"></script>
+-->
+</body>
+</html>

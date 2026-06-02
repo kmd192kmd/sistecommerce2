@@ -1,14 +1,101 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>메인</title>
-</head>
-<body>
-    <div th:replace="~{header :: header}"></div>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Gold Market | 메인')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
 
-    <h2>메인 페이지</h2>
+<div th:replace="~{fragments/header :: header}"></div>
 
-    
+<!-- [공동구매 배너] 메인 히어로 (COM-MAIN-01 #9) -->
+<div class="w-full bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 text-white border-b border-slate-800">
+    <div class="max-w-screen-wide mx-auto px-4 h-80 flex items-center justify-between relative">
+        <div class="space-y-4 max-w-xl z-10">
+            <span class="bg-amber-500 text-slate-900 text-[10px] font-black px-2 py-0.5 tracking-wider">GOLD 공동구매</span>
+            <h1 class="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+                함께 사면 더 싸다<br><span class="text-amber-400">공동구매</span> 지금 진행 중
+            </h1>
+            <p class="text-gray-400 text-xs font-light">정해진 인원이 모이면 고정 할인가로 구매! 미달 시 전액 환불.</p>
+            <a th:href="@{/group-buys}" class="inline-block bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-sm px-6 py-2.5 transition-colors">
+                진행 중인 공구 보러가기
+            </a>
+        </div>
+        <div class="hidden lg:block w-72 h-52 bg-white/5 border border-white/10 p-5 backdrop-blur-sm">
+            <p class="text-xs font-bold text-amber-400">GOLD LIVE ZONE</p>
+            <div class="mt-4 w-full h-32 bg-black/40 flex items-center justify-center text-[11px] text-gray-500">
+                실시간 라이브 특가 송출 중
+            </div>
+        </div>
+    </div>
+</div>
+
+<main class="max-w-screen-wide mx-auto px-4 mt-12 pb-32 space-y-16">
+
+    <!-- [핫딜 상품] (COM-MAIN-01 #10) -->
+    <section class="space-y-4">
+        <div class="flex items-end justify-between border-b-2 border-slate-900 pb-2">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span class="w-1.5 h-5 bg-amber-500"></span> 🔥 오늘만 이 가격! 핫딜 상품
+            </h3>
+            <a th:href="@{/hotdeals}" class="text-xs font-bold text-gray-500 hover:text-amber-600">전체보기 &gt;</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <!-- 상품 카드 (th:each) -->
+            <a th:each="p : ${hotdeals}" th:href="@{/products/{seq}(seq=${p.seq})}"
+               class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                    <img th:src="${p.image}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                </div>
+                <div class="pt-3 space-y-1.5">
+                    <h4 th:text="${p.name}" class="text-xs text-gray-700 line-clamp-2 leading-normal group-hover:text-amber-600 group-hover:underline">상품명</h4>
+                    <div>
+                        <div th:if="${p.originalPrice > 0}" th:text="${#numbers.formatInteger(p.originalPrice, 0, 'COMMA')} + '원'"
+                             class="text-[11px] text-gray-400 line-through">21,900원</div>
+                        <div class="flex items-baseline gap-1">
+                            <span th:if="${p.discountRate > 0}" th:text="${p.discountRate} + '%'" class="text-red-500 font-black text-sm">32%</span>
+                            <span th:text="${#numbers.formatInteger(p.price, 0, 'COMMA')}" class="text-amber-700 font-extrabold text-base">14,900</span>
+                            <span class="text-xs font-bold">원</span>
+                        </div>
+                        <div class="mt-1 flex items-center gap-1 text-[10px] text-gray-400">
+                            <span class="text-amber-500 font-bold" th:text="${p.rating}">★★★★★</span>
+                            <span th:text="'(' + ${#numbers.formatInteger(p.reviewCount, 0, 'COMMA')} + ')'">(4,215)</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- [인기 상품] (COM-MAIN-01 #11) -->
+    <section class="space-y-4">
+        <div class="flex items-end justify-between border-b-2 border-slate-900 pb-2">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span class="w-1.5 h-5 bg-slate-900"></span> 📊 실시간 인기 베스트 상품
+            </h3>
+            <a th:href="@{/products}" class="text-xs font-bold text-gray-500 hover:text-amber-600">전체보기 &gt;</a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <a th:each="p, stat : ${populars}" th:href="@{/products/{seq}(seq=${p.seq})}"
+               class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
+                <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                    <img th:src="${p.image}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                    <span th:text="${stat.count}" class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">1</span>
+                </div>
+                <div class="pt-2 space-y-1">
+                    <h4 th:text="${p.name}" class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">상품명</h4>
+                    <p th:text="${#numbers.formatInteger(p.price, 0, 'COMMA')} + '원'" class="text-sm font-black text-gray-900">549,000원</p>
+                    <div class="text-[10px] text-amber-500 font-bold">
+                        <span th:text="${p.rating}">★★★★★</span>
+                        <span class="text-gray-400 font-normal" th:text="'(' + ${#numbers.formatInteger(p.reviewCount, 0, 'COMMA')} + ')'">(3,104)</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </section>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>

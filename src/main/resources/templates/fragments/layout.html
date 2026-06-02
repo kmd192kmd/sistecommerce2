@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  공통 레이아웃 fragment 모음.
+  - head(title): 공통 <head> (Tailwind / Lucide / 메타)
+  - scripts    : 공통 하단 스크립트 (Lucide 아이콘 빌드)
+
+  ⚠️ Tailwind 는 현재 프로토타이핑용 Play CDN 이다.
+     React(A방식) 도입 단계에서 빌드 파이프라인(@tailwindcss/vite 등)으로 교체할 것.
+     교체 지점이 여기 한 곳이라 그때 head fragment 만 바꾸면 된다.
+-->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} ?: 'Gold Market'">Gold Market</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    maxWidth: { 'screen-wide': '1400px' },
+                    colors: { brand: { DEFAULT: '#f59e0b' } } // amber-500 = 골드 포인트
+                }
+            }
+        };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<th:block th:fragment="scripts">
+    <script>lucide.createIcons();</script>
+</th:block>
+</body>
+</html>
