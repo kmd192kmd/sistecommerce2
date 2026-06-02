@@ -12,7 +12,7 @@ public class MainController {
     @GetMapping("/")
     public String index(HttpSession session, Model model) {
         MemberDto auth = (MemberDto) session.getAttribute("auth");
-        model.addAttribute("loginMember", auth);
+        model.addAttribute("auth", auth);
         return "index";
     }
 }
