@@ -12,7 +12,7 @@ public class UiTestController {
 	}
 	@GetMapping("/indexTest")
 	public String TestIndex() {
-		return "forward:index.html";
+		return "admin/index";
 	}
 	@GetMapping("/indexTest2")
 	public String TestIndex2() {
