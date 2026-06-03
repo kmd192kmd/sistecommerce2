@@ -13,7 +13,8 @@ CHECK (
         'READY',
         'SHIPPING',
         'DELIVERED',
-        'FAILED'
+        'FAILED',
+        'DELAYED'
     )
 );
 

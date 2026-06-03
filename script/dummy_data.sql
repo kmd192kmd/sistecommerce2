@@ -1,3 +1,23 @@
+-- 1. 본사허브 (서울 대치동 쌍용교육센터 - H타워 9층)
+INSERT INTO hub (seq, name, zip_code, road_address, detail_address, latitude, longitude)
+VALUES (hub_seq.NEXTVAL, '본사허브', '06193', '서울특별시 강남구 테헤란로70길 12', 'H타워 9층', 37.5049, 127.0505);
+
+-- 2. 중간허브 1 (경기 - 수원시 팔달구 효원로 241)
+INSERT INTO hub (seq, name, zip_code, road_address, detail_address, latitude, longitude)
+VALUES (hub_seq.NEXTVAL, '중간허브1(경기)', '16490', '경기도 수원시 팔달구 효원로 241', NULL, 37.2635, 127.0286);
+
+-- 3. 중간허브 2 (충청 - 대전광역시 서구 둔산로 100)
+INSERT INTO hub (seq, name, zip_code, road_address, detail_address, latitude, longitude)
+VALUES (hub_seq.NEXTVAL, '중간허브2(충청)', '35242', '대전광역시 서구 둔산로 100', NULL, 36.3504, 127.3845);
+
+-- 4. 중간허브 3 (경상 - 대구광역시 북구 연암로 40)
+INSERT INTO hub (seq, name, zip_code, road_address, detail_address, latitude, longitude)
+VALUES (hub_seq.NEXTVAL, '중간허브3(경상)', '41542', '대구광역시 북구 연암로 40', NULL, 35.8714, 128.6014);
+
+-- 5. 변경사항 커밋
+COMMIT;
+
+
 -- ==========================================================
 -- 쇼핑몰 프로젝트 대량 더미데이터 생성 스크립트 (1000건 이상)
 -- 작성 목적: 테스트 및 검색/페이징 기능 검증을 위한 대량 데이터 구축
