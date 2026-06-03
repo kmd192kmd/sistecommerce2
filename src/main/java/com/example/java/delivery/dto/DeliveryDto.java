@@ -31,6 +31,7 @@ public class DeliveryDto {
 	private LocalDateTime completed_at;
 	private Integer distance_surcharge;
 	private Integer total_delivery_fee;
+	private Integer delayHours;
 	
 	public Delivery toEntity() {
 		
@@ -46,6 +47,7 @@ public class DeliveryDto {
 				    .completed_at(this.completed_at)
 				    .distance_surcharge(this.distance_surcharge)
 				    .total_delivery_fee(this.total_delivery_fee)
+				    .delayHours(this.delayHours)
 				    .build();
 	}
 	

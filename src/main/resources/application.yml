@@ -5,6 +5,11 @@ spring:
   profiles:
     include: secret
 
+  batch:
+    jdbc:
+      initialize-schema: always
+      isolation-level-for-create: READ_COMMITTED
+
   datasource:
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
