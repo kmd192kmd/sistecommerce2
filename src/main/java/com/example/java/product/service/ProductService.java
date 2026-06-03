@@ -26,6 +26,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final OptionsRepository optionsRepository;
+    private final CategoryService categoryService;
 
     // 1. 상품 등록
     @Transactional
@@ -115,8 +116,10 @@ public class ProductService {
         String finalKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
         String saleStatus = hideOutOfStock ? "ON_SALE" : null;
 
+        List<Long> categorySeqs = categoryService.getDescendantCategorySeqs(categorySeq);
+
         Page<Product> productPage = productRepository.findWithFilters(
-                categorySeq, finalKeyword, finalMinPrice, finalMaxPrice, finalMinRating, saleStatus, pageable);
+                categorySeqs, finalKeyword, finalMinPrice, finalMaxPrice, finalMinRating, saleStatus, pageable);
 
         return productPage.map(this::convertToDtoWithDetails);
     }

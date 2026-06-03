@@ -49,39 +49,257 @@ BEGIN
     END LOOP;
     DBMS_OUTPUT.PUT_LINE('판매처 10개 등록 완료.');
 
-    -- 3. 카테고리 (category) 생성 (대분류 3개 -> 각 중분류 2개 -> 각 소분류 3개 = 총 18개 소분류)
+        -- 3. 카테고리 (category) 생성 (요구분석서 기준)
     -- 모든 상품이 카테고리의 '소분류'(depth_level=2)를 참조하도록 설계함
     v_idx := 1;
-    FOR d0 IN 1..3 LOOP
-        -- 대분류 (depth_level = 0)
-        INSERT INTO category (seq, category_name, depth_level, parent_seq)
-        VALUES (category_seq.NEXTVAL, '대분류 카테고리 ' || d0, 0, NULL)
-        RETURNING seq INTO v_parent_seq;
-        
-        FOR d1 IN 1..2 LOOP
-            -- 중분류 (depth_level = 1)
-            INSERT INTO category (seq, category_name, depth_level, parent_seq)
-            VALUES (category_seq.NEXTVAL, '중분류 ' || d0 || '-' || d1, 1, v_parent_seq)
-            RETURNING seq INTO v_sub_parent_seq;
-            
-            FOR d2 IN 1..3 LOOP
-                -- 소분류 (depth_level = 2, 실제 상품들이 참조하게 될 Leaf 노드)
-                INSERT INTO category (seq, category_name, depth_level, parent_seq)
-                VALUES (category_seq.NEXTVAL, '소분류 ' || d0 || '-' || d1 || '-' || d2, 2, v_sub_parent_seq)
-                RETURNING seq INTO v_seq;
-                
-                v_subcat_ids(v_idx) := v_seq;
-                v_idx := v_idx + 1;
-            END LOOP;
-        END LOOP;
-    END LOOP;
-    DBMS_OUTPUT.PUT_LINE('대/중/소 카테고리 등록 완료 (소분류 18개 생성).');
+
+    -- ==========================================
+    -- 대분류: 식품
+    -- ==========================================
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '식품', 0, NULL) RETURNING seq INTO v_parent_seq;
+    -- 중분류: 유제품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '유제품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '요구르트', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '우유', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '치즈', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 육류
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '육류', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '소고기', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '돼지고기', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '닭고기', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 채소
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '채소', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '잎채소', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '뿌리채소', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '열매채소', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 어류
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '어류', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '생선', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '조개/갑각류', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '건어물', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 즉석식품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '즉석식품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '밀키트', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '즉석밥', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '냉동식품', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '라면', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 음료
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '음료', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '탄산음료', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '주스', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '커피', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '차', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '생수', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+
+    -- ==========================================
+    -- 대분류: 생활용품
+    -- ==========================================
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '생활용품', 0, NULL) RETURNING seq INTO v_parent_seq;
+    -- 중분류: 주방용품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '주방용품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '조리도구', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '식기/컵', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '냄비/프라이팬', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 청소용품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '청소용품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '청소도구', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '걸레/청소포', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '쓰레기통', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 수납용품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '수납용품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '리빙박스', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '바구니/정리함', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '옷걸이/행거', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 욕실용품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '욕실용품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '샤워용품', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '수건/타월', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '욕실매트', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 세정용품
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '세정용품', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '주방세제', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '세탁세제', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '욕실세정제', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+
+    -- ==========================================
+    -- 대분류: 의류
+    -- ==========================================
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '의류', 0, NULL) RETURNING seq INTO v_parent_seq;
+    -- 중분류: 상의
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '상의', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '티셔츠', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '맨투맨/후드티', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '셔츠', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '아우터', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 하의
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '하의', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '면바지', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '청바지', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '반바지', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '치마', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 신발
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '신발', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '구두', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '슬리퍼/샌들', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '운동화', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 잡화
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '잡화', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '모자', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '목도리', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '장갑', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+
+    -- ==========================================
+    -- 대분류: 전자제품
+    -- ==========================================
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '전자제품', 0, NULL) RETURNING seq INTO v_parent_seq;
+    -- 중분류: 스마트폰 / 태블릿
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '스마트폰 / 태블릿', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '스마트폰', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '태블릿', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '스마트워치', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 컴퓨터
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '컴퓨터', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '노트북', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '데스크탑 완본체', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: PC 주변기기
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, 'PC 주변기기', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '마우스', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '키보드', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '헤드폰', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '이어폰', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    -- 중분류: 콘솔/영상
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '콘솔/영상', 1, v_parent_seq) RETURNING seq INTO v_sub_parent_seq;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '게임 콘솔', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    INSERT INTO category (seq, category_name, depth_level, parent_seq) VALUES (category_seq.NEXTVAL, '카메라', 2, v_sub_parent_seq) RETURNING seq INTO v_seq;
+    v_subcat_ids(v_idx) := v_seq;
+    v_idx := v_idx + 1;
+    DBMS_OUTPUT.PUT_LINE('대/중/소 카테고리 등록 완료 (소분류 ' || (v_idx - 1) || '개 생성).');
 
     -- 4. 상품 (product) 1050건 등록 및 옵션/이미지 연동
     FOR i IN 1..1050 LOOP
         -- 10개의 판매처와 18개의 소분류 카테고리를 순환하며 자동 분배
         v_seller_seq := v_seller_ids(MOD(i, 10) + 1);
-        v_cat_seq := v_subcat_ids(MOD(i, 18) + 1);
+        v_cat_seq := v_subcat_ids(MOD(i, v_idx - 1) + 1);
         v_price := 10000 + MOD(i, 30) * 3000;
         
         -- 상품 추가

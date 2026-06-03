@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.example.java.product.dto.CategoryDto;
 import com.example.java.product.dto.ProductDto;
+import com.example.java.product.service.CategoryService;
 import com.example.java.product.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class StorefrontController {
 
     private final ProductService productService;
+    private final CategoryService categoryService;
 
     // 쇼핑몰 목록 (SHOP-PRD-01)
     @GetMapping("/products")
@@ -136,6 +139,7 @@ public class StorefrontController {
 
         model.addAttribute("keyword", keyword);
         model.addAttribute("categorySeq", categorySeq);
+        model.addAttribute("categoryPath", categoryService.getCategoryPath(categorySeq));
         model.addAttribute("sort", sort);
         model.addAttribute("price", price); // 파라미터 보존
         model.addAttribute("rating", rating); // 파라미터 보존

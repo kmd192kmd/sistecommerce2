@@ -256,6 +256,76 @@
 
     <section class="flex-1 min-w-0">
         
+        <!-- 카테고리 네비게이션 선택기 -->
+        <div class="bg-white border border-gray-200 p-6 mb-6 rounded-sm space-y-4">
+            <!-- 대분류 선택 -->
+            <div class="flex items-center gap-3">
+                <span class="text-xs font-black text-slate-500 w-16 shrink-0">대분류</span>
+                <div class="flex flex-wrap gap-2">
+                    <a th:href="@{/products(keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                       class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
+                       th:classappend="${categoryPath == null or categoryPath.isEmpty()} ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
+                        전체
+                    </a>
+                    <a th:each="cat : ${globalCategories}"
+                       th:href="@{/products(categorySeq=${cat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                       th:text="${cat.categoryName}"
+                       class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
+                       th:classappend="${categoryPath != null and !categoryPath.isEmpty() and categoryPath[0].seq == cat.seq} ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
+                        대분류명
+                    </a>
+                </div>
+            </div>
+
+            <!-- 중분류 선택 (대분류가 선택된 경우에만 노출) -->
+            <div th:if="${categoryPath != null and !categoryPath.isEmpty()}" class="flex items-center gap-3 pt-3 border-t border-gray-100">
+                <span class="text-xs font-black text-slate-500 w-16 shrink-0">중분류</span>
+                <div class="flex flex-wrap gap-2">
+                    <!-- 현재 선택된 대분류의 하위 중분류 목록 탐색 -->
+                    <th:block th:each="largeCat : ${globalCategories}" th:if="${largeCat.seq == categoryPath[0].seq}">
+                        <!-- 중분류 전체 (대분류 선택된 상태와 같음) -->
+                        <a th:href="@{/products(categorySeq=${largeCat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                           class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
+                           th:classappend="${categoryPath.size() == 1} ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
+                            전체
+                        </a>
+                        <a th:each="cat1 : ${largeCat.children}"
+                           th:href="@{/products(categorySeq=${cat1.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                           th:text="${cat1.categoryName}"
+                           class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
+                           th:classappend="${categoryPath.size() >= 2 and categoryPath[1].seq == cat1.seq} ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
+                            중분류명
+                        </a>
+                    </th:block>
+                </div>
+            </div>
+
+            <!-- 소분류 선택 (중분류가 선택된 경우에만 노출) -->
+            <div th:if="${categoryPath != null and categoryPath.size() >= 2}" class="flex items-center gap-3 pt-3 border-t border-gray-100">
+                <span class="text-xs font-black text-slate-500 w-16 shrink-0">소분류</span>
+                <div class="flex flex-wrap gap-2">
+                    <!-- 현재 선택된 대분류 및 중분류의 하위 소분류 목록 탐색 -->
+                    <th:block th:each="largeCat : ${globalCategories}" th:if="${largeCat.seq == categoryPath[0].seq}">
+                        <th:block th:each="midCat : ${largeCat.children}" th:if="${midCat.seq == categoryPath[1].seq}">
+                            <!-- 소분류 전체 (중분류 선택된 상태와 같음) -->
+                            <a th:href="@{/products(categorySeq=${midCat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                               class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
+                               th:classappend="${categoryPath.size() == 2} ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
+                                전체
+                            </a>
+                            <a th:each="cat2 : ${midCat.children}"
+                               th:href="@{/products(categorySeq=${cat2.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                               th:text="${cat2.categoryName}"
+                               class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
+                               th:classappend="${categoryPath.size() >= 3 and categoryPath[2].seq == cat2.seq} ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
+                                소분류명
+                            </a>
+                        </th:block>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             
             <a th:each="p : ${productList}" th:href="@{/products/{seq}(seq=${p.seq})}"

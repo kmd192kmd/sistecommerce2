@@ -95,21 +95,47 @@
                             class="bg-slate-800 h-full px-6 flex items-center gap-2 hover:bg-slate-700 transition-colors text-amber-400 focus:outline-none">
                         <i data-lucide="menu" class="w-4 h-4"></i> 카테고리
                     </button>
-                    <!-- Dropdown Megamenu -->
-                    <div id="category-dropdown" class="hidden absolute left-0 top-full bg-white text-gray-800 shadow-2xl border border-gray-200 py-6 px-8 grid grid-cols-3 gap-8 min-w-[650px] z-50 mt-0.5 rounded-sm">
-                        <div th:each="cat0 : ${globalCategories}" class="space-y-4">
-                            <h3 class="font-black text-sm text-slate-900 border-b-2 border-slate-900 pb-1.5 flex items-center gap-1.5">
-                                <span class="w-1.5 h-3.5 bg-amber-500"></span>
-                                <span th:text="${cat0.categoryName}">대분류</span>
-                            </h3>
-                            <div class="space-y-4">
-                                <div th:each="cat1 : ${cat0.children}">
-                                    <h4 class="font-bold text-xs text-gray-400 mb-1" th:text="${cat1.categoryName}">중분류</h4>
-                                    <ul class="space-y-1.5 text-xs text-gray-600 pl-2.5 border-l-2 border-gray-100">
-                                        <li th:each="cat2 : ${cat1.children}">
-                                            <a th:href="@{/products(categorySeq=${cat2.seq})}" class="block py-0.5 hover:text-amber-600 hover:underline font-medium" th:text="${cat2.categoryName}">소분류</a>
-                                        </li>
-                                    </ul>
+                    <!-- Dropdown Megamenu (Coupang-style cascading) -->
+                    <div id="category-dropdown" class="hidden absolute left-0 top-full bg-white text-gray-800 shadow-2xl border border-gray-200 z-50 mt-0.5 rounded-sm p-0 flex h-[450px] min-w-[680px] select-none">
+                        <!-- 1. 대분류 Column -->
+                        <div class="w-[220px] bg-gray-50 border-r border-gray-200 overflow-y-auto py-2">
+                            <ul class="space-y-0.5">
+                                <li th:each="cat0 : ${globalCategories}"
+                                    class="category-dep0-item px-4 py-3 hover:bg-white hover:text-amber-600 cursor-pointer flex items-center justify-between font-bold text-sm text-gray-700 border-l-4 border-transparent hover:border-amber-500"
+                                    th:data-id="${cat0.seq}">
+                                    <span th:text="${cat0.categoryName}">대분류</span>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400"></i>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- 2. 중분류 Column -->
+                        <div id="category-dep1-panel" class="w-[230px] bg-white border-r border-gray-100 overflow-y-auto py-2 hidden">
+                            <div th:each="cat0 : ${globalCategories}"
+                                 th:id="'dep1-list-' + ${cat0.seq}"
+                                 class="dep1-list-container hidden space-y-0.5">
+                                <div th:each="cat1 : ${cat0.children}"
+                                     class="category-dep1-item px-4 py-2.5 hover:bg-gray-50 hover:text-amber-600 cursor-pointer flex items-center justify-between font-bold text-xs text-gray-600 border-l-4 border-transparent hover:border-amber-500"
+                                     th:data-id="${cat1.seq}"
+                                     th:data-parent-id="${cat0.seq}">
+                                    <span th:text="${cat1.categoryName}">중분류</span>
+                                    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. 소분류 Column -->
+                        <div id="category-dep2-panel" class="w-[230px] bg-white overflow-y-auto py-2 hidden">
+                            <div th:each="cat0 : ${globalCategories}">
+                                <div th:each="cat1 : ${cat0.children}"
+                                     th:id="'dep2-list-' + ${cat1.seq}"
+                                     class="dep2-list-container hidden space-y-0.5">
+                                    <a th:each="cat2 : ${cat1.children}"
+                                       th:href="@{/products(categorySeq=${cat2.seq})}"
+                                       class="block px-6 py-2 text-xs text-gray-600 hover:bg-gray-50 hover:text-amber-600 hover:font-bold font-medium"
+                                       th:text="${cat2.categoryName}">
+                                        소분류
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -127,8 +153,93 @@
             </div>
         </div>
 
-        <!-- 클릭 유도 해제 등을 제어하는 범용 클릭 리스너 스크립트 -->
+        <!-- 카테고리 및 범용 인터랙션 제어 스크립트 -->
         <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const dep0Items = document.querySelectorAll('.category-dep0-item');
+                const dep1Items = document.querySelectorAll('.category-dep1-item');
+                
+                const dep1Panel = document.getElementById('category-dep1-panel');
+                const dep2Panel = document.getElementById('category-dep2-panel');
+                
+                const activeDep0Classes = ['bg-white', 'text-amber-600', 'border-amber-500'];
+                const activeDep1Classes = ['bg-gray-50', 'text-amber-600', 'border-amber-500'];
+                
+                function activateDep0(item) {
+                    // Reset all dep0 items
+                    dep0Items.forEach(el => {
+                        el.classList.remove(...activeDep0Classes);
+                        el.classList.add('border-transparent');
+                    });
+                    // Reset all dep1 items
+                    dep1Items.forEach(el => {
+                        el.classList.remove(...activeDep1Classes);
+                        el.classList.add('border-transparent');
+                    });
+                    
+                    // Activate current dep0
+                    item.classList.remove('border-transparent');
+                    item.classList.add(...activeDep0Classes);
+                    
+                    const cat0Id = item.getAttribute('data-id');
+                    
+                    // Hide all dep1 list containers
+                    document.querySelectorAll('.dep1-list-container').forEach(el => el.classList.add('hidden'));
+                    // Hide all dep2 list containers
+                    document.querySelectorAll('.dep2-list-container').forEach(el => el.classList.add('hidden'));
+                    
+                    // Show current dep1 list container
+                    const targetDep1List = document.getElementById('dep1-list-' + cat0Id);
+                    if (targetDep1List) {
+                        targetDep1List.classList.remove('hidden');
+                        dep1Panel.classList.remove('hidden');
+                    } else {
+                        dep1Panel.classList.add('hidden');
+                    }
+                    
+                    // Hide dep2 panel initially
+                    dep2Panel.classList.add('hidden');
+                }
+                
+                function activateDep1(item) {
+                    // Reset all dep1 items
+                    dep1Items.forEach(el => {
+                        el.classList.remove(...activeDep1Classes);
+                        el.classList.add('border-transparent');
+                    });
+                    
+                    // Activate current dep1
+                    item.classList.remove('border-transparent');
+                    item.classList.add(...activeDep1Classes);
+                    
+                    const cat1Id = item.getAttribute('data-id');
+                    
+                    // Hide all dep2 list containers
+                    document.querySelectorAll('.dep2-list-container').forEach(el => el.classList.add('hidden'));
+                    
+                    // Show current dep2 list container
+                    const targetDep2List = document.getElementById('dep2-list-' + cat1Id);
+                    if (targetDep2List) {
+                        targetDep2List.classList.remove('hidden');
+                        dep2Panel.classList.remove('hidden');
+                    } else {
+                        dep2Panel.classList.add('hidden');
+                    }
+                }
+                
+                // Bind event listeners to Dep0
+                dep0Items.forEach(item => {
+                    item.addEventListener('mouseenter', () => activateDep0(item));
+                    item.addEventListener('click', () => activateDep0(item));
+                });
+                
+                // Bind event listeners to Dep1
+                dep1Items.forEach(item => {
+                    item.addEventListener('mouseenter', () => activateDep1(item));
+                    item.addEventListener('click', () => activateDep1(item));
+                });
+            });
+
             document.addEventListener('click', function(e) {
                 // 카테고리 드롭다운 영역 밖 클릭 시 숨김
                 const catBtn = document.getElementById('category-btn');
