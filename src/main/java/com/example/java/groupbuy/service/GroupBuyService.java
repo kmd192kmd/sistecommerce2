@@ -191,8 +191,28 @@ public class GroupBuyService {
                 .finalPrice(g.getFinalPrice())
                 .discountRate(discountRate(g.getOriginalPrice(), g.getFinalPrice()))
                 .remainSeconds(remainSeconds(g.getEndAt(), now))
+                .remainText(remainText(remainSeconds(g.getEndAt(), now)))
                 .minCount(g.getMinCount())
+                .currentCount(0)   // TODO: participation 집계 후 실값
+                .progress(0)       // TODO: participation 집계 후 실값
                 .build();
+    }
+
+    /** 남은 초를 "N일 N시간" 식 표기로. 마감 지났으면 "마감". */
+    private String remainText(long seconds) {
+        if (seconds <= 0) {
+            return "마감";
+        }
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600) / 60;
+        if (days > 0) {
+            return days + "일 " + hours + "시간";
+        }
+        if (hours > 0) {
+            return hours + "시간 " + minutes + "분";
+        }
+        return minutes + "분";
     }
 
     /** 상품의 대표 썸네일(thumbnail_yn='Y') 이미지 URL. 없으면 기본 이미지. */

@@ -25,5 +25,10 @@ public class GroupBuySummaryResponse {
     private Integer finalPrice;
     private Integer discountRate;   // 계산값
     private Long remainSeconds;     // 계산값: 지금~마감 남은 초 (마감 지났으면 0)
+    private String remainText;      // 계산값: remainSeconds를 "N일 N시간" 식으로 표기 (화면용)
     private Integer minCount;
+
+    // participation 집계 구현 전까지 임시 0 (현재 참여 인원 / 진행률 %)
+    private Integer currentCount;
+    private Integer progress;
 }

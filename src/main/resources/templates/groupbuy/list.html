@@ -46,7 +46,7 @@
                               class="absolute top-2 right-2 bg-slate-900/85 text-amber-400 text-[11px] font-bold px-2 py-1">마감까지</span>
                     </div>
                     <div class="p-4 space-y-2">
-                        <h4 th:text="${g.name}" class="text-sm font-semibold line-clamp-2 group-hover:text-amber-600">공구 상품명</h4>
+                        <h4 th:text="${g.productName}" class="text-sm font-semibold line-clamp-2 group-hover:text-amber-600">공구 상품명</h4>
                         <div>
                             <span class="text-[11px] text-gray-400 line-through"
                                   th:text="${#numbers.formatInteger(g.originalPrice, 0, 'COMMA')} + '원'">정가</span>
