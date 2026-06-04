@@ -691,4 +691,39 @@ public class ProductRepository {
 
         sb.append(value);
     }
+    
+    /*
+	    상품 리뷰 통계 갱신
+	
+	    review 테이블 기준으로 평균 별점과 리뷰 수를 다시 계산해서
+	    product 테이블의 avg_rating, review_count에 저장합니다.
+	
+	    리뷰 등록, 수정, 삭제 후에 호출해야 합니다.
+	*/
+	public void updateProductReviewStats(Long productSeq) {
+	
+	    String sql = """
+	            UPDATE product p
+	            SET
+	                avg_rating = (
+	                    SELECT NVL(ROUND(AVG(r.rating), 1), 0)
+	                    FROM review r
+	                    WHERE r.product_seq = p.seq
+	                      AND r.status = 'NORMAL'
+	                ),
+	                review_count = (
+	                    SELECT COUNT(*)
+	                    FROM review r
+	                    WHERE r.product_seq = p.seq
+	                      AND r.status = 'NORMAL'
+	                ),
+	                updated_date = SYSDATE
+	            WHERE p.seq = :productSeq
+	            """;
+	
+	    MapSqlParameterSource params = new MapSqlParameterSource()
+	            .addValue("productSeq", productSeq);
+	
+	    jdbcTemplate.update(sql, params);
+	}
 }

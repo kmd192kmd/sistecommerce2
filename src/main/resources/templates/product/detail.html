@@ -40,15 +40,29 @@
                 </button>
             </div>
 
-            <!-- 별점 / 리뷰 수 -->
-            <div class="mt-2 text-[13px] text-amber-500 font-bold">
-                <span>★★★★★</span>
-                <span th:text="*{avgRating}">0.0</span>
-                <span class="text-gray-400 font-normal"
-                      th:text="'(' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">
-                    (0)
-                </span>
-            </div>
+			<!-- 별점 / 리뷰 수 / 조회수 -->
+			<div class="mt-2 flex items-center gap-2 text-[13px]">
+			    <span class="text-amber-500 font-bold">★</span>
+
+			    <span class="text-amber-500 font-bold"
+			          th:text="${product.avgRating != null ? product.avgRating : 0.0}">
+			        0.0
+			    </span>
+
+			    <span class="text-gray-400"
+			          th:text="'리뷰 ' + ${#numbers.formatInteger(product.reviewCount != null ? product.reviewCount : 0, 0, 'COMMA')} + '개'">
+			        리뷰 0개
+			    </span>
+
+			    <span class="text-gray-300">|</span>
+
+			    <span class="text-gray-400">조회수</span>
+
+			    <span class="text-gray-400"
+			          th:text="${#numbers.formatInteger(product.viewCount != null ? product.viewCount : 0, 0, 'COMMA')}">
+			        0
+			    </span>
+			</div>
 
             <!-- 가격 영역 -->
             <div class="mt-6 space-y-1 border-y border-gray-100 py-5">

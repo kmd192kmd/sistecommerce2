@@ -90,6 +90,39 @@ public class ReviewRepository {
         return namedParameterJdbcTemplate.query(sql, params, reviewRowMapper());
     }
 
+    // 리뷰 번호로 상품 번호 조회
+    //
+    // 리뷰를 수정하거나 삭제한 뒤
+    // 어떤 상품의 평균 별점과 리뷰 수를 다시 계산해야 하는지 알기 위해 사용합니다.
+    //
+    // 예:
+    // 리뷰번호 10번이 상품번호 401번에 달린 리뷰라면
+    // 401을 반환합니다.
+    public Long findProductSeqByReviewSeq(Long reviewSeq) {
+
+        String sql = """
+                SELECT product_seq
+                FROM review
+                WHERE seq = :reviewSeq
+                """;
+
+        Map<String, Object> params = Map.of("reviewSeq", reviewSeq);
+
+        List<Long> list = namedParameterJdbcTemplate.query(
+                sql,
+                params,
+                (rs, rowNum) -> rs.getLong("product_seq")
+        );
+
+        // 리뷰가 없으면 null 반환
+        if (list.isEmpty()) {
+            return null;
+        }
+
+        // 조회된 상품번호 반환
+        return list.get(0);
+    }
+
     // 여러 리뷰 번호에 연결된 리뷰 이미지 목록을 한 번에 조회
     // 리뷰 목록 조회 시 리뷰마다 이미지 쿼리를 반복하지 않기 위해 사용
     public List<ReviewImageDto> findImagesByReviewSeqs(List<Long> reviewSeqs) {

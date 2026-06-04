@@ -86,6 +86,17 @@ public class ProductService {
     @Transactional
     public ProductDto getProductDetail(Long seq, Long memberSeq) {
 
+        /*
+            상품 리뷰 통계 갱신
+
+            review 테이블 기준으로 평균 별점과 리뷰 수를 다시 계산해서
+            product 테이블의 avg_rating, review_count에 저장합니다.
+
+            상품 상세 화면에서 별점과 리뷰 수가 최신 상태로 보이도록
+            상품 엔티티를 조회하기 전에 먼저 갱신합니다.
+        */
+        productRepository.updateProductReviewStats(seq);
+
         Product product = productRepository.findById(seq)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. 번호: " + seq));
 

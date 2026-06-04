@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.example.java.product.dto.ReviewImageDto;
 import com.example.java.product.dto.ReviewResponseDto;
 import com.example.java.product.dto.ReviewScrollResponseDto;
+import com.example.java.product.repository.ProductRepository;
 import com.example.java.product.repository.ReviewRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,10 @@ public class ReviewService {
 
     // 리뷰 DB 작업을 담당하는 Repository
     private final ReviewRepository reviewRepository;
+
+    // 상품 DB 작업을 담당하는 Repository
+    // 리뷰 등록, 수정, 삭제 후 상품의 평균 별점과 리뷰 수를 갱신할 때 사용
+    private final ProductRepository productRepository;
 
     // 전체 리뷰 무한스크롤 조회
     public ReviewScrollResponseDto getAllReviewsByScroll(Long lastReviewSeq, int size) {
@@ -73,6 +78,45 @@ public class ReviewService {
 
         // 조회 결과를 무한스크롤 응답 형태로 변환
         return buildScrollResponse(reviews, size);
+    }
+
+    // 상품 리뷰 통계 수동 갱신
+    //
+    // 특정 상품의 평균 별점과 리뷰 수를 review 테이블 기준으로 다시 계산합니다.
+    //
+    // 사용 예:
+    // - 기존 리뷰 데이터가 있는데 product.avg_rating, product.review_count가 0일 때
+    // - 리뷰 등록, 수정, 삭제 기능을 만들기 전에 임시로 갱신하고 싶을 때
+    public void refreshProductReviewStats(Long productSeq) {
+
+        // 상품이 존재하지 않으면 404 응답
+        if (!reviewRepository.existsProduct(productSeq)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다.");
+        }
+
+        // 상품 리뷰 통계 갱신
+        productRepository.updateProductReviewStats(productSeq);
+    }
+
+    // 리뷰 번호 기준 상품 리뷰 통계 갱신
+    //
+    // 리뷰 수정 또는 삭제 후 사용합니다.
+    //
+    // 리뷰 번호만 알고 있을 때,
+    // 해당 리뷰가 어떤 상품에 속한 리뷰인지 조회한 뒤
+    // 그 상품의 평균 별점과 리뷰 수를 다시 계산합니다.
+    public void refreshProductReviewStatsByReviewSeq(Long reviewSeq) {
+
+        // 리뷰 번호로 상품 번호 조회
+        Long productSeq = reviewRepository.findProductSeqByReviewSeq(reviewSeq);
+
+        // 리뷰가 없으면 404 응답
+        if (productSeq == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다.");
+        }
+
+        // 상품 리뷰 통계 갱신
+        productRepository.updateProductReviewStats(productSeq);
     }
 
     // 무한스크롤 조회 결과를 응답 DTO로 변환
