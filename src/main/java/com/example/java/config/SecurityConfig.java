@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .requestMatchers("/member/login",
                                  "/member/signup/**", "/member/signup").permitAll()
                 // 메인, 상품 목록 허용
-                .requestMatchers("/", "/product/**").permitAll()
+                .requestMatchers("/", "/products/**", "/group-buys/**", "/hotdeals/**").permitAll()
                 // 나머지는 인증 필요
                 .anyRequest().authenticated()
             )
