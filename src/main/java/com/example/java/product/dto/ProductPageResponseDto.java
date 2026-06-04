@@ -19,5 +19,5 @@ public class ProductPageResponseDto {
     private int totalCount;
     private int totalPages;
 
-    private List<ProductDto> products;
+    private List<ProductDetailDto> products;
 }
