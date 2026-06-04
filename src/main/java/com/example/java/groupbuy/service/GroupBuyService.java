@@ -17,6 +17,10 @@ import com.example.java.groupbuy.entity.GroupBuyOptions;
 import com.example.java.groupbuy.entity.GroupBuyStatus;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.groupbuy.repository.GroupBuyRepository;
+import com.example.java.product.entity.ProductImage;
+import com.example.java.product.repository.OptionsRepository;
+import com.example.java.product.repository.ProductImageRepository;
+import com.example.java.product.repository.ProductRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +30,12 @@ public class GroupBuyService {
 	
     private final GroupBuyRepository groupBuyRepository;
     private final GroupBuyOptionsRepository groupBuyOptionsRepository;
+    private final ProductRepository productRepository;
+    private final OptionsRepository optionsRepository;
+    private final ProductImageRepository productImageRepository;
+
+    /** 썸네일 이미지가 없을 때 사용할 기본 이미지 (static 리소스). */
+    private static final String DEFAULT_IMAGE = "/src/images/product/default.png";
 
     /**
      * 공구 등록 (관리자).
@@ -77,7 +87,7 @@ public class GroupBuyService {
 
         LocalDateTime now = LocalDateTime.now();
         GroupBuy groupBuy = GroupBuy.builder()
-                .productSeq(dto.getProductSeq())
+                .product(productRepository.getReferenceById(dto.getProductSeq()))
                 .startAt(dto.getStartAt())
                 .endAt(dto.getEndAt())
                 .createdAt(now)
@@ -92,7 +102,7 @@ public class GroupBuyService {
         for (GroupBuyOptionsDto od : optionDtos) {
             GroupBuyOptions option = GroupBuyOptions.builder()
                     .groupBuy(saved)
-                    .optionsSeq(od.getOptionsSeq())
+                    .options(optionsRepository.getReferenceById(od.getOptionsSeq()))
                     .orderQty(od.getOrderQty())
                     .occupiedCount(0)
                     .build();
@@ -150,6 +160,9 @@ public class GroupBuyService {
         return GroupBuyDetailResponse.builder()
                 .seq(g.getSeq())
                 .status(g.getStatus())
+                .productName(g.getProduct().getProductName())
+                .image(thumbnailUrl(g.getProduct().getSeq()))
+                .description(g.getProduct().getContent())
                 .originalPrice(g.getOriginalPrice())
                 .finalPrice(g.getFinalPrice())
                 .discountRate(discountRate(g.getOriginalPrice(), g.getFinalPrice()))
@@ -166,12 +179,22 @@ public class GroupBuyService {
         return GroupBuySummaryResponse.builder()
                 .seq(g.getSeq())
                 .status(g.getStatus())
+                .productName(g.getProduct().getProductName())
+                .image(thumbnailUrl(g.getProduct().getSeq()))
                 .originalPrice(g.getOriginalPrice())
                 .finalPrice(g.getFinalPrice())
                 .discountRate(discountRate(g.getOriginalPrice(), g.getFinalPrice()))
                 .remainSeconds(remainSeconds(g.getEndAt(), now))
                 .minCount(g.getMinCount())
                 .build();
+    }
+
+    /** 상품의 대표 썸네일(thumbnail_yn='Y') 이미지 URL. 없으면 기본 이미지. */
+    private String thumbnailUrl(Long productSeq) {
+        return productImageRepository
+                .findFirstByProductSeqAndThumbnailYnAndStatus(productSeq, "Y", "NORMAL")
+                .map(ProductImage::getImageUrl)
+                .orElse(DEFAULT_IMAGE);
     }
 
     /** 할인율(%) = (정가 - 할인가) / 정가 * 100, 반올림. 정가가 0이면 0. */

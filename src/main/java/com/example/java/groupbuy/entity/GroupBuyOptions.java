@@ -1,5 +1,6 @@
 package com.example.java.groupbuy.entity;
 
+import com.example.java.product.entity.Options;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -32,16 +33,13 @@ public class GroupBuyOptions {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_buy_seq", nullable = false)
     private GroupBuy groupBuy;
-
-    // 타 도메인 연관관계: 우선 Long ID로 매핑하여 컴파일/JPA 기동 에러 방지
-    @Column(name = "options_seq", nullable = false)
-    private Long optionsSeq;
-
-    /* [연관관계 매핑 전환용 주석] Options 엔티티 완성 시 주석 해제 후 optionsSeq 필드 제거
+    
+    // options ~ group_buy_options
+    // 이 공구 옵션이 매핑된 상품 옵션(FK) 
+    // 등록 시 FK만 세팅하므로 LAZY 로딩
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "options_seq", insertable = false, updatable = false)
+    @JoinColumn(name = "options_seq", nullable = false)
     private Options options;
-    */
 
     @Column(name = "order_qty", nullable = false)
     private Integer orderQty;

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import com.example.java.groupbuy.entity.GroupBuy;
 import com.example.java.groupbuy.entity.GroupBuyOptions;
 import com.example.java.groupbuy.entity.Participation;
+import com.example.java.groupbuy.entity.ParticipationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +22,7 @@ public class ParticipationDto {
     private Long groupBuySeq;
     private Long groupBuyOptionsSeq;
     private Long memberSeq;
-    private String status;
+    private ParticipationStatus status;
     private LocalDateTime paymentDeadline;
     private LocalDateTime promotedAt;
     private LocalDateTime createdAt;

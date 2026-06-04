@@ -26,7 +26,7 @@ public class QGroupBuyOptions extends EntityPathBase<GroupBuyOptions> {
 
     public final NumberPath<Integer> occupiedCount = createNumber("occupiedCount", Integer.class);
 
-    public final NumberPath<Long> optionsSeq = createNumber("optionsSeq", Long.class);
+    public final com.example.java.product.entity.QOptions options;
 
     public final NumberPath<Integer> orderQty = createNumber("orderQty", Integer.class);
 
@@ -50,7 +50,8 @@ public class QGroupBuyOptions extends EntityPathBase<GroupBuyOptions> {
 
     public QGroupBuyOptions(Class<? extends GroupBuyOptions> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy")) : null;
+        this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy"), inits.get("groupBuy")) : null;
+        this.options = inits.isInitialized("options") ? new com.example.java.product.entity.QOptions(forProperty("options")) : null;
     }
 
 }

@@ -22,7 +22,7 @@ public class GroupBuyOptionView {
         // 점유(확정+결제대기) 인원이 발주가능수량에 도달하면 매진
         boolean soldOut = entity.getOccupiedCount() >= entity.getOrderQty();
         return GroupBuyOptionView.builder()
-                .optionsSeq(entity.getOptionsSeq())
+                .optionsSeq(entity.getOptions() != null ? entity.getOptions().getSeq() : null)
                 .soldOut(soldOut)
                 .build();
     }

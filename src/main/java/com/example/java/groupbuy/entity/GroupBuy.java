@@ -1,13 +1,17 @@
 package com.example.java.groupbuy.entity;
 
 import java.time.LocalDateTime;
+import com.example.java.product.entity.Product;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -28,15 +32,12 @@ public class GroupBuy {
     @SequenceGenerator(name = "group_buy_seq", sequenceName = "group_buy_seq", allocationSize = 1)
     private Long seq;
 
-    // 타 도메인 연관관계: 우선 Long ID로 매핑하여 컴파일/JPA 기동 에러 방지
-    @Column(name = "product_seq", nullable = false)
-    private Long productSeq;
-
-    /* [연관관계 매핑 전환용 주석] Product 엔티티 완성 시 주석 해제 후 productSeq 필드 제거
+    // product ~ groupbuy
+    // 공동 구매 대상 상품(FK)
+    // 등록 시 FK만 세팅하므로 LAZY 로딩
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_seq", insertable = false, updatable = false)
+    @JoinColumn(name = "product_seq", nullable = false)
     private Product product;
-    */
 
     @Column(name = "start_at", nullable = false)
     private LocalDateTime startAt;

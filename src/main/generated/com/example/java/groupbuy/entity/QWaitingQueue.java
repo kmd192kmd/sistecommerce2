@@ -50,7 +50,7 @@ public class QWaitingQueue extends EntityPathBase<WaitingQueue> {
 
     public QWaitingQueue(Class<? extends WaitingQueue> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy")) : null;
+        this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy"), inits.get("groupBuy")) : null;
         this.groupBuyOptions = inits.isInitialized("groupBuyOptions") ? new QGroupBuyOptions(forProperty("groupBuyOptions"), inits.get("groupBuyOptions")) : null;
     }
 

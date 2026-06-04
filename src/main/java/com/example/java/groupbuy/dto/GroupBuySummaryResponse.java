@@ -9,7 +9,6 @@ import lombok.Getter;
  * 공구 목록 REST 응답 (GET /api/group-buys) 한 건.
  *
  * 추후 추가 예정:
- *  - productName / image      : Product 연동 시
  *  - currentCount / progress  : participation 집계 시
  */
 @Getter
@@ -18,6 +17,9 @@ public class GroupBuySummaryResponse {
 
     private Long seq;
     private GroupBuyStatus status;
+
+    private String productName;     // Product 연동
+    private String image;           // 대표 썸네일 이미지 URL (없으면 기본 이미지)
 
     private Integer originalPrice;
     private Integer finalPrice;

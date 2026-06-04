@@ -13,8 +13,7 @@ import lombok.Getter;
  * React 구매 패널이 소비한다.
  *
  * 추후 추가 예정:
- *  - productName / image / description : Product 연동 시
- *  - currentCount / progress           : participation 집계 시 (현재 참여 인원/진행률)
+ *  - currentCount / progress : participation 집계 시 (현재 참여 인원/진행률)
  */
 @Getter
 @Builder
@@ -22,6 +21,10 @@ public class GroupBuyDetailResponse {
 
     private Long seq;
     private GroupBuyStatus status;
+
+    private String productName;     // Product 연동
+    private String image;           // 대표 썸네일 이미지 URL (없으면 기본 이미지)
+    private String description;     // 상품 설명 (product.content)
 
     private Integer originalPrice;
     private Integer finalPrice;

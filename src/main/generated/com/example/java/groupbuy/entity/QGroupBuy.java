@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -16,6 +17,8 @@ import com.querydsl.core.types.Path;
 public class QGroupBuy extends EntityPathBase<GroupBuy> {
 
     private static final long serialVersionUID = 428369702L;
+
+    private static final PathInits INITS = PathInits.DIRECT2;
 
     public static final QGroupBuy groupBuy = new QGroupBuy("groupBuy");
 
@@ -33,7 +36,7 @@ public class QGroupBuy extends EntityPathBase<GroupBuy> {
 
     public final NumberPath<Integer> originalPrice = createNumber("originalPrice", Integer.class);
 
-    public final NumberPath<Long> productSeq = createNumber("productSeq", Long.class);
+    public final com.example.java.product.entity.QProduct product;
 
     public final NumberPath<Long> seq = createNumber("seq", Long.class);
 
@@ -42,15 +45,24 @@ public class QGroupBuy extends EntityPathBase<GroupBuy> {
     public final EnumPath<GroupBuyStatus> status = createEnum("status", GroupBuyStatus.class);
 
     public QGroupBuy(String variable) {
-        super(GroupBuy.class, forVariable(variable));
+        this(GroupBuy.class, forVariable(variable), INITS);
     }
 
     public QGroupBuy(Path<? extends GroupBuy> path) {
-        super(path.getType(), path.getMetadata());
+        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
     public QGroupBuy(PathMetadata metadata) {
-        super(GroupBuy.class, metadata);
+        this(metadata, PathInits.getFor(metadata, INITS));
+    }
+
+    public QGroupBuy(PathMetadata metadata, PathInits inits) {
+        this(GroupBuy.class, metadata, inits);
+    }
+
+    public QGroupBuy(Class<? extends GroupBuy> type, PathMetadata metadata, PathInits inits) {
+        super(type, metadata, inits);
+        this.product = inits.isInitialized("product") ? new com.example.java.product.entity.QProduct(forProperty("product")) : null;
     }
 
 }

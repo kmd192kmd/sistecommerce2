@@ -36,7 +36,7 @@ public class QParticipation extends EntityPathBase<Participation> {
 
     public final NumberPath<Long> seq = createNumber("seq", Long.class);
 
-    public final StringPath status = createString("status");
+    public final EnumPath<ParticipationStatus> status = createEnum("status", ParticipationStatus.class);
 
     public QParticipation(String variable) {
         this(Participation.class, forVariable(variable), INITS);
@@ -56,7 +56,7 @@ public class QParticipation extends EntityPathBase<Participation> {
 
     public QParticipation(Class<? extends Participation> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy")) : null;
+        this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy"), inits.get("groupBuy")) : null;
         this.groupBuyOptions = inits.isInitialized("groupBuyOptions") ? new QGroupBuyOptions(forProperty("groupBuyOptions"), inits.get("groupBuyOptions")) : null;
     }
 

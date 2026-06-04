@@ -16,13 +16,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                // 정적 리소스 허용
-                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
+                // 정적 리소스 허용 (/src/** : static/src/images/... 로컬 이미지)
+                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/src/**").permitAll()
                 // 회원 관련 허용
                 .requestMatchers("/member/login",
                                  "/member/signup/**", "/member/signup").permitAll()
                 // 메인, 상품 목록 허용
                 .requestMatchers("/", "/products/**", "/group-buys/**", "/hotdeals/**").permitAll()
+                // 공구 조회 REST API 허용 (비회원도 조회 가능)
+                .requestMatchers("/api/group-buys/**").permitAll()
                 // 나머지는 인증 필요
                 .anyRequest().authenticated()
             )

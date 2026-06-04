@@ -2,6 +2,7 @@ package com.example.java.groupbuy.dto;
 
 import com.example.java.groupbuy.entity.GroupBuy;
 import com.example.java.groupbuy.entity.GroupBuyOptions;
+import com.example.java.product.entity.Options;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,19 +30,19 @@ public class GroupBuyOptionsDto {
         return GroupBuyOptionsDto.builder()
             .seq(entity.getSeq())
             .groupBuySeq(entity.getGroupBuy() != null ? entity.getGroupBuy().getSeq() : null)
-            .optionsSeq(entity.getOptionsSeq())
+            .optionsSeq(entity.getOptions() != null ? entity.getOptions().getSeq() : null)
             .orderQty(entity.getOrderQty())
             .occupiedCount(entity.getOccupiedCount())
             .build();
     }
 
     // Dto를 엔티티로 변환하는 메서드
-    // 연관관계 엔티티인 GroupBuy를 주입받아 매핑
-    public GroupBuyOptions toEntity(GroupBuy groupBuy) {
+    // 연관관계 엔티티인 GroupBuy, Options를 주입받아 매핑
+    public GroupBuyOptions toEntity(GroupBuy groupBuy, Options options) {
         return GroupBuyOptions.builder()
             .seq(this.seq)
             .groupBuy(groupBuy)
-            .optionsSeq(this.optionsSeq)
+            .options(options)
             .orderQty(this.orderQty)
             .occupiedCount(this.occupiedCount)
             .build();

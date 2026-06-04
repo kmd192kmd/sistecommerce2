@@ -3,6 +3,7 @@ package com.example.java.groupbuy.dto;
 import java.time.LocalDateTime;
 import com.example.java.groupbuy.entity.GroupBuy;
 import com.example.java.groupbuy.entity.GroupBuyStatus;
+import com.example.java.product.entity.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -35,7 +36,7 @@ public class GroupBuyDto {
         }
         return GroupBuyDto.builder()
                 .seq(entity.getSeq())
-                .productSeq(entity.getProductSeq())
+                .productSeq(entity.getProduct() != null ? entity.getProduct().getSeq() : null)
                 .startAt(entity.getStartAt())
                 .endAt(entity.getEndAt())
                 .createdAt(entity.getCreatedAt())
@@ -49,10 +50,11 @@ public class GroupBuyDto {
     }
 
     // Dto를 엔티티로 변환하는 메서드
-    public GroupBuy toEntity() {
+    // 연관관계 엔티티인 Product를 주입받아 매핑 (productSeq 대신)
+    public GroupBuy toEntity(Product product) {
         return GroupBuy.builder()
                 .seq(this.seq)
-                .productSeq(this.productSeq)
+                .product(product)
                 .startAt(this.startAt)
                 .endAt(this.endAt)
                 .createdAt(this.createdAt)
