@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <!--
   Gold Market 공통 헤더. gold-noraidius.html 디자인 기준 (amber + slate).
@@ -16,11 +16,11 @@
                 <a th:href="@{/group-buys/scheduled}" class="hover:underline">골드멤버십 존</a>
             </div>
             <div class="flex items-center space-x-4">
-                <th:block th:if="${auth == null}">
+                <th:block sec:authorize="!isAuthenticated()">  <!-- 비로그인 -->
                     <a th:href="@{/member/login}" class="hover:underline">로그인</a>
                     <a th:href="@{/member/signup/type}" class="hover:underline">회원가입</a>
                 </th:block>
-                <th:block th:if="${auth != null}">
+                <th:block sec:authorize="isAuthenticated()">   <!-- 로그인 -->
                     <a th:href="@{/member/logout}" class="hover:underline">로그아웃</a>
                 </th:block>
                 <a href="#" class="hover:underline">고객센터</a>
