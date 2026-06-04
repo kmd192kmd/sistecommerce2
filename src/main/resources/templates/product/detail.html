@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('상품 상세')}"></head>
+
 <body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
 
 <div th:replace="~{fragments/header :: header}"></div>
@@ -9,30 +10,58 @@
 <main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32" th:object="${product}">
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-white p-6 border border-gray-200">
+
         <!-- 상품 이미지 (#1) -->
         <div class="aspect-square bg-gray-50 overflow-hidden">
-            <img th:src="*{image}" alt="" class="w-full h-full object-cover">
+
+            <!-- 대표 이미지가 있을 때 -->
+            <img th:if="*{thumbnailUrl != null}"
+                 th:src="*{thumbnailUrl}"
+                 th:alt="*{productName}"
+                 class="w-full h-full object-cover">
+
+            <!-- 대표 이미지가 없을 때 -->
+            <div th:if="*{thumbnailUrl == null}"
+                 class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
+                이미지 없음
+            </div>
         </div>
 
         <!-- 상품 설명 (#2) -->
         <div class="flex flex-col">
+
             <div class="flex items-start justify-between">
-                <h1 th:text="*{name}" class="text-2xl font-bold leading-snug">상품명</h1>
+                <h1 th:text="*{productName}" class="text-2xl font-bold leading-snug">
+                    상품명
+                </h1>
+
                 <button type="button" class="text-gray-300 hover:text-red-500" title="찜">
                     <i data-lucide="heart" class="w-6 h-6"></i>
                 </button>
             </div>
+
+            <!-- 별점 / 리뷰 수 -->
             <div class="mt-2 text-[13px] text-amber-500 font-bold">
-                <span th:text="*{rating}">★★★★★</span>
-                <span class="text-gray-400 font-normal" th:text="'(' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">(1,950)</span>
+                <span>★★★★★</span>
+                <span th:text="*{avgRating}">0.0</span>
+                <span class="text-gray-400 font-normal"
+                      th:text="'(' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">
+                    (0)
+                </span>
             </div>
 
+            <!-- 가격 영역 -->
             <div class="mt-6 space-y-1 border-y border-gray-100 py-5">
-                <p th:if="*{originalPrice > 0}" class="text-sm text-gray-400 line-through"
-                   th:text="'시세가 ' + ${#numbers.formatInteger(product.originalPrice, 0, 'COMMA')} + '원'">시세가</p>
+
+                <p class="text-sm text-gray-400">
+                    시세가
+                </p>
+
                 <p class="flex items-baseline gap-2">
-                    <span th:if="*{discountRate > 0}" th:text="*{discountRate} + '%'" class="text-red-500 font-black text-2xl">0%</span>
-                    <span th:text="${#numbers.formatInteger(product.price, 0, 'COMMA')}" class="text-3xl font-black">0</span>
+                    <span th:text="${#numbers.formatInteger(product.price, 0, 'COMMA')}"
+                          class="text-3xl font-black">
+                        0
+                    </span>
                     <span class="text-lg font-bold">원</span>
                 </p>
             </div>
@@ -40,9 +69,15 @@
             <!-- 옵션 선택 (#3) -->
             <div class="mt-6">
                 <label class="block text-xs font-bold text-gray-500 mb-1">옵션 선택</label>
+
                 <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
                     <option value="">옵션을 선택하세요</option>
-                    <option th:each="opt : *{options}" th:value="${opt}" th:text="${opt}">옵션</option>
+
+                    <option th:each="opt : *{optionList}"
+                            th:value="${opt.seq}"
+                            th:text="${opt.optionName}">
+                        옵션
+                    </option>
                 </select>
             </div>
 
@@ -53,8 +88,16 @@
                     <input type="text" value="1" class="w-12 text-center text-sm border-x border-gray-300 py-2" />
                     <button type="button" class="px-3 py-2 text-gray-500 hover:bg-gray-50">+</button>
                 </div>
-                <button type="button" class="flex-1 border-2 border-amber-500 text-amber-600 font-bold py-2.5 text-sm hover:bg-amber-50">장바구니 담기</button>
-                <button type="button" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 text-sm">바로구매</button>
+
+                <button type="button"
+                        class="flex-1 border-2 border-amber-500 text-amber-600 font-bold py-2.5 text-sm hover:bg-amber-50">
+                    장바구니 담기
+                </button>
+
+                <button type="button"
+                        class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 text-sm">
+                    바로구매
+                </button>
             </div>
         </div>
     </div>
@@ -62,13 +105,48 @@
     <!-- 탭: 상품상세 / 리뷰 (#7 #8) -->
     <div class="mt-8 bg-white border border-gray-200">
         <div class="flex border-b border-gray-200 text-sm font-bold">
-            <button type="button" class="flex-1 py-3 border-b-2 border-amber-500 text-amber-600">상품 상세</button>
-            <button type="button" class="flex-1 py-3 text-gray-500 hover:text-gray-800"
-                    th:text="'상품평 (' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">상품평 (1,950)</button>
+
+            <!-- 상품 상세 탭 -->
+            <button type="button"
+                    id="detailTabBtn"
+                    class="flex-1 py-3 border-b-2 border-amber-500 text-amber-600">
+                상품 상세
+            </button>
+
+            <!-- 상품평 탭 -->
+            <button type="button"
+                    id="reviewTabBtn"
+                    class="flex-1 py-3 text-gray-500 hover:text-gray-800"
+                    th:text="'상품평 (' + ${#numbers.formatInteger(product.reviewCount, 0, 'COMMA')} + ')'">
+                상품평 (0)
+            </button>
         </div>
-        <!-- 상품 상세 설명 (#9) -->
-        <div class="p-8 text-sm text-gray-700 leading-relaxed min-h-[300px]">
-            <p th:text="*{description}">상품 상세 설명</p>
+
+        <!-- 상품 상세 설명 영역 -->
+        <div id="detailSection" class="p-8 text-sm text-gray-700 leading-relaxed min-h-[300px]">
+            <p th:text="*{content}">
+                상품 상세 설명
+            </p>
+        </div>
+
+        <!-- 상품평 영역 -->
+        <div id="reviewSection" class="hidden p-8 min-h-[300px]">
+
+            <!-- 리뷰 로딩 문구 -->
+            <div id="reviewLoading" class="hidden py-10 text-center text-sm text-gray-400">
+                리뷰를 불러오는 중입니다.
+            </div>
+
+            <!-- 리뷰 없음 문구 -->
+            <div id="reviewEmpty" class="hidden py-10 text-center text-sm text-gray-400">
+                등록된 상품평이 없습니다.
+            </div>
+
+            <!-- 리뷰 목록 -->
+            <div id="reviewList" class="space-y-6"></div>
+
+            <!-- 무한스크롤 감지 영역 -->
+            <div id="reviewScrollTarget" class="h-10"></div>
         </div>
     </div>
 
@@ -76,5 +154,248 @@
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<script th:inline="javascript">
+    /*
+        현재 상품 번호
+
+        Thymeleaf에서 상품 번호를 JavaScript 변수로 내려줍니다.
+    */
+    const productSeq = /*[[${product.seq}]]*/ 0;
+
+    /*
+        리뷰 무한스크롤 상태값
+    */
+    let nextLastReviewSeq = null;
+    let hasNext = true;
+    let isReviewLoading = false;
+    let isReviewLoadedOnce = false;
+
+    /*
+        화면 요소
+    */
+    const detailTabBtn = document.getElementById('detailTabBtn');
+    const reviewTabBtn = document.getElementById('reviewTabBtn');
+
+    const detailSection = document.getElementById('detailSection');
+    const reviewSection = document.getElementById('reviewSection');
+
+    const reviewList = document.getElementById('reviewList');
+    const reviewLoading = document.getElementById('reviewLoading');
+    const reviewEmpty = document.getElementById('reviewEmpty');
+    const reviewScrollTarget = document.getElementById('reviewScrollTarget');
+
+    /*
+        상품 상세 탭 클릭
+    */
+    detailTabBtn.addEventListener('click', function () {
+        showDetailTab();
+    });
+
+    /*
+        상품평 탭 클릭
+
+        처음 한 번만 리뷰를 조회하고,
+        이후에는 이미 조회한 리뷰 목록을 그대로 보여줍니다.
+    */
+    reviewTabBtn.addEventListener('click', function () {
+        showReviewTab();
+
+        if (!isReviewLoadedOnce) {
+            loadReviews();
+        }
+    });
+
+    /*
+        상품 상세 탭 보여주기
+    */
+    function showDetailTab() {
+        detailSection.classList.remove('hidden');
+        reviewSection.classList.add('hidden');
+
+        detailTabBtn.className = 'flex-1 py-3 border-b-2 border-amber-500 text-amber-600';
+        reviewTabBtn.className = 'flex-1 py-3 text-gray-500 hover:text-gray-800';
+    }
+
+    /*
+        상품평 탭 보여주기
+    */
+    function showReviewTab() {
+        detailSection.classList.add('hidden');
+        reviewSection.classList.remove('hidden');
+
+        detailTabBtn.className = 'flex-1 py-3 text-gray-500 hover:text-gray-800';
+        reviewTabBtn.className = 'flex-1 py-3 border-b-2 border-amber-500 text-amber-600';
+    }
+
+    /*
+        리뷰 목록 조회
+
+        처음 조회:
+        /api/product/{productSeq}/reviews?size=10
+
+        다음 조회:
+        /api/product/{productSeq}/reviews?lastReviewSeq=마지막리뷰번호&size=10
+    */
+    async function loadReviews() {
+        if (isReviewLoading || !hasNext) {
+            return;
+        }
+
+        isReviewLoading = true;
+        reviewLoading.classList.remove('hidden');
+        reviewEmpty.classList.add('hidden');
+
+        let url = `/api/product/${productSeq}/reviews?size=10`;
+
+        if (nextLastReviewSeq !== null) {
+            url += `&lastReviewSeq=${nextLastReviewSeq}`;
+        }
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error('리뷰 조회 실패');
+            }
+
+            const data = await response.json();
+
+            const reviews = data.reviews || [];
+
+            if (!isReviewLoadedOnce && reviews.length === 0) {
+                reviewEmpty.classList.remove('hidden');
+            }
+
+            reviews.forEach(function (review) {
+                reviewList.insertAdjacentHTML('beforeend', makeReviewHtml(review));
+            });
+
+            nextLastReviewSeq = data.nextLastReviewSeq;
+            hasNext = data.hasNext;
+            isReviewLoadedOnce = true;
+
+        } catch (error) {
+            console.error(error);
+            reviewList.insertAdjacentHTML(
+                'beforeend',
+                `<div class="py-10 text-center text-sm text-red-500">
+                    리뷰를 불러오지 못했습니다.
+                 </div>`
+            );
+        } finally {
+            isReviewLoading = false;
+            reviewLoading.classList.add('hidden');
+        }
+    }
+
+    /*
+        리뷰 HTML 생성
+    */
+    function makeReviewHtml(review) {
+        const rating = review.rating || 0;
+        const stars = makeStars(rating);
+        const content = escapeHtml(review.content || '');
+        const createdDate = formatDate(review.createdDate);
+        const imagesHtml = makeReviewImagesHtml(review.images || []);
+
+        return `
+            <div class="border-b border-gray-100 pb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-amber-500 text-sm font-bold">
+                        ${stars}
+                        <span class="ml-1 text-gray-700">${rating}</span>
+                    </div>
+
+                    <div class="text-xs text-gray-400">
+                        ${createdDate}
+                    </div>
+                </div>
+
+                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                    ${content}
+                </p>
+
+                ${imagesHtml}
+            </div>
+        `;
+    }
+
+    /*
+        별점 표시
+    */
+    function makeStars(rating) {
+        let result = '';
+
+        for (let i = 1; i <= 5; i++) {
+            result += i <= rating ? '★' : '☆';
+        }
+
+        return result;
+    }
+
+    /*
+        리뷰 이미지 HTML 생성
+    */
+    function makeReviewImagesHtml(images) {
+        if (!images || images.length === 0) {
+            return '';
+        }
+
+        return `
+            <div class="mt-4 flex gap-3 flex-wrap">
+                ${images.map(function (image) {
+                    return `
+                        <img src="${image.imageUrl}"
+                             alt="리뷰 이미지"
+                             class="w-24 h-24 object-cover border border-gray-200">
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    /*
+        날짜 포맷 변경
+    */
+    function formatDate(value) {
+        if (!value) {
+            return '';
+        }
+
+        return value.substring(0, 10);
+    }
+
+    /*
+        HTML 특수문자 처리
+
+        리뷰 내용에 태그가 들어와도 HTML로 실행되지 않게 막습니다.
+    */
+    function escapeHtml(value) {
+        return value
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    /*
+        무한스크롤
+
+        상품평 탭이 보이는 상태에서 아래 감지 영역이 보이면
+        다음 리뷰를 자동으로 조회합니다.
+    */
+    const observer = new IntersectionObserver(function (entries) {
+        const entry = entries[0];
+
+        if (entry.isIntersecting && !reviewSection.classList.contains('hidden')) {
+            loadReviews();
+        }
+    });
+
+    observer.observe(reviewScrollTarget);
+</script>
+
 </body>
 </html>

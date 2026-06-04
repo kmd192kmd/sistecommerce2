@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.java.product.dto.ProductDetailDto;
-import com.example.java.product.service.ProductDetailService;
+import com.example.java.product.dto.ProductDto;
+import com.example.java.product.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/product")
 public class ProductApiController {
 
-    private final ProductDetailService productService;
+    private final ProductService productService;
 
     /*
         상품 상세 조회 테스트용 API
@@ -28,7 +28,7 @@ public class ProductApiController {
     public ResponseEntity<?> detail(@PathVariable("seq") Long productSeq) {
 
         try {
-            ProductDetailDto product = productService.getProductDetail(productSeq, null);
+            ProductDto product = productService.getProductDetail(productSeq, null);
             return ResponseEntity.ok(product);
 
         } catch (IllegalArgumentException e) {
