@@ -72,4 +72,11 @@ public class PurchaseOrder {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "group_buy_options_seq", nullable = true)
 	private GroupBuyOptions groupBuyOptions;
+	
+	public void changeStatus(PurchaseOrderStatus status) {
+	    this.status = status;
+	}
+	public void changeReceivedDate(Date receivedDate) {
+		this.receivedDate = receivedDate;
+	}
 }

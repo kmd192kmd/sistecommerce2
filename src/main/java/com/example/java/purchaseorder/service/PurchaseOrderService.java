@@ -1,5 +1,9 @@
 package com.example.java.purchaseorder.service;
 
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.example.java.groupbuy.entity.GroupBuyOptions;
@@ -46,12 +50,105 @@ public class PurchaseOrderService {
 	    return purchaseOrderRepository.save(order).getSeq();
 	}
 	
+	public void updateStatus(List<Long> seqs, PurchaseOrderStatus status) {
+
+	    List<PurchaseOrder> orders = purchaseOrderRepository.findAllById(seqs);
+
+	    if (orders.size() != seqs.size()) {
+	        throw new IllegalArgumentException("존재하지 않는 발주가 있습니다.");
+	    }
+
+	    switch (status) {
+	    case 입고완료:
+	        orders.forEach(this::completeOrder);
+	        break;
+	    case 물품불량:
+	        orders.forEach(this::defectiveOrder);
+	        break;
+	    case 입고지연:
+	        orders.forEach(this::delayOrder);
+	        break;
+	    case 지연입고:
+	        orders.forEach(this::delayedCompleteOrder);
+	        break;
+	    }
+	}
+	
+	private void completeOrder(PurchaseOrder order) {
+	    order.changeStatus(PurchaseOrderStatus.입고완료);
+	    // TODO 재고 증가
+	    // order.getOptions().increaseStock(order.getQuantity());
+	    // TODO 재고 이력 생성
+	    // stockHistoryRepository.createHistory(order);
+	    
+	    // 입고일(receivedDate) 저장
+	    order.changeReceivedDate(Date.valueOf(LocalDate.now()));
+	}
+	private void defectiveOrder(PurchaseOrder order) {
+	    order.changeStatus(PurchaseOrderStatus.물품불량);
+	    // 동일 옵션으로 신규 발주 생성 및 예상 입고일 재설정
+	    createReOrder(order);
+	    
+	    // TODO 판매처 알림
+	}
+	private void delayOrder(PurchaseOrder order) {
+	    order.changeStatus(PurchaseOrderStatus.입고지연);
+	    // TODO 판매처 알림
+	    // TODO 관리자 알림
+	}
+	private void delayedCompleteOrder(PurchaseOrder order) {
+	    order.changeStatus(PurchaseOrderStatus.지연입고);
+	    // TODO 재고 증가
+	    // order.getOptions().increaseStock(order.getQuantity());
+	    // TODO 재고 이력 생성
+	    // stockHistoryRepository.createHistory(order);
+	    
+	    // 입고일(receivedDate) 저장
+	    order.changeReceivedDate(Date.valueOf(LocalDate.now()));
+	}
+	
+	
+	private PurchaseOrder createReOrder(PurchaseOrder originalOrder) {
+
+	    long diffMillis =
+	            originalOrder.getExpectedDate().getTime()
+	          - originalOrder.getOrderDate().getTime();
+
+	    Date newOrderDate = Date.valueOf(LocalDate.now());
+
+	    Date newExpectedDate =
+	            new Date(newOrderDate.getTime() + diffMillis);
+
+	    PurchaseOrder reOrder = PurchaseOrder.builder()
+	            .status(PurchaseOrderStatus.발주요청)
+	            .quantity(originalOrder.getQuantity())
+	            .supplyPrice(originalOrder.getSupplyPrice())
+	            .totalPrice(originalOrder.getTotalPrice())
+	            .orderDate(newOrderDate)
+	            .expectedDate(newExpectedDate)
+	            .receivedDate(null)
+	            .type(originalOrder.getType())
+	            .options(originalOrder.getOptions())
+	            .groupBuyOptions(originalOrder.getGroupBuyOptions())
+	            .build();
+
+	    return purchaseOrderRepository.save(reOrder);
+	}
+	
+	private PurchaseOrder getPurchaseOrder(Long seq) {
+		if (seq == null) {
+	        throw new IllegalArgumentException("purchaseOrderSeq is required");
+	    }
+	    return purchaseOrderRepository.findById(seq)
+	            .orElseThrow(() -> new IllegalArgumentException("purchaseOrder not found"));
+	}
+	
 	private Options getOptions(Long seq) {
 		if (seq == null) {
-	        throw new IllegalArgumentException("optionsSeq is required");
-	    }
-	    return optionsRepository.findById(seq)
-	            .orElseThrow(() -> new IllegalArgumentException("Options not found"));
+			throw new IllegalArgumentException("optionsSeq is required");
+		}
+		return optionsRepository.findById(seq)
+				.orElseThrow(() -> new IllegalArgumentException("Options not found"));
 	}
 	
 	private GroupBuyOptions getGroupBuyOptions(Long seq) {

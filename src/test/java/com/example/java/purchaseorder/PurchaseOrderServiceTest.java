@@ -1,17 +1,17 @@
 package com.example.java.purchaseorder;
 
-import java.sql.Date;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import com.example.java.purchaseorder.dto.PurchaseOrderCreateDTO;
 import com.example.java.purchaseorder.entity.PurchaseOrder;
+import com.example.java.purchaseorder.enums.PurchaseOrderStatus;
 import com.example.java.purchaseorder.repository.PurchaseOrderRepository;
 import com.example.java.purchaseorder.service.PurchaseOrderService;
-
-import jakarta.transaction.Transactional;
 
 @SpringBootTest(
     properties = {
@@ -27,10 +27,39 @@ public class PurchaseOrderServiceTest {
     @Autowired
     private PurchaseOrderRepository purchaseOrderRepository;
 
-    @Test
-    void test() {
-        System.out.println("hello");
-    }
+//    @Test
+//    void test() {
+//    	List<Long> seqs = List.of(3L, 4L);
+//    	List<PurchaseOrder> orders = purchaseOrderRepository.findAllById(seqs);
+//    	for (PurchaseOrder order : orders) {
+//            System.out.println(order.getStatus());
+//            System.out.println(order.getReceivedDate());
+//        }
+//    	
+//    }
+    
+//    @Test
+//    void 발주상태일괄변경test() {
+//
+//        List<Long> seqs = List.of(3L, 4L);
+//        List<PurchaseOrder> orders = purchaseOrderRepository.findAllById(seqs);
+//        purchaseOrderService.updateStatus(seqs, PurchaseOrderStatus.지연입고);
+//        for (PurchaseOrder order : orders) {
+//        	assertEquals(PurchaseOrderStatus.지연입고, order);
+////            System.out.println(order.getStatus());
+//            System.out.println(order.getReceivedDate());
+//        }
+//    }
+    
+//    @Test
+//    void 발주상태변경test() {
+//    	
+//    	purchaseOrderService.updateStatus(List.of(3L), PurchaseOrderStatus.입고완료);
+//    	PurchaseOrder order = purchaseOrderRepository.findById(3L).get();
+//    	System.out.println(order.getStatus());
+//    	System.out.println(order.getReceivedDate());
+//
+//	}
     
 //    @Test
 //    void 발주등록test() {
