@@ -2,6 +2,7 @@ package com.example.java.purchaseorder.service;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -49,23 +50,27 @@ public class PurchaseOrderService {
 	    return purchaseOrderRepository.save(order).getSeq();
 	}
 	
-	public void updateStatus(Long seq, PurchaseOrderStatus status) {
+	public void updateStatus(List<Long> seqs, PurchaseOrderStatus status) {
 
-	    PurchaseOrder order = getPurchaseOrder(seq);
+	    List<PurchaseOrder> orders = purchaseOrderRepository.findAllById(seqs);
+
+	    if (orders.size() != seqs.size()) {
+	        throw new IllegalArgumentException("존재하지 않는 발주가 있습니다.");
+	    }
 
 	    switch (status) {
-	        case 입고완료:
-	            completeOrder(order);
-	            break;
-	        case 물품불량:
-	            defectiveOrder(order);
-	            break;
-	        case 입고지연:
-	            delayOrder(order);
-	            break;
-	        case 지연입고:
-	            delayedCompleteOrder(order);
-	            break;
+	    case 입고완료:
+	        orders.forEach(this::completeOrder);
+	        break;
+	    case 물품불량:
+	        orders.forEach(this::defectiveOrder);
+	        break;
+	    case 입고지연:
+	        orders.forEach(this::delayOrder);
+	        break;
+	    case 지연입고:
+	        orders.forEach(this::delayedCompleteOrder);
+	        break;
 	    }
 	}
 	
