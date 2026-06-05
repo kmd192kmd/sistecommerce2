@@ -22,9 +22,9 @@ public class QMemberCoupon extends EntityPathBase<MemberCoupon> {
 
     public static final QMemberCoupon memberCoupon = new QMemberCoupon("memberCoupon");
 
-    public final QCoupon couponSeq;
+    public final QCoupon coupon;
 
-    public final QMember memberSeq;
+    public final QMember member;
 
     public final NumberPath<Long> seq = createNumber("seq", Long.class);
 
@@ -48,8 +48,8 @@ public class QMemberCoupon extends EntityPathBase<MemberCoupon> {
 
     public QMemberCoupon(Class<? extends MemberCoupon> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.couponSeq = inits.isInitialized("couponSeq") ? new QCoupon(forProperty("couponSeq")) : null;
-        this.memberSeq = inits.isInitialized("memberSeq") ? new QMember(forProperty("memberSeq")) : null;
+        this.coupon = inits.isInitialized("coupon") ? new QCoupon(forProperty("coupon")) : null;
+        this.member = inits.isInitialized("member") ? new QMember(forProperty("member")) : null;
     }
 
 }

@@ -28,7 +28,7 @@ public class QNotificationPreference extends EntityPathBase<NotificationPreferen
 
     public final StringPath marketingSmsYn = createString("marketingSmsYn");
 
-    public final QMember memberSeq;
+    public final QMember member;
 
     public final StringPath pushYn = createString("pushYn");
 
@@ -56,7 +56,7 @@ public class QNotificationPreference extends EntityPathBase<NotificationPreferen
 
     public QNotificationPreference(Class<? extends NotificationPreference> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.memberSeq = inits.isInitialized("memberSeq") ? new QMember(forProperty("memberSeq")) : null;
+        this.member = inits.isInitialized("member") ? new QMember(forProperty("member")) : null;
     }
 
 }

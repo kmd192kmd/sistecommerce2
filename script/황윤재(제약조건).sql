@@ -28,3 +28,26 @@ ON participation (
   CASE WHEN status IN ('CANCELLED','FAILED') THEN NULL ELSE group_buy_seq END,
   CASE WHEN status IN ('CANCELLED','FAILED') THEN NULL ELSE member_seq END
 );
+
+-- 제약조건 적용 확인
+SELECT table_name, constraint_name, constraint_type, search_condition
+FROM   user_constraints
+WHERE  table_name IN ('ORDER_ITEM','GROUP_BUY_OPTIONS','WAITING_QUEUE','PARTICIPATION')
+ORDER  BY table_name, constraint_type;
+
+SELECT c.table_name, c.constraint_name, c.constraint_type, cc.column_name, cc.position
+FROM   user_constraints c
+JOIN   user_cons_columns cc ON c.constraint_name = cc.constraint_name
+WHERE  c.table_name IN ('GROUP_BUY_OPTIONS','WAITING_QUEUE','PARTICIPATION')
+ORDER  BY c.table_name, c.constraint_name, cc.position;
+
+-- 인덱스 자체 (UNIQUENESS = UNIQUE 인지 확인)
+SELECT index_name, table_name, uniqueness, status
+FROM   user_indexes
+WHERE  table_name = 'PARTICIPATION';
+
+-- 함수 기반 인덱스의 실제 표현식 (CASE WHEN ... 이 보여야 함)
+SELECT index_name, column_position, column_expression
+FROM   user_ind_expressions
+WHERE  index_name = 'UQ_PARTICIPATION_ACTIVE'
+ORDER  BY column_position;

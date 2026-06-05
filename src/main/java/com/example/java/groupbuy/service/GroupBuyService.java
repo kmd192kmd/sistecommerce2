@@ -88,7 +88,7 @@ public class GroupBuyService {
         // 진행 기간 검증
         if (dto.getStartAt() == null || dto.getEndAt() == null
                 || !dto.getStartAt().isBefore(dto.getEndAt())) {
-            throw new IllegalArgumentException("공구 시작 시각은 종료 시각보다 앞서야 합니다.");
+            throw new IllegalArgumentException("공동 구매 시작 시각은 종료 시각보다 앞서야 합니다.");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -130,7 +130,7 @@ public class GroupBuyService {
     @Transactional(readOnly = true)
     public GroupBuyDto findById(Long seq) {
         GroupBuy groupBuy = groupBuyRepository.findById(seq)
-                .orElseThrow(() -> new IllegalArgumentException("공구를 찾을 수 없습니다. seq=" + seq));
+                .orElseThrow(() -> new IllegalArgumentException("해당 공동 구매를 찾을 수 없습니다. seq=" + seq));
         return GroupBuyDto.toDto(groupBuy);
     }
 
@@ -157,7 +157,7 @@ public class GroupBuyService {
     @Transactional(readOnly = true)
     public GroupBuyDetailResponse getDetail(Long seq) {
         GroupBuy g = groupBuyRepository.findById(seq)
-                .orElseThrow(() -> new IllegalArgumentException("공구를 찾을 수 없습니다. seq=" + seq));
+                .orElseThrow(() -> new IllegalArgumentException("해당 공동구매를 찾을 수 없습니다. seq=" + seq));
 
         List<GroupBuyOptionView> options = groupBuyOptionsRepository.findByGroupBuySeq(seq).stream()
                 .map(GroupBuyOptionView::from)

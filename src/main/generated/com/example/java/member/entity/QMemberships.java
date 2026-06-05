@@ -28,7 +28,7 @@ public class QMemberships extends EntityPathBase<Memberships> {
 
     public final DateTimePath<java.time.LocalDateTime> expireAt = createDateTime("expireAt", java.time.LocalDateTime.class);
 
-    public final QMember memberSeq;
+    public final QMember member;
 
     public final DateTimePath<java.time.LocalDateTime> nextBillingAt = createDateTime("nextBillingAt", java.time.LocalDateTime.class);
 
@@ -56,7 +56,7 @@ public class QMemberships extends EntityPathBase<Memberships> {
 
     public QMemberships(Class<? extends Memberships> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
-        this.memberSeq = inits.isInitialized("memberSeq") ? new QMember(forProperty("memberSeq")) : null;
+        this.member = inits.isInitialized("member") ? new QMember(forProperty("member")) : null;
     }
 
 }
