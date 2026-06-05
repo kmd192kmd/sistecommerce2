@@ -24,7 +24,7 @@ public class CategoryService {
         List<Category> allCategories = categoryRepository.findAll();
 
         List<Category> rootCategories = allCategories.stream()
-                .filter(c -> c.getDepthLevel() == 0 && !"식품".equals(c.getCategoryName()))
+                .filter(c -> c.getDepthLevel() == 0)
                 .collect(Collectors.toList());
 
         return rootCategories.stream()
@@ -54,11 +54,6 @@ public class CategoryService {
         }
         List<Category> allCategories = categoryRepository.findAll();
 
-        // 식품 및 식품의 하위 카테고리인 경우 상품이 조회되지 않도록 예외 처리
-        if (isFoodCategory(categorySeq, allCategories)) {
-            return List.of(-1L);
-        }
-
         List<Long> seqs = new java.util.ArrayList<>();
         seqs.add(categorySeq);
 
@@ -78,27 +73,6 @@ public class CategoryService {
             seqs.addAll(children2);
         }
         return seqs;
-    }
-
-    private boolean isFoodCategory(Long categorySeq, List<Category> allCategories) {
-        Category current = allCategories.stream()
-                .filter(c -> c.getSeq().equals(categorySeq))
-                .findFirst()
-                .orElse(null);
-        while (current != null) {
-            if ("식품".equals(current.getCategoryName())) {
-                return true;
-            }
-            Long parentSeq = current.getParentSeq();
-            if (parentSeq == null) {
-                break;
-            }
-            current = allCategories.stream()
-                    .filter(c -> c.getSeq().equals(parentSeq))
-                    .findFirst()
-                    .orElse(null);
-        }
-        return false;
     }
 
     // 특정 카테고리 ID로부터 루트 대분류까지의 경로를 반환
