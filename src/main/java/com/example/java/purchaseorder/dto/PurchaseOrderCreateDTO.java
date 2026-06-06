@@ -1,8 +1,7 @@
 package com.example.java.purchaseorder.dto;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
-import com.example.java.purchaseorder.enums.PurchaseOrderStatus;
 import com.example.java.purchaseorder.enums.PurchaseOrderType;
 
 import lombok.AllArgsConstructor;
@@ -20,9 +19,8 @@ public class PurchaseOrderCreateDTO {
     private Long supplyPrice;
     private Long totalPrice;
 
-    private Date orderDate;
-    private Date expectedDate;
-    private Date receivedDate;
+    private LocalDate orderDate;
+    private LocalDate expectedDate;
 
     private PurchaseOrderType type;
 

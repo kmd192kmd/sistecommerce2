@@ -1,6 +1,6 @@
 package com.example.java.purchaseorder.entity;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 import com.example.java.groupbuy.entity.GroupBuyOptions;
 import com.example.java.product.entity.Options;
@@ -53,13 +53,13 @@ public class PurchaseOrder {
 	private Long totalPrice;
 	
 	@Column(name = "order_date", nullable = false)
-	private Date orderDate;
+	private LocalDate orderDate;
 	
 	@Column(name = "expected_date", nullable = false)
-	private Date expectedDate;
+	private LocalDate expectedDate;
 	
 	@Column(name = "received_date")
-	private Date receivedDate;
+	private LocalDate receivedDate;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "type", nullable = false, length = 30)
@@ -76,7 +76,7 @@ public class PurchaseOrder {
 	public void changeStatus(PurchaseOrderStatus status) {
 	    this.status = status;
 	}
-	public void changeReceivedDate(Date receivedDate) {
+	public void changeReceivedDate(LocalDate receivedDate) {
 		this.receivedDate = receivedDate;
 	}
 }

@@ -1,7 +1,7 @@
 package com.example.java.purchaseorder.service;
 
-import java.sql.Date;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -82,7 +82,7 @@ public class PurchaseOrderService {
 	    // stockHistoryRepository.createHistory(order);
 	    
 	    // 입고일(receivedDate) 저장
-	    order.changeReceivedDate(Date.valueOf(LocalDate.now()));
+	    order.changeReceivedDate(LocalDate.now());
 	}
 	private void defectiveOrder(PurchaseOrder order) {
 	    order.changeStatus(PurchaseOrderStatus.물품불량);
@@ -104,20 +104,20 @@ public class PurchaseOrderService {
 	    // stockHistoryRepository.createHistory(order);
 	    
 	    // 입고일(receivedDate) 저장
-	    order.changeReceivedDate(Date.valueOf(LocalDate.now()));
+	    order.changeReceivedDate(LocalDate.now());
 	}
-	
 	
 	private PurchaseOrder createReOrder(PurchaseOrder originalOrder) {
 
-	    long diffMillis =
-	            originalOrder.getExpectedDate().getTime()
-	          - originalOrder.getOrderDate().getTime();
+	    long diffDays =
+	            ChronoUnit.DAYS.between(
+	                    originalOrder.getOrderDate(),
+	                    originalOrder.getExpectedDate());
 
-	    Date newOrderDate = Date.valueOf(LocalDate.now());
+	    LocalDate newOrderDate = LocalDate.now();
 
-	    Date newExpectedDate =
-	            new Date(newOrderDate.getTime() + diffMillis);
+	    LocalDate newExpectedDate =
+	            newOrderDate.plusDays(diffDays);
 
 	    PurchaseOrder reOrder = PurchaseOrder.builder()
 	            .status(PurchaseOrderStatus.발주요청)
