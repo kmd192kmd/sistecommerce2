@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.java.product.dto.ProductDto;
 import com.example.java.product.service.CategoryService;
@@ -56,22 +58,10 @@ public class ProductListController {
             }
             recentKeywords.remove(keyword);
             recentKeywords.add(0, keyword);
-            if (recentKeywords.size() > 10) {
-                recentKeywords.remove(recentKeywords.size() - 1);
+            if (recentKeywords.size() > 5) {
+                recentKeywords = new ArrayList<>(recentKeywords.subList(0, 5));
             }
             session.setAttribute("recentKeywords", recentKeywords);
-        }
-
-        // 정렬 파라미터 매핑
-        String sortBy = "salesCount";
-        if (sort != null) {
-            sortBy = switch (sort) {
-                case "priceAsc" -> "price_asc";
-                case "priceDesc" -> "price_desc";
-                case "newest" -> "newest";
-                case "ratingDesc" -> "rating";
-                default -> "salesCount";
-            };
         }
 
         // 가격 필터 파싱 (예: "0-10000", "10000-50000" 등)
@@ -103,7 +93,7 @@ public class ProductListController {
             }
         }
         boolean hideStockVal = hideOutOfStock != null && hideOutOfStock;
-        Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sortBy, page, minPrice, maxPrice, minRating, hideStockVal);
+        Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sort, page, minPrice, maxPrice, minRating, hideStockVal);
         List<ProductDto> productList = productPage.getContent();
 
         // 추천 상품 목록 (평점 높은 순 상위 5개 추천)
@@ -159,20 +149,22 @@ public class ProductListController {
 
     // 최근 검색어 개별 삭제
     @GetMapping("/recent-search/delete")
-    public String deleteRecentKeyword(@RequestParam("keyword") String keyword, HttpSession session) {
+    @ResponseBody
+    public ResponseEntity<Void> deleteRecentKeyword(@RequestParam("keyword") String keyword, HttpSession session) {
         @SuppressWarnings("unchecked")
         List<String> recentKeywords = (List<String>) session.getAttribute("recentKeywords");
         if (recentKeywords != null) {
             recentKeywords.remove(keyword);
             session.setAttribute("recentKeywords", recentKeywords);
         }
-        return "redirect:/products";
+        return ResponseEntity.ok().build();
     }
 
     // 최근 검색어 전체 삭제
     @GetMapping("/recent-search/clear")
-    public String clearRecentKeywords(HttpSession session) {
+    @ResponseBody
+    public ResponseEntity<Void> clearRecentKeywords(HttpSession session) {
         session.removeAttribute("recentKeywords");
-        return "redirect:/products";
+        return ResponseEntity.ok().build();
     }
 }

@@ -1,5 +1,8 @@
 package com.example.java.product.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,6 +39,19 @@ public class ProductDetailController {
 
         Long memberSeq = getLoginMemberSeq(session);
         ProductDto product = productDetailService.getProductDetail(seq, memberSeq);
+
+        // 최근 조회 상품 세션 저장
+        @SuppressWarnings("unchecked")
+        List<Long> recentViewedSeqs = (List<Long>) session.getAttribute("recentViewedSeqs");
+        if (recentViewedSeqs == null) {
+            recentViewedSeqs = new ArrayList<>();
+        }
+        recentViewedSeqs.remove(seq);
+        recentViewedSeqs.add(0, seq);
+        if (recentViewedSeqs.size() > 5) {
+            recentViewedSeqs = new ArrayList<>(recentViewedSeqs.subList(0, 5));
+        }
+        session.setAttribute("recentViewedSeqs", recentViewedSeqs);
 
         model.addAttribute("product", product);
         model.addAttribute("loginMemberSeq", memberSeq);

@@ -42,10 +42,10 @@
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='ratingDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='reviewDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
                        class="block px-3 py-2 border transition-colors"
-                       th:classappend="${sort == 'ratingDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
-                        <span th:if="${sort == 'ratingDesc'}">✓ </span>별점순
+                       th:classappend="${sort == 'reviewDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        <span th:if="${sort == 'reviewDesc'}">✓ </span>리뷰순
                     </a>
                 </li>
             </ul>
@@ -241,6 +241,14 @@
             </div>
         </div>
 
+        <!-- 상품 개수 표시 바 -->
+        <div class="flex items-center justify-between mb-6 text-xs font-bold text-gray-500 select-none">
+            <div></div>
+            <div>
+                총 <span th:text="${productPage.totalElements}" class="text-slate-900 font-black">0</span>개 상품
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             
             <a th:each="p : ${productList}" th:href="@{/products/{seq}(seq=${p.seq})}"
@@ -280,15 +288,15 @@
         <div th:if="${not #lists.isEmpty(productList)}" class="mt-12 flex justify-center items-center gap-1 text-sm font-bold">
             <!-- 이전 블록 (10페이지 전으로) -->
             <a th:if="${startPage > 0}" 
-               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${startPage - 1}, hideOutOfStock=${hideOutOfStock})}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${startPage - 10}, hideOutOfStock=${hideOutOfStock})}" 
                class="w-8 h-8 flex items-center justify-center border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-500 bg-white" title="이전 10페이지">&laquo;</a>
             
             <!-- 이전 페이지 -->
             <a th:if="${productPage.hasPrevious()}" 
                th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number - 1}, hideOutOfStock=${hideOutOfStock})}" 
-               class="px-3 py-1 text-gray-600 hover:text-amber-600 mr-1">&larr; Prev</a>
+               class="px-3 py-1 text-gray-600 hover:text-amber-600 mr-1">Prev</a>
             <span th:unless="${productPage.hasPrevious()}" 
-                   class="px-3 py-1 text-gray-400 mr-1">&larr; Prev</span>
+                   class="px-3 py-1 text-gray-400 mr-1">Prev</span>
                   
             <!-- 페이지 번호 목록 (최대 10개) -->
             <th:block th:if="${productPage.totalPages > 0}">
@@ -302,9 +310,9 @@
             <!-- 다음 페이지 -->
             <a th:if="${productPage.hasNext()}" 
                th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number + 1}, hideOutOfStock=${hideOutOfStock})}" 
-               class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-1">Next &rarr;</a>
+               class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-1">Next</a>
             <span th:unless="${productPage.hasNext()}" 
-                   class="px-3 py-1 text-gray-400 ml-1">Next &rarr;</span>
+                   class="px-3 py-1 text-gray-400 ml-1">Next</span>
 
             <!-- 다음 블록 (10페이지 후로) -->
             <a th:if="${endPage < productPage.totalPages - 1}" 
@@ -334,7 +342,7 @@
             <ul class="space-y-4">
                 <li th:each="rv : ${recentViewedList}">
                     <!-- 정상 판매 상품인 경우 -->
-                    <a th:if="${rv.status == 'NORMAL' and rv.hideYn == 'N' and rv.saleStatus != 'STOPPED'}" 
+                    <a th:if="${rv.productStatus == 'NORMAL' and rv.hideYn == 'N' and rv.saleStatus != 'STOPPED'}" 
                        th:href="@{/products/{seq}(seq=${rv.seq})}" class="group flex gap-2 items-center">
                         <div class="w-10 h-10 bg-gray-100 flex-shrink-0">
                             <img th:src="${rv.image}" class="w-full h-full object-cover">
@@ -346,7 +354,7 @@
                     </a>
                     
                     <!-- 판매중지 / 삭제 / 숨김 상품인 경우 (클릭 불가 처리 및 상태 배지 표시) -->
-                    <div th:unless="${rv.status == 'NORMAL' and rv.hideYn == 'N' and rv.saleStatus != 'STOPPED'}" 
+                    <div th:unless="${rv.productStatus == 'NORMAL' and rv.hideYn == 'N' and rv.saleStatus != 'STOPPED'}" 
                          class="flex gap-2 items-center opacity-50 cursor-not-allowed" title="구매가 불가능한 상품입니다.">
                         <div class="w-10 h-10 bg-gray-100 flex-shrink-0 relative">
                             <img th:src="${rv.image}" class="w-full h-full object-cover grayscale">
@@ -356,7 +364,7 @@
                         </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1">
-                                <span th:if="${rv.status == 'DELETED'}" class="text-[9px] font-black text-red-500 shrink-0">[삭제됨]</span>
+                                <span th:if="${rv.productStatus == 'DELETED'}" class="text-[9px] font-black text-red-500 shrink-0">[삭제됨]</span>
                                 <span th:if="${rv.saleStatus == 'STOPPED'}" class="text-[9px] font-black text-slate-500 shrink-0">[판매중지]</span>
                                 <span th:if="${rv.hideYn == 'Y'}" class="text-[9px] font-black text-slate-500 shrink-0">[숨김]</span>
                                 <h4 th:text="${rv.name}" class="text-[11px] text-gray-400 truncate flex-1">최근본상품명</h4>

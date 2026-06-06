@@ -80,7 +80,7 @@ public class ProductListService {
             case "price_asc", "priceasc" -> Sort.by(Sort.Direction.ASC, "price");
             case "price_desc", "pricedesc" -> Sort.by(Sort.Direction.DESC, "price");
             case "newest" -> Sort.by(Sort.Direction.DESC, "createdDate");
-            case "rating", "ratingdesc" -> Sort.by(Sort.Direction.DESC, "avgRating");
+            case "review", "reviewdesc" -> Sort.by(Sort.Direction.DESC, "reviewCount");
             default -> Sort.by(Sort.Direction.DESC, "salesCount");
         };
     }

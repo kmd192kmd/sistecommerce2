@@ -10,8 +10,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.example.java.product.entity.Product;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
@@ -74,7 +77,7 @@ public class ProductListRepository {
         List<Product> products = queryFactory
                 .selectFrom(product)
                 .where(condition)
-                .orderBy(product.seq.desc())
+                .orderBy(getOrderSpecifier(pageable.getSort()))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -90,5 +93,18 @@ public class ProductListRepository {
                 pageable,
                 totalCount == null ? 0 : totalCount
         );
+    }
+
+    @SuppressWarnings("unchecked")
+	private OrderSpecifier<?> getOrderSpecifier(org.springframework.data.domain.Sort sort) {
+        if (sort.isUnsorted()) {
+            return product.seq.desc();
+        }
+        PathBuilder<Product> entityPath = new PathBuilder<>(Product.class, "product");
+        for (org.springframework.data.domain.Sort.Order order : sort) {
+            Order direction = order.isAscending() ? Order.ASC : Order.DESC;
+            return new OrderSpecifier(direction, entityPath.get(order.getProperty()));
+        }
+        return product.seq.desc();
     }
 }
