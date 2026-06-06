@@ -3,113 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <title>Purchase Order Create</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet">
 </head>
-<body>
-	
-	<h2>발주 생성</h2>
-	
-	<!-- =========================
-	     1. 옵션 정보 (읽기 전용)
-	========================= -->
-	<h3>옵션 정보</h3>
-	
-	<div>
-	    <p><b>옵션SEQ:</b> <span th:text="${options.seq}"></span></p>
-	    <p><b>용량:</b> <span th:text="${options.volumeWeight}"></span></p>
-	    <p><b>재고:</b> <span th:text="${options.stock}"></span></p>
-	</div>
-	
-	<hr/>
-	
-	<!-- =========================
-	     2. 발주 생성 폼
-	========================= -->
-	<form id="orderForm">
-	
-	    <!-- 옵션 연결 -->
-	    <input type="hidden" name="optionsSeq" th:value="${options.seq}" />
-	
-	    <!-- 수량 -->
-	    <div>
-	        <label>수량</label>
-	        <input type="number" id="quantity" name="quantity" min="1" required />
-	    </div>
-	
-	    <!-- 공급가 -->
-	    <div>
-	        <label>공급가</label>
-	        <input type="number" name="supplyPrice" th:value="${supplyPrice}" readonly/>
-	    </div>
-	
-	    <!-- 총액 -->
-	    <div>
-		    <label>총액</label>
-		    <input type="text" id="totalPrice" readonly />
-		</div>
-	
-	    <!-- 발주일 -->
-	    <div>
-	        <label>발주일</label>
-	        <input type="date" name="orderDate" required />
-	    </div>
-	
-	    <!-- 예상일 -->
-	    <div>
-	        <label>입고 예정일</label>
-	        <input type="date" name="expectedDate" required />
-	    </div>
-	
-	    <br/>
-	
-	    <button type="submit">발주 생성</button>
-	
-	</form>
+
+<body class="bg-base-200">
+
+<div class="max-w-4xl mx-auto p-6">
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body space-y-10">
+
+            <!-- ================= 1. 상품 정보 ================= -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <h2 class="font-bold text-lg">상품정보(더미)</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+
+                    <div>
+                        <label class="label-text">상품명</label>
+                        <input class="input input-bordered w-full" value="무슨무슨 상품" readonly />
+                    </div>
+
+                    <div>
+                        <label class="label-text">상품 상태</label>
+                        <input class="input input-bordered w-full" value="판매 중" readonly />
+                    </div>
+
+                    <div>
+                        <label class="label-text">옵션명</label>
+                        <input class="input input-bordered w-full" value="색상 / 사이즈" readonly />
+                    </div>
+
+                    <div>
+                        <label class="label-text">옵션 값</label>
+                        <input class="input input-bordered w-full" value="흰색 / 260" readonly />
+                    </div>
+
+                    <div>
+					    <label class="label-text">공급가</label>
+					    <input class="input input-bordered w-full"
+					           th:value="${supplyPrice}"
+					           id="supplyPrice"
+					           readonly />
+					</div>
+                </div>
+            </div>
+
+            <!-- ================= 2. 판매처 ================= -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <h2 class="font-bold text-lg">판매처(더미)</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <label class="label-text">판매처</label>
+                        <input class="input input-bordered w-full" value="무슨무슨 회사" readonly />
+                    </div>
+
+                    <div>
+                        <label class="label-text">판매처 연락처</label>
+                        <input class="input input-bordered w-full" value="010-1234-5678" readonly />
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= 3. 발주 정보 ================= -->
+            <div>
+                <div class="flex items-center gap-2 mb-4">
+                    <h2 class="font-bold text-lg">발주 정보 입력</h2>
+                </div>
+
+                <form id="orderForm" class="space-y-4">
+
+                    <input type="hidden" name="optionsSeq" th:value="${options.seq}" />
+
+                    <!-- 발주 수량 -->
+                    <div>
+                        <label class="label-text">발주 수량</label>
+                        <input type="number"
+                               id="quantity"
+                               name="quantity"
+                               min="1"
+                               class="input input-bordered w-full"
+                               value="500"
+                               required />
+                    </div>
+
+                    <!-- 발주일 / 입고예정일 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label-text">발주 요청일</label>
+                            <input type="date"
+                                   name="orderDate"
+                                   class="input input-bordered w-full"
+                                   value="2026-05-25"
+                                   required />
+                        </div>
+
+                        <div>
+                            <label class="label-text">납기 예정일</label>
+                            <input type="date"
+                                   name="expectedDate"
+                                   class="input input-bordered w-full"
+                                   value="2026-05-31"
+                                   required />
+                        </div>
+                    </div>
+
+                    <!-- 총액 -->
+                    <div class="pt-2">
+                        <div class="text-lg font-bold">
+                            총 발주 금액 :
+                            <span id="totalPriceText" class="text-red-500">5,000,000원</span>
+                        </div>
+                    </div>
+
+                    <!-- ================= 4. 버튼 ================= -->
+                    <div class="flex justify-end gap-2 pt-6">
+
+                        <button type="button" class="btn btn-outline">닫기</button>
+                        <button type="submit" class="btn btn-primary">발주 등록</button>
+                    </div>
+
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
 
 <script th:inline="javascript">
+
     const form = document.getElementById("orderForm");
-
     const quantityInput = document.getElementById("quantity");
-    const totalPriceInput = document.getElementById("totalPrice");
+    const totalPriceText = document.getElementById("totalPriceText");
 
-    const supplyPrice = /*[[${supplyPrice}]]*/ 0;
+    const supplyPrice = Number(document.getElementById("supplyPrice").value);
     const optionsSeq = /*[[${options.seq}]]*/ 0;
 
-    // =========================
-    // 1. totalPrice 실시간 계산
-    // =========================
     function calcTotal() {
         const qty = Number(quantityInput.value || 0);
-        totalPriceInput.value = qty * supplyPrice;
+        const total = qty * supplyPrice;
+        totalPriceText.textContent = total.toLocaleString() + "원";
     }
 
     quantityInput.addEventListener("input", calcTotal);
-    calcTotal(); // 초기 실행
+    calcTotal();
 
-    // =========================
-    // 2. submit 처리
-    // =========================
     form.addEventListener("submit", function (e) {
         e.preventDefault();
 
         const qty = Number(quantityInput.value || 0);
-
-        const orderDate = form.orderDate.value;
-        const expectedDate = form.expectedDate.value;
 
         const payload = {
             quantity: qty,
             supplyPrice: supplyPrice,
             totalPrice: qty * supplyPrice,
             optionsSeq: optionsSeq,
-            orderDate: orderDate,
-            expectedDate: expectedDate
+            orderDate: form.orderDate.value,
+            expectedDate: form.expectedDate.value
         };
 
         fetch("/api/purchase-orders", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         })
         .then(res => res.json())
@@ -122,7 +184,8 @@
             alert("실패");
         });
     });
+
 </script>
-	
+
 </body>
 </html>
