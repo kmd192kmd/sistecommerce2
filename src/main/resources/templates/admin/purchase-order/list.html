@@ -1,0 +1,36 @@
+<!-- templates/admin/purchase-order/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Order List</title>
+</head>
+<body>
+
+	<h2>Purchase Order 목록 (임시)</h2>
+	
+	<table border="1">
+	    <thead>
+	        <tr>
+	            <th>옵션 번호</th>
+	            <th>발주 등록</th>
+	        </tr>
+	    </thead>
+	
+	    <tbody>
+	        <tr th:each="item : ${list}">
+	            
+	            <td th:text="${item.optionsSeq}"></td>
+	
+	            <td>
+	                <a th:href="@{/admin/purchase-orders/new/{optionsSeq}(optionsSeq=${item.optionsSeq})}">
+	                    주문 생성
+	                </a>
+	            </td>
+	
+	        </tr>
+	    </tbody>
+	</table>
+
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Order Create</title>
+</head>
+<body>
+	
+	<h2>발주 생성</h2>
+	
+	<!-- =========================
+	     1. 옵션 정보 (읽기 전용)
+	========================= -->
+	<h3>옵션 정보</h3>
+	
+	<div>
+	    <p><b>옵션SEQ:</b> <span th:text="${options.seq}"></span></p>
+	    <p><b>용량:</b> <span th:text="${options.volumeWeight}"></span></p>
+	    <p><b>재고:</b> <span th:text="${options.stock}"></span></p>
+	</div>
+	
+	<hr/>
+	
+	<!-- =========================
+	     2. 발주 생성 폼
+	========================= -->
+	<form id="orderForm">
+	
+	    <!-- 옵션 연결 -->
+	    <input type="hidden" name="optionsSeq" th:value="${options.seq}" />
+	
+	    <!-- 수량 -->
+	    <div>
+	        <label>수량</label>
+	        <input type="number" id="quantity" name="quantity" min="1" required />
+	    </div>
+	
+	    <!-- 공급가 -->
+	    <div>
+	        <label>공급가</label>
+	        <input type="number" name="supplyPrice" th:value="${supplyPrice}" readonly/>
+	    </div>
+	
+	    <!-- 총액 -->
+	    <div>
+		    <label>총액</label>
+		    <input type="text" id="totalPrice" readonly />
+		</div>
+	
+	    <!-- 발주일 -->
+	    <div>
+	        <label>발주일</label>
+	        <input type="date" name="orderDate" required />
+	    </div>
+	
+	    <!-- 예상일 -->
+	    <div>
+	        <label>입고 예정일</label>
+	        <input type="date" name="expectedDate" required />
+	    </div>
+	
+	    <br/>
+	
+	    <button type="submit">발주 생성</button>
+	
+	</form>
+
+<script th:inline="javascript">
+    const form = document.getElementById("orderForm");
+
+    const quantityInput = document.getElementById("quantity");
+    const totalPriceInput = document.getElementById("totalPrice");
+
+    const supplyPrice = /*[[${supplyPrice}]]*/ 0;
+    const optionsSeq = /*[[${options.seq}]]*/ 0;
+
+    // =========================
+    // 1. totalPrice 실시간 계산
+    // =========================
+    function calcTotal() {
+        const qty = Number(quantityInput.value || 0);
+        totalPriceInput.value = qty * supplyPrice;
+    }
+
+    quantityInput.addEventListener("input", calcTotal);
+    calcTotal(); // 초기 실행
+
+    // =========================
+    // 2. submit 처리
+    // =========================
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const qty = Number(quantityInput.value || 0);
+
+        const orderDate = form.orderDate.value;
+        const expectedDate = form.expectedDate.value;
+
+        const payload = {
+            quantity: qty,
+            supplyPrice: supplyPrice,
+            totalPrice: qty * supplyPrice,
+            optionsSeq: optionsSeq,
+            orderDate: orderDate,
+            expectedDate: expectedDate
+        };
+
+        fetch("/api/purchase-orders", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(seq => {
+            alert("발주 생성 완료: " + seq);
+            window.location.href = "/admin/purchase-orders";
+        })
+        .catch(err => {
+            console.error(err);
+            alert("실패");
+        });
+    });
+</script>
+	
+</body>
+</html>

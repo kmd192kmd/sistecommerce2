@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.java.groupbuy.entity.GroupBuyOptions;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
@@ -16,7 +17,6 @@ import com.example.java.purchaseorder.enums.PurchaseOrderStatus;
 import com.example.java.purchaseorder.enums.PurchaseOrderType;
 import com.example.java.purchaseorder.repository.PurchaseOrderRepository;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -73,6 +73,14 @@ public class PurchaseOrderService {
 	        break;
 	    }
 	}
+	
+	@Transactional(readOnly = true)
+	public List<PurchaseOrder> findAll() {
+		return purchaseOrderRepository.findAll();
+	}
+	
+	
+	
 	
 	private void completeOrder(PurchaseOrder order) {
 	    order.changeStatus(PurchaseOrderStatus.입고완료);

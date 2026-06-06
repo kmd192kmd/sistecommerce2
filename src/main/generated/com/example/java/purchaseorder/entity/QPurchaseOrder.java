@@ -22,17 +22,17 @@ public class QPurchaseOrder extends EntityPathBase<PurchaseOrder> {
 
     public static final QPurchaseOrder purchaseOrder = new QPurchaseOrder("purchaseOrder");
 
-    public final DatePath<java.sql.Date> expectedDate = createDate("expectedDate", java.sql.Date.class);
+    public final DatePath<java.time.LocalDate> expectedDate = createDate("expectedDate", java.time.LocalDate.class);
 
     public final com.example.java.groupbuy.entity.QGroupBuyOptions groupBuyOptions;
 
     public final com.example.java.product.entity.QOptions options;
 
-    public final DatePath<java.sql.Date> orderDate = createDate("orderDate", java.sql.Date.class);
+    public final DatePath<java.time.LocalDate> orderDate = createDate("orderDate", java.time.LocalDate.class);
 
     public final NumberPath<Integer> quantity = createNumber("quantity", Integer.class);
 
-    public final DatePath<java.sql.Date> receivedDate = createDate("receivedDate", java.sql.Date.class);
+    public final DatePath<java.time.LocalDate> receivedDate = createDate("receivedDate", java.time.LocalDate.class);
 
     public final NumberPath<Long> seq = createNumber("seq", Long.class);
 
