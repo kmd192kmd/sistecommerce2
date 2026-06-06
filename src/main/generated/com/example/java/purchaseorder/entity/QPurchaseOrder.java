@@ -63,7 +63,7 @@ public class QPurchaseOrder extends EntityPathBase<PurchaseOrder> {
     public QPurchaseOrder(Class<? extends PurchaseOrder> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.groupBuyOptions = inits.isInitialized("groupBuyOptions") ? new com.example.java.groupbuy.entity.QGroupBuyOptions(forProperty("groupBuyOptions"), inits.get("groupBuyOptions")) : null;
-        this.options = inits.isInitialized("options") ? new com.example.java.product.entity.QOptions(forProperty("options")) : null;
+        this.options = inits.isInitialized("options") ? new com.example.java.product.entity.QOptions(forProperty("options"), inits.get("options")) : null;
     }
 
 }
