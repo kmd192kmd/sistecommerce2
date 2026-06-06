@@ -5,7 +5,6 @@ import static com.example.java.product.entity.QProduct.product;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -22,93 +21,22 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 
 /*
-    ProductRepository
+    ProductListRepository
 
-    상품 관련 DB 작업을 담당하는 Repository 클래스입니다.
-
-    주의:
-    이 클래스는 interface가 아니라 class입니다.
-    그래서 JpaRepository를 상속하지 않습니다.
-
-    대신 EntityManager를 이용해서
-    save(), findById()를 직접 구현했습니다.
-
-    Controller → Service → Repository → DB
+    상품 목록 조회, 필터링, 검색 등 읽기 전용 목록 관련 DB 작업을 담당합니다.
 */
 @Repository
 @RequiredArgsConstructor
-public class ProductRepository {
+public class ProductListRepository {
 
-    /*
-        NamedParameterJdbcTemplate
-
-        SQL을 직접 작성해서 조회할 때 사용합니다.
-
-        일반 JdbcTemplate은 ? 순서에 맞춰 값을 넣어야 하지만,
-        NamedParameterJdbcTemplate은 :productSeq처럼 이름으로 값을 넣을 수 있습니다.
-    */
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final JPAQueryFactory queryFactory;
 
     /*
-        EntityManager
-
-        JpaRepository를 사용하지 않기 때문에
-        save(), findById() 기능을 직접 구현하기 위해 사용합니다.
-    */
-    @PersistenceContext
-    private EntityManager entityManager;
-
-
-    /*
-        상품 저장 / 수정
-
-        product.getSeq()가 null이면 신규 등록입니다.
-        product.getSeq()가 있으면 기존 데이터 수정입니다.
-    */
-    public Product save(Product product) {
-
-        if (product.getSeq() == null) {
-            entityManager.persist(product);
-            return product;
-        }
-
-        return entityManager.merge(product);
-    }
-
-
-    /*
-        상품 번호로 상품 엔티티 조회
-
-        JpaRepository의 findById() 역할을 직접 구현한 메서드입니다.
-    */
-    public Optional<Product> findById(Long seq) {
-
-        return Optional.ofNullable(entityManager.find(Product.class, seq));
-    }
-
-
-    /*
-        상품 필터 검색
-
-        기존 목록 조회에서 사용하는 메서드입니다.
-
-        기능:
-        - 카테고리 필터
-        - 검색어 필터
-        - 최소 가격
-        - 최대 가격
-        - 최소 평점
-        - 판매 상태
-        - 숨김 상품 제외
-        - 판매중지 상품 제외
-        - 삭제 상품 제외
-        - 페이징 처리
+        상품 필터 검색 (QueryDSL 사용)
     */
     public Page<Product> findWithFilters(
             List<Long> categorySeqs,
@@ -172,73 +100,8 @@ public class ProductRepository {
         );
     }
 
-
-    /*
-        상품 상세 기본 정보 조회
-
-        상품 상세 화면 상단에 필요한 데이터를 조회합니다.
-
-        조회 조건:
-        - 상품 번호 일치
-        - 정상 상품
-        - 관리자 승인 완료
-        - 숨김 아님
-
-        대표 이미지 thumbnail_url도 함께 조회합니다.
-    */
-    public Optional<ProductDto> findProductDetail(Long productSeq) {
-
-        String sql = """
-                SELECT
-                    p.seq,
-                    p.seller_seq,
-                    p.category_seq,
-                    p.product_name,
-                    p.price,
-                    p.content,
-                    p.sale_status,
-                    p.approval_status,
-                    p.hide_yn,
-                    p.view_count,
-                    p.avg_rating,
-                    p.review_count,
-                    p.sales_count,
-                    p.created_date,
-                    p.updated_date,
-                    p.status,
-                    (
-                        SELECT pi.image_url
-                        FROM product_image pi
-                        WHERE pi.product_seq = p.seq
-                          AND pi.thumbnail_yn = 'Y'
-                          AND pi.status = 'NORMAL'
-                        ORDER BY pi.image_order
-                        FETCH FIRST 1 ROWS ONLY
-                    ) AS thumbnail_url
-                FROM product p
-                WHERE p.seq = :productSeq
-                  AND p.status = 'NORMAL'
-                  AND p.approval_status = 'APPROVED'
-                  AND p.hide_yn = 'N'
-                """;
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("productSeq", productSeq);
-
-        List<ProductDto> list = jdbcTemplate.query(sql, params, this::mapProductDetail);
-
-        if (list.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(list.get(0));
-    }
-
-
     /*
         상품 목록 전체 개수 조회
-
-        API 페이징 조회에서 사용합니다.
     */
     public int countProducts() {
 
@@ -259,17 +122,8 @@ public class ProductRepository {
         return count == null ? 0 : count;
     }
 
-
     /*
         상품 목록 페이징 조회
-
-        API용 상품 목록 조회입니다.
-
-        offset:
-        - 앞에서 몇 개를 건너뛸지
-
-        size:
-        - 몇 개를 가져올지
     */
     public List<ProductDto> findProductsByPaging(int offset, int size) {
 
@@ -315,11 +169,8 @@ public class ProductRepository {
         return jdbcTemplate.query(sql, params, this::mapProductDetail);
     }
 
-
     /*
         상품 이미지 목록 조회
-
-        product_image 테이블에서 해당 상품의 이미지를 조회합니다.
     */
     public List<ProductImageDto> findProductImages(Long productSeq) {
 
@@ -344,16 +195,8 @@ public class ProductRepository {
         return jdbcTemplate.query(sql, params, this::mapProductImage);
     }
 
-
     /*
         상품 옵션 목록 조회
-
-        options 테이블에서 해당 상품의 옵션을 조회합니다.
-
-        현재 조건:
-        - stock > 0
-
-        즉 재고가 있는 옵션만 조회합니다.
     */
     public List<ProductOptionDto> findProductOptions(Long productSeq) {
 
@@ -392,68 +235,6 @@ public class ProductRepository {
         return jdbcTemplate.query(sql, params, this::mapProductOption);
     }
 
-
-    /*
-        찜 여부 확인
-
-        product_wish 테이블에는 product_seq가 아니라
-        options_seq가 저장되어 있는 구조라고 가정했습니다.
-
-        그래서 현재 상품의 옵션 번호 중 사용자가 찜한 것이 있는지 확인합니다.
-    */
-    public boolean existsWish(Long productSeq, Long memberSeq) {
-
-        String sql = """
-                SELECT COUNT(*)
-                FROM product_wish
-                WHERE options_seq IN (
-                    SELECT seq
-                    FROM options
-                    WHERE product_seq = :productSeq
-                )
-                AND member_seq = :memberSeq
-                AND status = 0
-                """;
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("productSeq", productSeq)
-                .addValue("memberSeq", memberSeq);
-
-        Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
-
-        return count != null && count > 0;
-    }
-
-
-    /*
-        상품 삭제
-
-        실제 DELETE가 아니라
-        status와 hide_yn 값을 변경하는 소프트 삭제 방식입니다.
-    */
-    public int deleteProduct(Long productSeq) {
-
-        String sql = """
-                UPDATE product
-                SET status = 'DELETED',
-                    hide_yn = 'Y',
-                    updated_date = SYSDATE
-                WHERE seq = :productSeq
-                  AND status = 'NORMAL'
-                """;
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("productSeq", productSeq);
-
-        return jdbcTemplate.update(sql, params);
-    }
-
-
-    /*
-        Product 엔티티 매핑 메서드
-
-        findWithFilters()에서 사용합니다.
-    */
     private Product mapProduct(ResultSet rs, int rowNum) throws SQLException {
 
         return Product.builder()
@@ -484,12 +265,6 @@ public class ProductRepository {
                 .build();
     }
 
-
-    /*
-        상품 상세 DTO 매핑 메서드
-
-        SQL 조회 결과를 ProductDto에 담습니다.
-    */
     private ProductDto mapProductDetail(ResultSet rs, int rowNum) throws SQLException {
 
         ProductDto dto = new ProductDto();
@@ -497,15 +272,12 @@ public class ProductRepository {
         dto.setSeq(rs.getLong("seq"));
         dto.setSellerSeq(rs.getLong("seller_seq"));
         dto.setCategorySeq(rs.getLong("category_seq"));
-
         dto.setProductName(rs.getString("product_name"));
         dto.setPrice(rs.getInt("price"));
         dto.setContent(rs.getString("content"));
-
         dto.setSaleStatus(rs.getString("sale_status"));
         dto.setApprovalStatus(rs.getString("approval_status"));
         dto.setHideYn(rs.getString("hide_yn"));
-
         dto.setViewCount(rs.getLong("view_count"));
         dto.setAvgRating(rs.getDouble("avg_rating"));
         dto.setReviewCount(rs.getLong("review_count"));
@@ -530,10 +302,6 @@ public class ProductRepository {
         return dto;
     }
 
-
-    /*
-        상품 이미지 DTO 매핑 메서드
-    */
     private ProductImageDto mapProductImage(ResultSet rs, int rowNum) throws SQLException {
 
         ProductImageDto dto = new ProductImageDto();
@@ -549,17 +317,12 @@ public class ProductRepository {
         return dto;
     }
 
-
-    /*
-        상품 옵션 DTO 매핑 메서드
-    */
     private ProductOptionDto mapProductOption(ResultSet rs, int rowNum) throws SQLException {
 
         ProductOptionDto dto = new ProductOptionDto();
 
         dto.setSeq(rs.getLong("seq"));
         dto.setProductSeq(rs.getLong("product_seq"));
-
         dto.setColor(rs.getString("color"));
         dto.setOptionsSize(rs.getString("options_size"));
         dto.setVolumeWeight(rs.getString("volume_weight"));
@@ -576,25 +339,14 @@ public class ProductRepository {
         dto.setWearableSpec(rs.getString("wearable_spec"));
         dto.setMaterialType(rs.getString("material_type"));
         dto.setOptionsType(rs.getString("options_type"));
-
         dto.setStock(rs.getInt("stock"));
         dto.setSafetyStock(rs.getInt("safety_stock"));
         dto.setAdditionalPrice(rs.getInt("additional_price"));
-
         dto.setOptionName(makeOptionName(dto));
 
         return dto;
     }
 
-
-    /*
-        옵션명 조합 메서드
-
-        값이 있는 옵션 컬럼만 골라서 하나의 문자열로 만듭니다.
-
-        예:
-        블랙 / M (+1000원)
-    */
     private String makeOptionName(ProductOptionDto dto) {
 
         StringBuilder sb = new StringBuilder();
@@ -627,10 +379,6 @@ public class ProductRepository {
         return sb.toString();
     }
 
-
-    /*
-        옵션값 추가 메서드
-    */
     private void appendOption(StringBuilder sb, String value) {
 
         if (value == null || value.isBlank()) {
@@ -643,39 +391,4 @@ public class ProductRepository {
 
         sb.append(value);
     }
-    
-    /*
-	    상품 리뷰 통계 갱신
-	
-	    review 테이블 기준으로 평균 별점과 리뷰 수를 다시 계산해서
-	    product 테이블의 avg_rating, review_count에 저장합니다.
-	
-	    리뷰 등록, 수정, 삭제 후에 호출해야 합니다.
-	*/
-	public void updateProductReviewStats(Long productSeq) {
-	
-	    String sql = """
-	            UPDATE product p
-	            SET
-	                avg_rating = (
-	                    SELECT NVL(ROUND(AVG(r.rating), 1), 0)
-	                    FROM review r
-	                    WHERE r.product_seq = p.seq
-	                      AND r.status = 'NORMAL'
-	                ),
-	                review_count = (
-	                    SELECT COUNT(*)
-	                    FROM review r
-	                    WHERE r.product_seq = p.seq
-	                      AND r.status = 'NORMAL'
-	                ),
-	                updated_date = SYSDATE
-	            WHERE p.seq = :productSeq
-	            """;
-	
-	    MapSqlParameterSource params = new MapSqlParameterSource()
-	            .addValue("productSeq", productSeq);
-	
-	    jdbcTemplate.update(sql, params);
-	}
 }

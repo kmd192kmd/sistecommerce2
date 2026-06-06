@@ -14,7 +14,7 @@ import com.example.java.product.dto.ReviewEligibilityDto;
 import com.example.java.product.dto.ReviewImageDto;
 import com.example.java.product.dto.ReviewResponseDto;
 import com.example.java.product.dto.ReviewScrollResponseDto;
-import com.example.java.product.repository.ProductRepository;
+import com.example.java.product.repository.ProductDetailRepository;
 import com.example.java.product.repository.ReviewRepository;
 import com.example.java.product.dto.PurchasedOrderItemDto;
 import com.example.java.product.dto.ReviewCreateRequestDto;
@@ -192,7 +192,7 @@ public class ReviewService {
 	        }
 	    }
 	
-	    productRepository.updateProductReviewStats(dto.getProductSeq());
+	    productDetailRepository.updateProductReviewStats(dto.getProductSeq());
 	}
 	
 	/*
@@ -262,7 +262,7 @@ public class ReviewService {
 	        }
 	    }
 	
-	    productRepository.updateProductReviewStats(productSeq);
+	    productDetailRepository.updateProductReviewStats(productSeq);
 	}
 	
 	/*
@@ -304,7 +304,7 @@ public class ReviewService {
 	        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "삭제할 수 없는 리뷰입니다.");
 	    }
 	
-	    productRepository.updateProductReviewStats(productSeq);
+	    productDetailRepository.updateProductReviewStats(productSeq);
 	}
 	
 	private final CloudinaryService cloudinaryService;
@@ -314,7 +314,7 @@ public class ReviewService {
 
     // 상품 DB 작업을 담당하는 Repository
     // 리뷰 등록, 수정, 삭제 후 상품의 평균 별점과 리뷰 수를 갱신할 때 사용
-    private final ProductRepository productRepository;
+    private final ProductDetailRepository productDetailRepository;
 
     // 전체 리뷰 무한스크롤 조회
     public ReviewScrollResponseDto getAllReviewsByScroll(Long lastReviewSeq, int size) {
@@ -384,7 +384,7 @@ public class ReviewService {
         }
 
         // 상품 리뷰 통계 갱신
-        productRepository.updateProductReviewStats(productSeq);
+        productDetailRepository.updateProductReviewStats(productSeq);
     }
 
     // 리뷰 번호 기준 상품 리뷰 통계 갱신
@@ -405,7 +405,7 @@ public class ReviewService {
         }
 
         // 상품 리뷰 통계 갱신
-        productRepository.updateProductReviewStats(productSeq);
+        productDetailRepository.updateProductReviewStats(productSeq);
     }
 
     // 무한스크롤 조회 결과를 응답 DTO로 변환
