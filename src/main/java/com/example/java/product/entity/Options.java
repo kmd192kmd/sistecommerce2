@@ -2,9 +2,12 @@ package com.example.java.product.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -28,8 +31,9 @@ public class Options {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "options_seq")
     private Long seq;
 
-    @Column(name = "product_seq", nullable = false)
-    private Long productSeq;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_seq")
+    private Product product;
 
     @Column(name = "color", length = 100)
     private String color;
@@ -90,4 +94,18 @@ public class Options {
     @Column(name = "additional_price", nullable = false)
     @Builder.Default
     private Integer additionalPrice = 0;
+    
+    // 재고 증가 메서드
+    public void increaseStock(int quantity) {
+        this.stock += quantity;
+    }
+
+    // 재고 감소 메서드
+    public void decreaseStock(int quantity) {
+        if (this.stock < quantity) {
+            throw new IllegalArgumentException("재고 부족");
+        }
+
+        this.stock -= quantity;
+    }
 }

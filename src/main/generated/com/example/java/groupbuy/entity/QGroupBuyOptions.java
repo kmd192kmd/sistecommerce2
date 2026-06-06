@@ -51,7 +51,7 @@ public class QGroupBuyOptions extends EntityPathBase<GroupBuyOptions> {
     public QGroupBuyOptions(Class<? extends GroupBuyOptions> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
         this.groupBuy = inits.isInitialized("groupBuy") ? new QGroupBuy(forProperty("groupBuy"), inits.get("groupBuy")) : null;
-        this.options = inits.isInitialized("options") ? new com.example.java.product.entity.QOptions(forProperty("options")) : null;
+        this.options = inits.isInitialized("options") ? new com.example.java.product.entity.QOptions(forProperty("options"), inits.get("options")) : null;
     }
 
 }

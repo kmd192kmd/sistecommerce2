@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.*;
 import com.querydsl.core.types.PathMetadata;
 import javax.annotation.processing.Generated;
 import com.querydsl.core.types.Path;
+import com.querydsl.core.types.dsl.PathInits;
 
 
 /**
@@ -16,6 +17,8 @@ import com.querydsl.core.types.Path;
 public class QOptions extends EntityPathBase<Options> {
 
     private static final long serialVersionUID = -1789903059L;
+
+    private static final PathInits INITS = PathInits.DIRECT2;
 
     public static final QOptions options = new QOptions("options");
 
@@ -33,7 +36,7 @@ public class QOptions extends EntityPathBase<Options> {
 
     public final StringPath optionsType = createString("optionsType");
 
-    public final NumberPath<Long> productSeq = createNumber("productSeq", Long.class);
+    public final QProduct product;
 
     public final StringPath quantitySet = createString("quantitySet");
 
@@ -62,15 +65,24 @@ public class QOptions extends EntityPathBase<Options> {
     public final StringPath wearableSpec = createString("wearableSpec");
 
     public QOptions(String variable) {
-        super(Options.class, forVariable(variable));
+        this(Options.class, forVariable(variable), INITS);
     }
 
     public QOptions(Path<? extends Options> path) {
-        super(path.getType(), path.getMetadata());
+        this(path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS));
     }
 
     public QOptions(PathMetadata metadata) {
-        super(Options.class, metadata);
+        this(metadata, PathInits.getFor(metadata, INITS));
+    }
+
+    public QOptions(PathMetadata metadata, PathInits inits) {
+        this(Options.class, metadata, inits);
+    }
+
+    public QOptions(Class<? extends Options> type, PathMetadata metadata, PathInits inits) {
+        super(type, metadata, inits);
+        this.product = inits.isInitialized("product") ? new QProduct(forProperty("product")) : null;
     }
 
 }
