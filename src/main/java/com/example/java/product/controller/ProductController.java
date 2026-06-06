@@ -47,6 +47,7 @@ public class ProductController {
             @RequestParam(value = "price", required = false) String price,
             @RequestParam(value = "rating", required = false) String rating,
             @RequestParam(value = "hideOutOfStock", required = false) Boolean hideOutOfStock,
+            jakarta.servlet.http.HttpServletRequest request,
             jakarta.servlet.http.HttpSession session,
             Model model) {
         
@@ -162,6 +163,9 @@ public class ProductController {
         model.addAttribute("startPage", startPage);
         model.addAttribute("endPage", endPage);
         
+        if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
+            return "product/list :: #product-main-container";
+        }
         return "product/list";
     }
     

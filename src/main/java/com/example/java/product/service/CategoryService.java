@@ -1,6 +1,9 @@
 package com.example.java.product.service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -20,22 +23,29 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
 
     // 0번(대분류) 카테고리 기점으로 전체 트리를 구축하여 반환 (N+1 문제 및 LazyInitializationException 완전 방지)
+    // Map을 활용하여 자식 카테고리를 O(1)로 조회하는 하이브리드 재귀 방식으로 성능 최적화 (O(N) 시간 복잡도)
     public List<CategoryDto> getCategoryTree() {
         List<Category> allCategories = categoryRepository.findAll();
+
+        // 부모 시퀀스(parentSeq)별로 자식 리스트를 미리 그룹화 (Map 생성)
+        Map<Long, List<Category>> childrenMap = allCategories.stream()
+                .filter(c -> c.getParentSeq() != null)
+                .collect(Collectors.groupingBy(Category::getParentSeq));
 
         List<Category> rootCategories = allCategories.stream()
                 .filter(c -> c.getDepthLevel() == 0)
                 .collect(Collectors.toList());
 
         return rootCategories.stream()
-                .map(c -> convertToDto(c, allCategories))
+                .map(c -> convertToDto(c, childrenMap))
                 .collect(Collectors.toList());
     }
 
-    private CategoryDto convertToDto(Category category, List<Category> allCategories) {
-        List<CategoryDto> children = allCategories.stream()
-                .filter(c -> category.getSeq().equals(c.getParentSeq()))
-                .map(c -> convertToDto(c, allCategories))
+    private CategoryDto convertToDto(Category category, Map<Long, List<Category>> childrenMap) {
+        List<Category> childrenList = childrenMap.getOrDefault(category.getSeq(), Collections.emptyList());
+
+        List<CategoryDto> children = childrenList.stream()
+                .map(c -> convertToDto(c, childrenMap))
                 .collect(Collectors.toList());
 
         return CategoryDto.builder()
@@ -54,7 +64,7 @@ public class CategoryService {
         }
         List<Category> allCategories = categoryRepository.findAll();
 
-        List<Long> seqs = new java.util.ArrayList<>();
+        List<Long> seqs = new ArrayList<>();
         seqs.add(categorySeq);
 
         // 1단계 하위 카테고리 탐색 (중분류)
