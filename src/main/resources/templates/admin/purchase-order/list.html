@@ -7,30 +7,93 @@
 </head>
 <body>
 
-	<h2>Purchase Order 목록 (임시)</h2>
+    <h2>Purchase Order 목록 (임시)</h2>
+
+	<button onclick="updateSelectedStatus('입고완료')">입고완료</button>
+	<button onclick="updateSelectedStatus('물품불량')">물품불량</button>
+	<button onclick="updateSelectedStatus('입고지연')">입고지연</button>
+	<button onclick="updateSelectedStatus('지연입고')">지연입고</button>
+	<br><br>
 	
-	<table border="1">
+    <table border="1">
 	    <thead>
 	        <tr>
-	            <th>옵션 번호</th>
+	            <th>
+	                <input type="checkbox" id="checkAll">
+	            </th>
+	            <th>발주번호</th>
+	            <th>상태</th>
+	            <th>발주수량</th>
+	            <th>옵션번호</th>
+	            <th>현재재고</th>
+	            <th>안전재고</th>
 	            <th>발주 등록</th>
 	        </tr>
 	    </thead>
 	
 	    <tbody>
 	        <tr th:each="item : ${list}">
-	            
-	            <td th:text="${item.optionsSeq}"></td>
+	            <td>
+	                <input type="checkbox"
+	                       class="order-check"
+	                       th:value="${item.seq}">
+	            </td>
 	
+	            <td th:text="${item.seq}"></td>
+	            <td th:text="${item.status}"></td>
+	            <td th:text="${item.quantity}"></td>
+	            <td th:text="${item.optionsSeq}"></td>
+	            <td th:text="${item.stock}"></td>
+	            <td th:text="${item.safetyStock}"></td>
 	            <td>
 	                <a th:href="@{/admin/purchase-orders/new/{optionsSeq}(optionsSeq=${item.optionsSeq})}">
 	                    주문 생성
 	                </a>
 	            </td>
-	
 	        </tr>
 	    </tbody>
 	</table>
 
+<script>
+	document.getElementById("checkAll").addEventListener("change", function() {
+	    document.querySelectorAll(".order-check").forEach(cb => {
+	        cb.checked = this.checked;
+	    });
+	});
+	
+	async function updateSelectedStatus(status) {
+	    const seqs = Array.from(
+	        document.querySelectorAll(".order-check:checked")
+	    ).map(cb => Number(cb.value));
+	
+	    if (seqs.length === 0) {
+	        alert("선택된 항목이 없습니다.");
+	        return;
+	    }
+	
+	    try {
+	        const response = await fetch("/api/purchase-orders/status", {
+	            method: "POST",
+	            headers: {
+	                "Content-Type": "application/json"
+	            },
+	            body: JSON.stringify({
+	                seqs: seqs,
+	                status: status
+	            })
+	        });
+	
+	        if (!response.ok) {
+	            throw new Error();
+	        }
+	        alert("상태가 변경되었습니다.");
+	        location.reload();
+	    } catch (e) {
+	
+	        alert("처리에 실패했습니다.");
+	        console.error(e);	
+	    }
+	}
+</script>
 </body>
 </html>
