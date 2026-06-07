@@ -24,6 +24,7 @@
 	            <th>발주번호</th>
 	            <th>상태</th>
 	            <th>발주수량</th>
+	            <th>총 금액</th>
 	            <th>옵션번호</th>
 	            <th>현재재고</th>
 	            <th>안전재고</th>
@@ -42,6 +43,7 @@
 	            <td th:text="${item.seq}"></td>
 	            <td th:text="${item.status}"></td>
 	            <td th:text="${item.quantity}"></td>
+	            <td th:text="${item.totalPrice}"></td>
 	            <td th:text="${item.optionsSeq}"></td>
 	            <td th:text="${item.stock}"></td>
 	            <td th:text="${item.safetyStock}"></td>

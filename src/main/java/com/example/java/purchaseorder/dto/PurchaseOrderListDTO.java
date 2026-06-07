@@ -14,6 +14,7 @@ public class PurchaseOrderListDTO {
 	private Long seq;
     private PurchaseOrderStatus status;
     private int quantity;
+    private Long totalPrice;
 
     private Long optionsSeq;
     private Integer stock;
@@ -27,6 +28,7 @@ public class PurchaseOrderListDTO {
                 .seq(entity.getSeq())
                 .status(entity.getStatus())
                 .quantity(entity.getQuantity())
+                .totalPrice(entity.getTotalPrice())
 
                 .optionsSeq(options != null ? options.getSeq() : null)
                 .stock(options != null ? options.getStock() : null)
