@@ -52,8 +52,71 @@
 	        </tr>
 	    </tbody>
 	</table>
+	
+	<button
+	    id="loadMoreBtn"
+	    th:if="${hasNext}">
+	    더보기
+	</button>
 
 <script>
+
+	let page = 1;
+	
+	const loadMoreBtn =
+    document.getElementById("loadMoreBtn");	
+	if (loadMoreBtn) {
+	    loadMoreBtn.addEventListener("click", loadMore);
+	}
+	
+	async function loadMore() {
+	
+	    const response =
+	        await fetch(
+	            `/api/purchase-orders?page=${page}`
+	        );
+	
+	    const slice = await response.json();
+	
+	    const tbody =
+	        document.querySelector("tbody");
+	
+	    slice.content.forEach(item => {
+	
+	        tbody.insertAdjacentHTML(
+	            "beforeend",
+	            `
+	            <tr>
+	                <td>
+	                    <input type="checkbox"
+	                           class="order-check"
+	                           value="${item.seq}">
+	                </td>
+	
+	                <td>${item.seq}</td>
+	                <td>${item.status}</td>
+	                <td>${item.productName}</td>
+	                <td>${item.optionsName}</td>
+	                <td>${item.quantity}</td>
+	                <td>${item.totalPrice}</td>
+	                <td>${item.orderDate ?? '-'}</td>
+	                <td>${item.expectedDate ?? '-'}</td>
+	                <td>${item.receivedDate ?? '-'}</td>
+	            </tr>
+	            `
+	        );
+	    });
+	
+	    if (!slice.hasNext) {
+	        document
+	            .getElementById("loadMoreBtn")
+	            .style.display = "none";
+	    }
+	
+	    page++;
+	}
+
+
 	document.getElementById("checkAll").addEventListener("change", function() {
 	    document.querySelectorAll(".order-check").forEach(cb => {
 	        cb.checked = this.checked;

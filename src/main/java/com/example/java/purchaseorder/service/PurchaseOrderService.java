@@ -4,6 +4,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,12 +93,29 @@ public class PurchaseOrderService {
 	}
 	
 	@Transactional(readOnly = true)
-	public List<PurchaseOrderListDTO> getList() {
+	public Slice<PurchaseOrderListDTO> getList(Pageable pageable) {
 		
-		return queryDslRepository.findAllWithOptionsAndProduct()
-			.stream()
-			.map(PurchaseOrderListDTO::from)
-			.toList();
+		List<PurchaseOrder> contents =
+	            queryDslRepository
+	                    .findAllWithOptionsAndProduct(pageable);
+
+	    boolean hasNext =
+	            contents.size() > pageable.getPageSize();
+
+	    if (hasNext) {
+	        contents.remove(contents.size() - 1);
+	    }
+
+	    List<PurchaseOrderListDTO> dtoList =
+	            contents.stream()
+	                    .map(PurchaseOrderListDTO::from)
+	                    .toList();
+
+	    return new SliceImpl<>(
+	            dtoList,
+	            pageable,
+	            hasNext
+	    );
 	}
 	
 	
