@@ -1,7 +1,7 @@
 package com.example.java.purchaseorder.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.example.java.product.entity.Options;
 import com.example.java.product.service.OptionsService;
 import com.example.java.purchaseorder.dto.PurchaseOrderListDTO;
-import com.example.java.purchaseorder.entity.PurchaseOrder;
 import com.example.java.purchaseorder.service.PurchaseOrderService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,19 +21,20 @@ import lombok.RequiredArgsConstructor;
 public class PurchaseOrderAdminController {
 
 	private final PurchaseOrderService purchaseOrderService;
-	// TODO OptionsService 생기면 수정해야 함
 	private final OptionsService optionsService;
 	
-	// TODO 임시 목록화면 (지금은 발주등록 이동위해 옵션 정보나오게 함, 나중에는 발주등록은 재고현황목록에서)
+	// TODO 목록화면 (재고현황목록에 발주등록 추가해야 함)
 	@GetMapping("/purchase-orders")
 	public String list(Model model) {
 
-		List<PurchaseOrder> orders = purchaseOrderService.findAll();
-		List<PurchaseOrderListDTO> list = orders.stream()
-		        .map(PurchaseOrderListDTO::from)
-		        .toList();
+//		List<PurchaseOrderListDTO> list = purchaseOrderService.getList();
+	    Slice<PurchaseOrderListDTO> slice =
+	            purchaseOrderService.getList(
+	                    PageRequest.of(0, 20)
+	            );
 
-	    model.addAttribute("list", list);
+	    model.addAttribute("list", slice.getContent());
+	    model.addAttribute("hasNext", slice.hasNext());
 
 	    return "admin/purchase-order/list";
 	}
