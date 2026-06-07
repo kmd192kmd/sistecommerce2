@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.java.adminpayment.service.AdminPaymentService;
 import com.example.java.groupbuy.entity.GroupBuyOptions;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.product.entity.Options;
@@ -27,6 +28,7 @@ public class PurchaseOrderService {
 	private final PurchaseOrderRepository purchaseOrderRepository;
 	private final OptionsService optionsService;
 	private final GroupBuyOptionsRepository groupBuyOptionsRepository;
+	private final AdminPaymentService adminPaymentService;
 	
 	@Transactional(readOnly = true)
 	public PurchaseOrder findById(Long seq) {
@@ -97,6 +99,9 @@ public class PurchaseOrderService {
 	    
 	    // 입고일(receivedDate) 저장
 	    order.changeReceivedDate(LocalDate.now());
+	    
+	    // 대금 정보 생성
+	    adminPaymentService.createPurchasePayment(order);
 	}
 	private void defectiveOrder(PurchaseOrder order) {
 	    order.changeStatus(PurchaseOrderStatus.물품불량);
@@ -120,6 +125,9 @@ public class PurchaseOrderService {
 	    
 	    // 입고일(receivedDate) 저장
 	    order.changeReceivedDate(LocalDate.now());
+	    
+	    // 대금 정보 생성
+	    adminPaymentService.createPurchasePayment(order);
 	}
 	
 	private PurchaseOrder createReOrder(PurchaseOrder originalOrder) {
