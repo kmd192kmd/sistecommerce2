@@ -29,10 +29,11 @@ public class PurchaseOrderAdminController {
 	@GetMapping("/purchase-orders")
 	public String list(Model model) {
 
-		List<PurchaseOrder> orders = purchaseOrderService.findAll();
-		List<PurchaseOrderListDTO> list = orders.stream()
-		        .map(PurchaseOrderListDTO::from)
-		        .toList();
+//		List<PurchaseOrder> orders = purchaseOrderService.findAll();
+//		List<PurchaseOrderListDTO> list = orders.stream()
+//		        .map(PurchaseOrderListDTO::from)
+//		        .toList();
+		List<PurchaseOrderListDTO> list = purchaseOrderService.getList();
 
 	    model.addAttribute("list", list);
 

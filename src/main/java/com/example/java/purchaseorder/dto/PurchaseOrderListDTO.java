@@ -1,5 +1,7 @@
 package com.example.java.purchaseorder.dto;
 
+import java.time.LocalDate;
+
 import com.example.java.product.entity.Options;
 import com.example.java.purchaseorder.entity.PurchaseOrder;
 import com.example.java.purchaseorder.enums.PurchaseOrderStatus;
@@ -13,12 +15,18 @@ public class PurchaseOrderListDTO {
 
 	private Long seq;
     private PurchaseOrderStatus status;
+    
+    // TODO seller 엔티티 생기면 추가
+//    private String sellerName;
+    private String productName;
+    private String optionsName;
+    
     private int quantity;
     private Long totalPrice;
 
-    private Long optionsSeq;
-    private Integer stock;
-    private Integer safetyStock;
+    private LocalDate orderDate;
+    private LocalDate expectedDate;
+    private LocalDate receivedDate;
 
     public static PurchaseOrderListDTO from(PurchaseOrder entity) {
 
@@ -27,12 +35,13 @@ public class PurchaseOrderListDTO {
         return PurchaseOrderListDTO.builder()
                 .seq(entity.getSeq())
                 .status(entity.getStatus())
+                .productName(options.getProduct().getProductName())
+                .optionsName(options.getDisplayName())
                 .quantity(entity.getQuantity())
                 .totalPrice(entity.getTotalPrice())
-
-                .optionsSeq(options != null ? options.getSeq() : null)
-                .stock(options != null ? options.getStock() : null)
-                .safetyStock(options != null ? options.getSafetyStock() : null)
+                .orderDate(entity.getOrderDate())
+                .expectedDate(entity.getExpectedDate())
+                .receivedDate(entity.getReceivedDate())
                 .build();
     }
 }

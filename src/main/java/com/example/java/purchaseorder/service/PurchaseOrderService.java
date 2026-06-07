@@ -13,9 +13,11 @@ import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.product.entity.Options;
 import com.example.java.product.service.OptionsService;
 import com.example.java.purchaseorder.dto.PurchaseOrderCreateDTO;
+import com.example.java.purchaseorder.dto.PurchaseOrderListDTO;
 import com.example.java.purchaseorder.entity.PurchaseOrder;
 import com.example.java.purchaseorder.enums.PurchaseOrderStatus;
 import com.example.java.purchaseorder.enums.PurchaseOrderType;
+import com.example.java.purchaseorder.repository.PurchaseOrderQueryDslRepository;
 import com.example.java.purchaseorder.repository.PurchaseOrderRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class PurchaseOrderService {
 
 	private final PurchaseOrderRepository purchaseOrderRepository;
+	private final PurchaseOrderQueryDslRepository queryDslRepository;
 	private final OptionsService optionsService;
 	private final GroupBuyOptionsRepository groupBuyOptionsRepository;
 	private final AdminPaymentService adminPaymentService;
@@ -85,6 +88,16 @@ public class PurchaseOrderService {
 	public List<PurchaseOrder> findAll() {
 		return purchaseOrderRepository.findAllWithOptions();
 	}
+	
+	@Transactional(readOnly = true)
+	public List<PurchaseOrderListDTO> getList() {
+		
+		return queryDslRepository.findAllWithOptionsAndProduct()
+			.stream()
+			.map(PurchaseOrderListDTO::from)
+			.toList();
+	}
+	
 	
 	
 	
