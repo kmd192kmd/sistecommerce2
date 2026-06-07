@@ -4,9 +4,11 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class KakaoMapService {
 
@@ -23,9 +25,11 @@ public class KakaoMapService {
                 return callKakaoDirectionsApi(startLat, startLon, endLat, endLon);
             } catch (Exception e) {
                 // Fallback to Haversine straight-line distance
+                log.warn("Kakao API failed. Falling back to Haversine straight-line distance.", e);
                 return calculateHaversineDistance(startLat, startLon, endLat, endLon);
             }
         }
+        //api키가 없는 경우
         return calculateHaversineDistance(startLat, startLon, endLat, endLon);
     }
 
@@ -71,6 +75,7 @@ public class KakaoMapService {
 
     /**
      * Haversine formula calculation for straight-line distance.
+     * api키가 없는 경우, api 요청시 응답이 제대로 안오는 경우 직선거리 계산 로직
      */
     public double calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
         final double R = 6371e3; // Earth radius in meters

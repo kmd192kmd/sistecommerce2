@@ -21,7 +21,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -37,7 +36,6 @@ public class HolidayService {
     /**
      * Checks if the given date is a non-business day (weekend or public holiday).
      */
-    @Transactional(readOnly = true)
     public boolean isNonBusinessDay(LocalDate date) {
         // Weekends check
         DayOfWeek dayOfWeek = date.getDayOfWeek();
@@ -52,20 +50,18 @@ public class HolidayService {
     /**
      * 서버 구동 시 DB에 공휴일 데이터가 하나도 없으면 즉시 동기화를 실행합니다.
      */
-    @EventListener(ApplicationReadyEvent.class)
-    @Transactional
-    public void initHolidaysOnStartup() {
-        if (holidayRepository.count() == 0) {
-            log.info("No holiday data found in DB. Starting initial sync...");
-            syncHolidays();
-        }
-    }
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void initHolidaysOnStartup() {
+//        if (holidayRepository.count() == 0) {
+//            log.info("No holiday data found in DB. Starting initial sync...");
+//            syncHolidays();
+//        }
+//    }
 
     /**
      * 매월 1일 새벽 4시에 금년과 내년도 공휴일 데이터를 공공데이터포털에서 가져와 DB에 동기화합니다.
      */
     @Scheduled(cron = "0 0 4 1 * ?")
-    @Transactional
     public void syncHolidays() {
         if (apiKey == null || apiKey.trim().isEmpty()) {
             log.warn("API Key for holidays is not set. Skipping sync.");

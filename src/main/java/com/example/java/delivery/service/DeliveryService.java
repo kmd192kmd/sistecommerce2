@@ -34,6 +34,7 @@ public class DeliveryService {
 
     /**
      * Finds the intermediate hub that results in the shortest path (HQ -> Mid -> Destination).
+     * 본사허브와 배송지 사이에 최단거리가 되는 hub를 찾는 로직
      */
     public Hub findOptimalIntermediateHub(double destLat, double destLon, Hub hqHub, List<Hub> midHubs) {
         Hub optimalHub = null;
@@ -55,6 +56,7 @@ public class DeliveryService {
     /**
      * Calculates the estimated delivery date and time based on routing coordinates.
      * Excludes weekends and holidays.
+     * 도착 예정일을 계산하는 로직
      */
     public LocalDateTime calculateEstimatedDeliveryDateTime(double destLat, double destLon, LocalDateTime paymentDateTime) {
         // 1. Get Hubs
@@ -99,11 +101,11 @@ public class DeliveryService {
     public int calculateDistanceSurcharge(double totalDistanceMeters) {
         double distKm = totalDistanceMeters / 1000.0;
         if (distKm > 300) {
-            return 7000;
-        } else if (distKm > 200) {
             return 5000;
-        } else if (distKm > 100) {
+        } else if (distKm > 200) {
             return 3000;
+        } else if (distKm > 100) {
+            return 1000;
         }
         return 0;
     }
@@ -111,9 +113,11 @@ public class DeliveryService {
     /**
      * Core method to initialize a Delivery entity when an order is completed/paid.
      * This creates a READY delivery, which will be picked up by the batch process later.
+     * 
+     * @param orderType 주문 타입 ("B2C": 일반주문, "B2B": 발주, "RETURN": 반품 등)
      */
     @Transactional
-    public Delivery createDelivery(Orders order, DeliveryCompany company, String recipientName, String recipientPhone, String requestMemo) {
+    public Delivery createDelivery(Orders order, DeliveryCompany company, String recipientName, String recipientPhone, String requestMemo, String orderType) {
         // 1. Get optimal route
         List<Hub> allHubs = hubRepository.findAll();
         Hub hqHub = allHubs.stream()
@@ -133,20 +137,24 @@ public class DeliveryService {
         int distanceSurcharge = calculateDistanceSurcharge(totalDistance);
         int totalFee = company.getBase_delivery_fee() + distanceSurcharge;
 
-        // 3. Dispatch Date & Estimated Date
+        // 3. Dispatch Date & Timeline Calculation
         LocalDateTime dispatchAt = paymentDateToDispatchAt(LocalDateTime.now());
         double hours = (distHQToMid / 60000.0) + (distMidToDest / 40000.0);
         LocalDateTime estimatedDate = dispatchAt.plusHours((int) Math.ceil(hours));
 
-        // 4. Generate unique tracking number
-        String trackingNumber = "GOLD-" + System.currentTimeMillis() + "-" + (1000 + random.nextInt(9000));
+        // 4. Generate unique tracking number based on orderType
+        String trackingPrefix = "ORD";
+        if ("B2B".equalsIgnoreCase(orderType)) trackingPrefix = "B2B";
+        else if ("B2C".equalsIgnoreCase(orderType)) trackingPrefix = "B2C";
+        else if ("RETURN".equalsIgnoreCase(orderType)) trackingPrefix = "RET";
+        String trackingNumber = trackingPrefix + "-" + System.currentTimeMillis() + "-" + (1000 + random.nextInt(9000));
 
         // 5. Save Delivery
         Delivery delivery = Delivery.builder()
                 .tracking_number(trackingNumber)
                 .recipient_name(recipientName)
                 .recipient_phone(recipientPhone)
-                .status("READY")
+                .status("READY") // 정상적으로 대기 상태로 초기화 (배치가 이후 처리)
                 .request_memo(requestMemo)
                 .dispatch_at(dispatchAt)
                 .estimated_date(estimatedDate)
@@ -160,14 +168,13 @@ public class DeliveryService {
         Delivery savedDelivery = deliveryRepository.save(delivery);
 
         // 6. Save initial delivery history (SENDER)
-        DeliveryHistory senderHistory = DeliveryHistory.builder()
+        deliveryHistoryRepository.save(DeliveryHistory.builder()
                 .location("SENDER")
                 .currLatitude(order.getCurrLatitude())
                 .currLongitude(order.getCurrLongitude())
                 .arrivedAt(LocalDateTime.now())
                 .delivery(savedDelivery)
-                .build();
-        deliveryHistoryRepository.save(senderHistory);
+                .build());
 
         return savedDelivery;
     }
