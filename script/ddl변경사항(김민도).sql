@@ -9,3 +9,6 @@ CREATE TABLE holiday (
         holiday_date DATE PRIMARY KEY,
         name VARCHAR2(255)
     );
+    
+--컬럼명 오기입으로 인하여 수정함
+ALTER TABLE seller RENAME COLUMN delivery_seq TO delivery_company_seq;

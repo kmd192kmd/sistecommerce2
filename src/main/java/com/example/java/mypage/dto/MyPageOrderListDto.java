@@ -1,5 +1,6 @@
 package com.example.java.mypage.dto;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,12 +13,16 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class MyPageOrderListDto {
+    private Long orderSeq;
     private String orderDate;
-    private String deliveryStatus;
-    private String image;
-    private String name;
-    private Integer price;
-    private Integer qty;
-    private String trackingNumber;
-    private Long productSeq;
+    private List<MyPageDeliveryDto> deliveries;
+    private boolean allDelivered;
+
+    public boolean getAllDelivered() {
+        return this.allDelivered;
+    }
+
+    public boolean isAllDelivered() {
+        return this.allDelivered;
+    }
 }
