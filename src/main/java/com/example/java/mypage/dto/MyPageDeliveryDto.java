@@ -17,5 +17,6 @@ public class MyPageDeliveryDto {
     private String companyName;
     private String deliveryStatus;
     private String trackingNumber;
+    private String completedAt;
     private List<MyPageOrderItemDto> items;
 }
