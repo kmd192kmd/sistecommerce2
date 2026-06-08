@@ -62,7 +62,7 @@ BEGIN
     -- 2. 판매처 (seller) 10개 생성
     FOR i IN 1..10 LOOP
         v_idx := MOD(i, 4) + 1; -- 4개의 택배사 중 하나를 선택하도록 분배
-        INSERT INTO seller (seq, name, email, phone, zipcode, address, address_detail, joined_at, status, id, password, supply_rate, delivery_seq, account_number)
+        INSERT INTO seller (seq, name, email, phone, zipcode, address, address_detail, joined_at, status, id, password, supply_rate, delivery_company_seq, account_number)
         VALUES (seller_seq.NEXTVAL, '판매처 ' || i, 'seller' || i || '@test.com', '010-1234-567' || (i-1), '1234' || (i-1), '테스트 도로명 주소 ' || i, '상세 주소 ' || i, SYSDATE, 1, 'seller' || i, '$2a$10$Uo2k.40T25x5D16jS1tC6O3x8mH7x8a9y10i11o12p13q14r15s16', 60 + MOD(i, 3) * 5, v_delivery_ids(v_idx), '123-456-7890' || (i-1))
         RETURNING seq INTO v_seq;
         v_seller_ids(i) := v_seq;

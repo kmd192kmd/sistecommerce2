@@ -17,6 +17,18 @@ import com.example.java.delivery.repository.DeliveryRepository;
 import com.example.java.delivery.repository.HubRepository;
 import com.example.java.common.util.SnowflakeIdGenerator;
 import com.example.java.orders.entity.Orders;
+import com.example.java.orders.entity.OrderItem;
+import com.example.java.orders.repository.OrderItemRepository;
+import com.example.java.product.entity.Options;
+import com.example.java.product.entity.Product;
+import com.example.java.product.entity.Seller;
+import com.example.java.product.repository.OptionsRepository;
+import com.example.java.product.repository.ProductRepository;
+import com.example.java.product.repository.SellerRepository;
+
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +43,10 @@ public class DeliveryService {
     private final KakaoMapService kakaoMapService;
     private final HolidayService holidayService;
     private final SnowflakeIdGenerator snowflakeIdGenerator;
+    private final OrderItemRepository orderItemRepository;
+    private final OptionsRepository optionsRepository;
+    private final ProductRepository productRepository;
+    private final SellerRepository sellerRepository;
     private final Random random = new Random();
 
 
@@ -119,8 +135,35 @@ public class DeliveryService {
      * @param orderType 주문 타입 ("B2C": 일반주문, "B2B": 발주, "RETURN": 반품 등)
      */
     @Transactional
-    public Delivery createDelivery(Orders order, DeliveryCompany company, String recipientName, String recipientPhone, String requestMemo, String orderType) {
-        // 1. Get optimal route
+    public List<Delivery> createDelivery(Orders order, String recipientName, String recipientPhone, String requestMemo, String orderType) {
+        // 1. Find order items by order.seq
+        List<OrderItem> items = orderItemRepository.findByOrderSeq(order.getSeq());
+        if (items.isEmpty()) {
+            throw new IllegalArgumentException("주문 상품이 존재하지 않습니다.");
+        }
+
+        // 2. Map each item to its delivery company
+        Map<DeliveryCompany, List<OrderItem>> companyItemsMap = new HashMap<>();
+        for (OrderItem item : items) {
+            Options options = optionsRepository.findById(item.getOptionsSeq())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 옵션입니다."));
+            Product product = options.getProduct();
+            if (product == null) {
+                throw new IllegalStateException("옵션에 상품 정보가 연결되어 있지 않습니다.");
+            }
+            Seller seller = sellerRepository.findById(product.getSellerSeq())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 판매처입니다."));
+            DeliveryCompany company = seller.getDeliveryCompany();
+            if (company == null) {
+                throw new IllegalStateException("판매처에 연결된 택배사가 없습니다.");
+            }
+
+            companyItemsMap.computeIfAbsent(company, k -> new ArrayList<>()).add(item);
+        }
+
+        List<Delivery> savedDeliveries = new ArrayList<>();
+
+        // 3. Get optimal route info (common for destination)
         List<Hub> allHubs = hubRepository.findAll();
         Hub hqHub = allHubs.stream()
                 .filter(h -> "본사허브".equals(h.getName()))
@@ -135,50 +178,50 @@ public class DeliveryService {
         double distMidToDest = kakaoMapService.getDrivingDistanceMeters(optimalMidHub.getLatitude(), optimalMidHub.getLongitude(), order.getCurrLatitude(), order.getCurrLongitude());
         double totalDistance = distHQToMid + distMidToDest;
 
-        // 2. Surcharge & Total Fee
         int distanceSurcharge = calculateDistanceSurcharge(totalDistance);
-        int totalFee = company.getBase_delivery_fee() + distanceSurcharge;
-
-        // 3. Dispatch Date & Timeline Calculation
         LocalDateTime dispatchAt = paymentDateToDispatchAt(LocalDateTime.now());
         double hours = (distHQToMid / 60000.0) + (distMidToDest / 40000.0);
         LocalDateTime estimatedDate = dispatchAt.plusHours((int) Math.ceil(hours));
 
-        // 4. Generate unique tracking number based on orderType using Snowflake
-        String trackingPrefix = "ORD";
-        if ("B2B".equalsIgnoreCase(orderType)) trackingPrefix = "B2B";
-        else if ("B2C".equalsIgnoreCase(orderType)) trackingPrefix = "B2C";
-        else if ("RETURN".equalsIgnoreCase(orderType)) trackingPrefix = "RET";
-        String trackingNumber = trackingPrefix + "-" + snowflakeIdGenerator.nextId();
+        // 4. Create a delivery for each distinct DeliveryCompany
+        for (DeliveryCompany company : companyItemsMap.keySet()) {
+            int totalFee = company.getBase_delivery_fee() + distanceSurcharge;
 
-        // 5. Save Delivery
-        Delivery delivery = Delivery.builder()
-                .tracking_number(trackingNumber)
-                .recipient_name(recipientName)
-                .recipient_phone(recipientPhone)
-                .status("READY") // 정상적으로 대기 상태로 초기화 (배치가 이후 처리)
-                .request_memo(requestMemo)
-                .dispatch_at(dispatchAt)
-                .estimated_date(estimatedDate)
-                .distance_surcharge(distanceSurcharge)
-                .total_delivery_fee(totalFee)
-                .deliveryCompany(company)
-                .orders(order)
-                .delayHours(0)
-                .build();
+            String trackingPrefix = "ORD";
+            if ("B2B".equalsIgnoreCase(orderType)) trackingPrefix = "B2B";
+            else if ("B2C".equalsIgnoreCase(orderType)) trackingPrefix = "B2C";
+            else if ("RETURN".equalsIgnoreCase(orderType)) trackingPrefix = "RET";
+            String trackingNumber = trackingPrefix + "-" + snowflakeIdGenerator.nextId();
 
-        Delivery savedDelivery = deliveryRepository.save(delivery);
+            Delivery delivery = Delivery.builder()
+                    .tracking_number(trackingNumber)
+                    .recipient_name(recipientName)
+                    .recipient_phone(recipientPhone)
+                    .status("READY")
+                    .request_memo(requestMemo)
+                    .dispatch_at(dispatchAt)
+                    .estimated_date(estimatedDate)
+                    .distance_surcharge(distanceSurcharge)
+                    .total_delivery_fee(totalFee)
+                    .deliveryCompany(company)
+                    .orders(order)
+                    .delayHours(0)
+                    .build();
 
-        // 6. Save initial delivery history (SENDER)
-        deliveryHistoryRepository.save(DeliveryHistory.builder()
-                .location("SENDER")
-                .currLatitude(order.getCurrLatitude())
-                .currLongitude(order.getCurrLongitude())
-                .arrivedAt(LocalDateTime.now())
-                .delivery(savedDelivery)
-                .build());
+            Delivery savedDelivery = deliveryRepository.save(delivery);
 
-        return savedDelivery;
+            deliveryHistoryRepository.save(DeliveryHistory.builder()
+                    .location("SENDER")
+                    .currLatitude(order.getCurrLatitude())
+                    .currLongitude(order.getCurrLongitude())
+                    .arrivedAt(LocalDateTime.now())
+                    .delivery(savedDelivery)
+                    .build());
+
+            savedDeliveries.add(savedDelivery);
+        }
+
+        return savedDeliveries;
     }
 
     private LocalDateTime paymentDateToDispatchAt(LocalDateTime paymentTime) {
