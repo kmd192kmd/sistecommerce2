@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: shop-jenkins
+    user: root # 도커 내부에서 권한 문제 방지
+    ports:
+      - "9090:8080" # 스프링 부트(8080)와 충돌하지 않도록 젠킨스는 9090 포트 사용
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      # 윈도우 환경과 시간대를 맞추기 위한 설정 (옵션)
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Seoul
+    restart: on-failure
+
+volumes:
+  jenkins_data:

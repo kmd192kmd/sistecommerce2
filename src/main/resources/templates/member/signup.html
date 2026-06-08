@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments/layout :: head('Gold Market | 회원가입')}"></head>
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+<head th:replace="~{fragments/layout :: head('Gold Market | 회원가입')}">
+</head>
 
 <body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
 
@@ -12,8 +15,25 @@
 
             <h2 class="text-2xl font-black text-slate-900 mb-1">회원가입</h2>
             <p class="text-xs text-gray-400 mb-8">Gold Market 회원이 되어 다양한 혜택을 누리세요.</p>
+
+            <div>
+                <p>마케팅 동의 여부: <span th:text="${session.marketing}" style="color: red; font-weight: bold;"></span></p>
+            </div>
             
-            <div><p>마케팅 동의 여부: <span th:text="${session.marketing}" style="color: red; font-weight: bold;"></span></p></div>
+            <!-- 회원가입 성공 모달 -->
+            <div id="success-modal" th:if="${signupSuccess}"
+                style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+                <div class="bg-white p-8 text-center space-y-4 w-80">
+                    <p class="text-lg font-bold text-slate-900">회원가입 완료!</p>
+                    <p class="text-sm text-gray-500">Gold Market 회원이 되셨습니다.</p>
+                    <a th:href="@{/member/login}"
+                        class="block w-full bg-slate-900 hover:bg-amber-500 text-white font-bold text-sm py-3 transition-colors">
+                        로그인하러 가기
+                    </a>
+                </div>
+            </div>
+            
+            <p th:if="${error}" th:text="${error}" class="text-red-500 text-sm text-center mb-4"></p>
 
             <form th:action="@{/member/signup}" method="post" class="space-y-5">
 
@@ -21,44 +41,48 @@
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">아이디 <span class="text-red-500">*</span></label>
                     <div class="flex gap-2">
-                        <input type="text" name="username"
+                        <input type="text" id="username" name="username" maxlength="12"
                             class="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                            placeholder="아이디를 입력하세요" required/>
-                        <button type="button"
+                            placeholder="5~12자 영문, 숫자" required />
+                        <button type="button" onclick="checkUsername()"
                             class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 text-xs font-bold px-4 py-2.5 transition-colors">
                             중복확인
                         </button>
                     </div>
+                    <p id="username-msg" class="text-xs mt-1"></p>
                 </div>
 
                 <!-- 비밀번호 -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">비밀번호 <span class="text-red-500">*</span></label>
-                    <input type="password" name="password"
+                    <input type="password" id="password" name="password" maxlength="20"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="비밀번호를 입력하세요" required/>
+                        placeholder="영문+숫자 조합 8~20자" required />
+                    <p id="password-msg" class="text-xs mt-1"></p>
                 </div>
 
                 <!-- 비밀번호 확인 -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">비밀번호 확인 <span class="text-red-500">*</span></label>
-                    <input type="password" name="passwordConfirm"
+                    <input type="password" id="passwordConfirm" name="passwordConfirm" maxlength="20"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="비밀번호를 다시 입력하세요" required/>
+                        placeholder="비밀번호를 다시 입력하세요" required />
+                    <p id="passwordConfirm-msg" class="text-xs mt-1"></p>
                 </div>
 
                 <!-- 닉네임 -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">닉네임 <span class="text-red-500">*</span></label>
                     <div class="flex gap-2">
-                        <input type="text" name="nickname"
+                        <input type="text" id="nickname" name="nickname"
                             class="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                            placeholder="닉네임을 입력하세요" required/>
-                        <button type="button"
+                            placeholder="닉네임을 입력하세요" required />
+                        <button type="button" onclick="checkNickname()"
                             class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 text-xs font-bold px-4 py-2.5 transition-colors">
                             중복확인
                         </button>
                     </div>
+                    <p id="nickname-msg" class="text-xs mt-1"></p>
                 </div>
 
                 <!-- 이름 -->
@@ -66,34 +90,37 @@
                     <label class="text-xs font-bold text-gray-700">이름 <span class="text-red-500">*</span></label>
                     <input type="text" name="name"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="이름을 입력하세요" required/>
+                        placeholder="이름을 입력하세요" required />
                 </div>
 
                 <!-- 이메일 -->
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">이메일 <span class="text-red-500">*</span></label>
                     <div class="flex gap-2">
-                        <input type="email" name="email"
+                        <input type="email" id="email" name="email"
                             class="flex-1 border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                            placeholder="이메일을 입력하세요" required/>
+                            placeholder="이메일을 입력하세요" required />
                         <button type="button"
                             class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 text-xs font-bold px-4 py-2.5 transition-colors">
                             인증메일 발송
                         </button>
                     </div>
+                    <p id="email-msg" class="text-xs mt-1"></p>
                 </div>
 
                 <!-- 전화번호 -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-gray-700">전화번호</label>
-                    <input type="text" name="phone"
+                    <label class="text-xs font-bold text-gray-700">전화번호 <span class="text-red-500">*</span></label>
+                    <input type="text" id="phone" name="phone" maxlength="13"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="010-0000-0000" />
+                        placeholder="010-0000-0000" required />
+                    <p id="phone-msg" class="text-xs mt-1"></p>
                 </div>
 
                 <!-- 성별 -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-gray-700" required>성별</label>
+                    <label class="text-xs font-bold text-gray-700" required>성별 <span
+                            class="text-red-500">*</span></label>
                     <div class="flex gap-3">
                         <label class="flex items-center gap-1.5 text-sm cursor-pointer">
                             <input type="radio" name="gender" value="M" class="accent-amber-500" /> 남성
@@ -106,9 +133,35 @@
 
                 <!-- 생년월일 -->
                 <div class="space-y-1">
-                    <label class="text-xs font-bold text-gray-700">생년월일</label>
+                    <label class="text-xs font-bold text-gray-700" required>생년월일 <span
+                            class="text-red-500">*</span></label>
                     <input type="date" name="birth"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors" />
+                </div>
+
+                <!-- 주소 -->
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-gray-700" required>주소 <span
+                            class="text-red-500">*</span></label>
+                    <div>
+                        <input type="text" name="zipcode" id="zipcode" readonly
+                            class="w-24 border border-gray-300 px-4 py-2.5 text-sm" placeholder="우편번호" />
+                        <button type="button" onclick="openPostcode()"
+                            class="shrink-0 bg-slate-900 hover:bg-amber-500 text-white text-xs font-bold px-4 py-2.5">
+                            주소 검색
+                        </button>
+                        <input type="text" name="address" id="address" readonly
+                            class="w-full border border-gray-300 px-4 py-2.5 text-sm" placeholder="기본주소" />
+                        <input type="text" name="addressDetail" id="addressDetail" required
+                            class="w-full border border-gray-300 px-4 py-2.5 text-sm" placeholder="상세주소" />
+                    </div>
+                </div>
+                <!-- 주소 검색 모달 -->
+                <div id="postcode-layer"
+                    style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:9999; border:1px solid #ccc; width:500px; height:600px; background:#fff;">
+                    <div id="postcode-embed" style="width:100%; height:100%;"></div>
+                    <button type="button" onclick="closePostcode()"
+                        style="position:absolute; top:5px; right:5px; background:#333; color:#fff; border:none; padding:4px 8px; cursor:pointer;">닫기</button>
                 </div>
 
                 <button type="submit"
@@ -127,5 +180,189 @@
     <div th:replace="~{fragments/footer :: footer}"></div>
     <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
+
+<script>
+    function openPostcode() {
+        document.getElementById('postcode-layer').style.display = 'block';
+        new daum.Postcode({
+            oncomplete: function (data) {
+                document.getElementById('zipcode').value = data.zonecode;
+                document.getElementById('address').value = data.roadAddress || data.jibunAddress;
+                document.getElementById('addressDetail').focus();
+                closePostcode();
+            }
+        }).embed(document.getElementById('postcode-embed'));
+    }
+
+    function closePostcode() {
+        document.getElementById('postcode-layer').style.display = 'none';
+    }
+
+    // 상태 플래그
+    let usernameOk = false;
+    let nicknameOk = false;
+
+    // 메시지 출력 헬퍼
+    function setMsg(id, msg, ok) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.className = 'text-xs mt-1 ' + (ok ? 'text-green-600' : 'text-red-500');
+    }
+
+    // 아이디 실시간 검사
+    document.getElementById('username').addEventListener('input', function () {
+        const val = this.value;
+        const regex = /^[a-zA-Z0-9]{5,12}$/;
+        if (!regex.test(val)) {
+            setMsg('username-msg', '5~12자 영문, 숫자만 입력하세요.', false);
+            usernameOk = false;
+        } else {
+            setMsg('username-msg', '형식이 올바릅니다. 중복확인을 해주세요.', false);
+            usernameOk = false;
+        }
+    });
+
+    // 아이디 중복확인 (API는 직접 구현)
+    function checkUsername() {
+        const val = document.getElementById('username').value;
+        const regex = /^[a-zA-Z0-9]{5,12}$/;
+        if (!regex.test(val)) {
+            setMsg('username-msg', '5~12자 영문, 숫자만 입력하세요.', false);
+            return;
+        }
+
+        fetch('/api/member/check-username?username=' + val)
+            .then(res => res.json())
+            .then(data => {
+                if (data.available) {
+                    setMsg('username-msg', '사용 가능한 아이디입니다.', true);
+                    usernameOk = true;
+                } else {
+                    setMsg('username-msg', '이미 사용중인 아이디입니다.', false);
+                    usernameOk = false;
+                }
+            });
+
+    }
+
+    // 비밀번호 실시간 검사
+    document.getElementById('password').addEventListener('input', function () {
+        const val = this.value;
+        const regex = /^(?=.*[a-zA-Z])(?=.*[0-9]).{8,20}$/;
+        if (!regex.test(val)) {
+            setMsg('password-msg', '영문+숫자 조합 8~20자로 입력하세요.', false);
+        } else {
+            setMsg('password-msg', '사용 가능한 비밀번호입니다.', true);
+        }
+        // 비밀번호 확인도 같이 체크
+        checkPasswordConfirm();
+    });
+
+    // 비밀번호 확인 실시간 검사
+    document.getElementById('passwordConfirm').addEventListener('input', checkPasswordConfirm);
+    function checkPasswordConfirm() {
+        const pw = document.getElementById('password').value;
+        const pwc = document.getElementById('passwordConfirm').value;
+        if (!pwc) return;
+        if (pw === pwc) {
+            setMsg('passwordConfirm-msg', '비밀번호가 일치합니다.', true);
+        } else {
+            setMsg('passwordConfirm-msg', '비밀번호가 일치하지 않습니다.', false);
+        }
+    }
+
+    // 닉네임 중복확인 (API는 직접 구현)
+    function checkNickname() {
+        const val = document.getElementById('nickname').value;
+        if (!val) {
+            setMsg('nickname-msg', '닉네임을 입력하세요.', false);
+            return;
+        }
+        fetch('/api/member/check-nickname?nickname=' + val)
+            .then(res => res.json())
+            .then(data => {
+                if (data.available) {
+                    setMsg('nickname-msg', '사용 가능한 닉네임입니다.', true);
+                    nicknameOk = true;
+                } else {
+                    setMsg('nickname-msg', '이미 사용중인 닉네임입니다.', false);
+                    nicknameOk = false;
+                }
+            });
+    }
+
+    // 이메일 실시간 검사
+    document.getElementById('email').addEventListener('input', function () {
+        const val = this.value;
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regex.test(val)) {
+            setMsg('email-msg', '올바른 이메일 형식이 아닙니다.', false);
+        } else {
+            setMsg('email-msg', '', true);
+        }
+    });
+
+    // 전화번호 자동 하이픈 + 실시간 검사
+    document.getElementById('phone').addEventListener('input', function () {
+        let val = this.value.replace(/[^0-9]/g, '');
+        if (val.length <= 3) {
+            this.value = val;
+        } else if (val.length <= 7) {
+            this.value = val.slice(0, 3) + '-' + val.slice(3);
+        } else {
+            this.value = val.slice(0, 3) + '-' + val.slice(3, 7) + '-' + val.slice(7, 11);
+        }
+        const regex = /^010-\d{4}-\d{4}$/;
+        if (!regex.test(this.value)) {
+            setMsg('phone-msg', '010-0000-0000 형식으로 입력하세요.', false);
+        } else {
+            setMsg('phone-msg', '', true);
+        }
+    });
+
+    // 폼 제출 최종 검증
+    document.querySelector('form').addEventListener('submit', function (e) {
+        const pw = document.getElementById('password').value;
+        const pwc = document.getElementById('passwordConfirm').value;
+        const phone = document.getElementById('phone').value;
+        const email = document.getElementById('email').value;
+
+        if (!usernameOk) {
+            e.preventDefault();
+            alert('아이디 중복확인을 해주세요.');
+            return;
+        }
+        if (!/^(?=.*[a-zA-Z])(?=.*[0-9]).{8,20}$/.test(pw)) {
+            e.preventDefault();
+            alert('비밀번호는 영문+숫자 조합 8~20자로 입력하세요.');
+            return;
+        }
+        if (pw !== pwc) {
+            e.preventDefault();
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+        }
+        if (!nicknameOk) {
+            e.preventDefault();
+            alert('닉네임 중복확인을 해주세요.');
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            e.preventDefault();
+            alert('올바른 이메일 형식이 아닙니다.');
+            return;
+        }
+        if (!/^010-\d{4}-\d{4}$/.test(phone)) {
+            e.preventDefault();
+            alert('전화번호를 010-0000-0000 형식으로 입력하세요.');
+            return;
+        }
+        if (!document.getElementById('zipcode').value) {
+            e.preventDefault();
+            alert('주소를 검색해주세요.');
+            return;
+        }
+    });
+</script>
 
 </html>

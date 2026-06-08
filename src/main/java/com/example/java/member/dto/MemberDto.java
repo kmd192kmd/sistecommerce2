@@ -38,6 +38,7 @@ public class MemberDto {
     private String phoneVerified;
     private String loginType;
     private LocalDateTime joinedAt;
+    private LocalDateTime updatedAt;
     private LocalDateTime lastLoginAt;
 
     // 회원가입 시 마케팅 수신 동의 여부 (notification_preferences 테이블에 저장)
@@ -64,6 +65,7 @@ public class MemberDto {
                 .phoneVerified(member.getPhoneVerified())
                 .loginType(member.getLoginType())
                 .joinedAt(member.getJoinedAt())
+                .updatedAt(member.getUpdatedAt())
                 .lastLoginAt(member.getLastLoginAt())
                 .build();
     }
@@ -86,6 +88,8 @@ public class MemberDto {
                 .role(this.role)
                 .emailVerified(this.emailVerified)
                 .phoneVerified(this.phoneVerified)
+                .joinedAt(this.joinedAt)
+                .updatedAt(this.updatedAt)
                 .loginType(this.loginType)
                 .build();
     }

@@ -1,0 +1,254 @@
+<!-- templates/admin/purchase-order/list.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Order List</title>
+</head>
+<body>
+
+    <h2>Purchase Order 목록 (임시)</h2>
+    
+    <form method="get" th:action="@{/admin/purchase-orders}">
+    <!-- 상태 -->
+    <div>
+        <label>
+            <input type="radio"
+                   name="status"
+                   value=""
+                   th:checked="${search.status == null}">
+            전체
+        </label>
+        <label>
+            <input type="radio"
+                   name="status"
+                   value="발주요청"
+                   th:checked="${search.status != null and search.status.name() == '발주요청'}">
+            발주요청
+        </label>
+        <label>
+            <input type="radio"
+                   name="status"
+                   value="입고완료"
+                   th:checked="${search.status != null and search.status.name() == '입고완료'}">
+            입고완료
+        </label>
+    </div>
+    <br>
+    <!-- 총금액 -->
+    <div>
+	    <span>총금액</span>	
+	    <input type="number"
+	           name="totalPriceFrom"
+	           placeholder="최소금액"
+	           th:value="${search.totalPriceFrom}">
+	
+	    ~
+	
+	    <input type="number"
+	           name="totalPriceTo"
+	           placeholder="최대금액"
+	           th:value="${search.totalPriceTo}">
+	</div>
+	<br>
+    <!-- 발주일 -->
+    <div>
+        <span>발주일</span>
+        <input type="date"
+               name="orderDateFrom"
+               th:value="${search.orderDateFrom}">
+
+        ~
+
+        <input type="date"
+               name="orderDateTo"
+               th:value="${search.orderDateTo}">
+    </div>
+    <br>
+    <!-- 예정일 -->
+    <div>
+        <span>예정일</span>
+        <input type="date"
+               name="expectedDateFrom"
+               th:value="${search.expectedDateFrom}">
+
+        ~
+
+        <input type="date"
+               name="expectedDateTo"
+               th:value="${search.expectedDateTo}">
+    </div>
+    <br>
+    <!-- 키워드 -->
+    <div>
+        <select name="keywordType">
+            <option value="">선택</option>
+            <option value="product"
+                    th:selected="${search.keywordType == 'product'}">
+                상품명
+            </option>
+            <option value="option"
+                    th:selected="${search.keywordType == 'option'}">
+                옵션명
+            </option>
+        </select>
+        <input type="text"
+               name="keyword"
+               placeholder="검색어 입력"
+               th:value="${search.keyword}">
+	    <button type="submit">검색</button>
+    </div>
+    <br>
+</form>
+<hr>
+
+	<button onclick="updateSelectedStatus('입고완료')">입고완료</button>
+	<button onclick="updateSelectedStatus('물품불량')">물품불량</button>
+	<button onclick="updateSelectedStatus('입고지연')">입고지연</button>
+	<button onclick="updateSelectedStatus('지연입고')">지연입고</button>
+	<br><br>
+	
+    <table border="1">
+	    <thead>
+	        <tr>
+	            <th>
+	                <input type="checkbox" id="checkAll">
+	            </th>
+	            <th>발주번호</th>
+				<th>상태</th>
+				<th>상품명</th>
+				<th>옵션</th>
+				<th>발주수량</th>
+				<th>총 금액</th>
+				<th>발주일</th>
+				<th>예정일</th>
+				<th>입고일</th>
+	        </tr>
+	    </thead>
+	
+	    <tbody>
+	        <tr th:each="item : ${list}">
+	        	<td>
+				    <input type="checkbox"
+				           class="order-check"
+				           th:value="${item.seq}">
+				</td>
+	            <td th:text="${item.seq}"></td>
+				<td th:text="${item.status}"></td>
+				<td th:text="${item.productName}"></td>
+				<td th:text="${item.optionsName}"></td>
+				<td th:text="${item.quantity}"></td>
+				<td th:text="${#numbers.formatInteger(item.totalPrice, 3, 'COMMA') + '원'}"></td>
+				<td th:text="${#temporals.format(item.orderDate, 'yyyy.MM.dd')}"></td>
+				<td th:text="${#temporals.format(item.expectedDate, 'yyyy.MM.dd')}"></td>
+				<td th:text="${item.receivedDate != null ? #temporals.format(item.receivedDate, 'yyyy.MM.dd') : '-'}"></td>
+	        </tr>
+	    </tbody>
+	</table>
+	
+	<button
+	    id="loadMoreBtn"
+	    th:if="${hasNext}">
+	    더보기
+	</button>
+
+<script>
+
+	let page = 1;
+	
+	const loadMoreBtn =
+    document.getElementById("loadMoreBtn");	
+	if (loadMoreBtn) {
+	    loadMoreBtn.addEventListener("click", loadMore);
+	}
+	
+	async function loadMore() {
+	
+	    const response =
+	        await fetch(
+	            `/api/purchase-orders?page=${page}`
+	        );
+	
+	    const slice = await response.json();
+	
+	    const tbody =
+	        document.querySelector("tbody");
+	
+	    slice.content.forEach(item => {
+	
+	        tbody.insertAdjacentHTML(
+	            "beforeend",
+	            `
+	            <tr>
+	                <td>
+	                    <input type="checkbox"
+	                           class="order-check"
+	                           value="${item.seq}">
+	                </td>
+	
+	                <td>${item.seq}</td>
+	                <td>${item.status}</td>
+	                <td>${item.productName}</td>
+	                <td>${item.optionsName}</td>
+	                <td>${item.quantity}</td>
+	                <td>${item.totalPrice}</td>
+	                <td>${item.orderDate ?? '-'}</td>
+	                <td>${item.expectedDate ?? '-'}</td>
+	                <td>${item.receivedDate ?? '-'}</td>
+	            </tr>
+	            `
+	        );
+	    });
+	
+	    if (!slice.hasNext) {
+	        document
+	            .getElementById("loadMoreBtn")
+	            .style.display = "none";
+	    }
+	
+	    page++;
+	}
+
+
+	document.getElementById("checkAll").addEventListener("change", function() {
+	    document.querySelectorAll(".order-check").forEach(cb => {
+	        cb.checked = this.checked;
+	    });
+	});
+	
+	async function updateSelectedStatus(status) {
+	    const seqs = Array.from(
+	        document.querySelectorAll(".order-check:checked")
+	    ).map(cb => Number(cb.value));
+	
+	    if (seqs.length === 0) {
+	        alert("선택된 항목이 없습니다.");
+	        return;
+	    }
+	
+	    try {
+	        const response = await fetch("/api/purchase-orders/status", {
+	            method: "POST",
+	            headers: {
+	                "Content-Type": "application/json"
+	            },
+	            body: JSON.stringify({
+	                seqs: seqs,
+	                status: status
+	            })
+	        });
+	
+	        if (!response.ok) {
+	            throw new Error();
+	        }
+	        alert("상태가 변경되었습니다.");
+	        location.reload();
+	    } catch (e) {
+	
+	        alert("처리에 실패했습니다.");
+	        console.error(e);	
+	    }
+	}
+</script>
+</body>
+</html>

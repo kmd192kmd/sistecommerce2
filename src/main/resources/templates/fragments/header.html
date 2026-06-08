@@ -57,22 +57,26 @@
                 <div id="recent-search-dropdown" class="hidden absolute left-0 right-0 top-full bg-white shadow-2xl border border-gray-200 py-3 px-4 z-30 space-y-2 mt-1 rounded-sm">
                     <div class="text-[11px] font-black text-gray-400 flex items-center justify-between pb-1.5 border-b border-gray-100">
                         <span>🕒 최근 검색어</span>
-                        <button type="button" class="hover:text-amber-500 hover:underline text-[10px]" onclick="location.href='/products/recent-search/clear'">전체 삭제</button>
+                        <button type="button" class="hover:text-amber-500 hover:underline text-[10px]" onclick="clearRecentKeywords(event)">전체 삭제</button>
                     </div>
-                    <ul class="space-y-1.5 text-xs text-gray-700 max-h-60 overflow-y-auto">
-                        <li th:each="kw : ${recentKeywords}" class="flex items-center justify-between group">
+                    <ul id="recent-search-list" class="space-y-1.5 text-xs text-gray-700 max-h-60 overflow-y-auto">
+                        <li th:each="kw : ${recentKeywords}" 
+                            th:if="${kw != keyword}"
+                            class="flex items-center justify-between group">
                             <a th:href="@{/products(keyword=${kw})}" class="hover:text-amber-600 truncate flex-1" th:text="${kw}">검색어</a>
                             <button type="button" class="text-gray-300 hover:text-red-500 font-bold px-1 text-sm transition-colors"
                                     th:data-keyword="${kw}"
-                                    onclick="location.href='/products/recent-search/delete?keyword=' + encodeURIComponent(this.getAttribute('data-keyword'))">&times;</button>
+                                    onclick="deleteRecentKeyword(event, this.getAttribute('data-keyword'), this)">&times;</button>
                         </li>
-                        <li th:if="${#lists.isEmpty(recentKeywords)}" class="text-gray-400 py-4 text-center">최근 검색어가 없습니다.</li>
+                        <!-- 세션이 비어있거나, 세션에 현재 키워드 딱 하나만 있어서 화면에 노출할 이력이 없을 때 예외처리 -->
+                        <li th:if="${#lists.isEmpty(recentKeywords) or (recentKeywords.size() == 1 and recentKeywords[0] == keyword)}" 
+                            class="text-gray-400 py-4 text-center no-recent">최근 검색어가 없습니다.</li>
                     </ul>
                 </div>
             </div>
 
             <div class="flex items-center space-x-7 text-[#555555] shrink-0">
-                <a th:href="@{/member}" class="flex flex-col items-center justify-center hover:text-amber-600 text-xs font-semibold">
+                <a th:href="@{/mypage/orders}" class="flex flex-col items-center justify-center hover:text-amber-600 text-xs font-semibold">
                     <i data-lucide="user" class="w-5 h-5 stroke-[1.5] mb-0.5"></i>
                     <span>마이골드</span>
                 </a>
@@ -255,6 +259,46 @@
                     searchDropdown.classList.add('hidden');
                 }
             });
+
+            function deleteRecentKeyword(event, keyword, buttonEl) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                fetch('/products/recent-search/delete?keyword=' + encodeURIComponent(keyword))
+                    .then(response => {
+                        if (response.ok) {
+                            const li = buttonEl.closest('li');
+                            if (li) {
+                                li.remove();
+                            }
+                            const list = document.getElementById('recent-search-list');
+                            if (list && list.querySelectorAll('li:not(.no-recent)').length === 0) {
+                                list.innerHTML = '<li class="text-gray-400 py-4 text-center no-recent">최근 검색어가 없습니다.</li>';
+                            }
+                        } else {
+                            console.error('Failed to delete recent search keyword');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function clearRecentKeywords(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                fetch('/products/recent-search/clear')
+                    .then(response => {
+                        if (response.ok) {
+                            const list = document.getElementById('recent-search-list');
+                            if (list) {
+                                list.innerHTML = '<li class="text-gray-400 py-4 text-center no-recent">최근 검색어가 없습니다.</li>';
+                            }
+                        } else {
+                            console.error('Failed to clear recent search keywords');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
         </script>
     </header>
 </header>

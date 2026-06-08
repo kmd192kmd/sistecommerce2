@@ -23,6 +23,9 @@ import com.example.java.delivery.repository.DeliveryRepository;
 import com.example.java.delivery.repository.HubRepository;
 import com.example.java.delivery.service.DeliveryService;
 import com.example.java.orders.entity.Orders;
+import com.example.java.delivery.service.KakaoMapService;
+import com.example.java.orders.controller.entity.Orders;
+
 
 @Configuration
 public class DeliveryBatchConfig {
@@ -33,6 +36,7 @@ public class DeliveryBatchConfig {
     private final HubRepository hubRepository;
     private final DeliveryHistoryRepository deliveryHistoryRepository;
     private final DeliveryService deliveryService;
+    private final KakaoMapService kakaoMapService;
     private final Random random = new Random();
 
     public DeliveryBatchConfig(JobRepository jobRepository,
@@ -40,13 +44,15 @@ public class DeliveryBatchConfig {
                                DeliveryRepository deliveryRepository,
                                HubRepository hubRepository,
                                DeliveryHistoryRepository deliveryHistoryRepository,
-                               DeliveryService deliveryService) {
+                               DeliveryService deliveryService,
+                               KakaoMapService kakaoMapService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.deliveryRepository = deliveryRepository;
         this.hubRepository = hubRepository;
         this.deliveryHistoryRepository = deliveryHistoryRepository;
         this.deliveryService = deliveryService;
+        this.kakaoMapService = kakaoMapService;
     }
 
     /**
@@ -78,29 +84,22 @@ public class DeliveryBatchConfig {
                     .filter(d -> "READY".equals(d.getStatus()) && d.getDispatch_at() != null && !d.getDispatch_at().isAfter(now))
                     .toList();
 
-            // Headquarter Hub
             Hub hqHub = hubRepository.findAll().stream()
                     .filter(h -> "본사허브".equals(h.getName()))
                     .findFirst()
-                    .orElse(null);
+                    .orElseThrow(() -> new IllegalStateException("시스템 치명적 오류: DB에 '본사허브' 데이터가 없습니다!"));
 
             for (Delivery delivery : readyDeliveries) {
-                // Determine Leg 1 delay (5% probability)
-                boolean isLeg1Delayed = random.nextInt(100) < 5;
-                if (isLeg1Delayed) {
-                    delivery.setStatus("DELAYED");
-                    delivery.setDelayHours(12);
-                } else {
-                    delivery.setStatus("SHIPPING");
-                    delivery.setDelayHours(0);
-                }
+                // 본사 출발 (지연 없음)
+                delivery.setStatus("SHIPPING");
+                delivery.setDelayHours(0);
                 deliveryRepository.save(delivery);
 
-                // Add delivery history: Leaving HQ Hub
+                // Add delivery history: 본사 허브 도착 기록
                 DeliveryHistory hqHistory = DeliveryHistory.builder()
                         .location("HUB")
-                        .currLatitude(hqHub != null ? hqHub.getLatitude() : 37.5049)
-                        .currLongitude(hqHub != null ? hqHub.getLongitude() : 127.0505)
+                        .currLatitude(hqHub.getLatitude())
+                        .currLongitude(hqHub.getLongitude())
                         .arrivedAt(now)
                         .delivery(delivery)
                         .hub(hqHub)
@@ -129,205 +128,82 @@ public class DeliveryBatchConfig {
                     .filter(d -> "SHIPPING".equals(d.getStatus()) || "DELAYED".equals(d.getStatus()))
                     .toList();
 
+            List<Hub> allHubs = hubRepository.findAll();
+            Hub hqHub = allHubs.stream().filter(h -> "본사허브".equals(h.getName())).findFirst()
+                    .orElseThrow(() -> new IllegalStateException("시스템 치명적 오류: DB에 '본사허브' 데이터가 없습니다!"));
+            List<Hub> midHubs = allHubs.stream().filter(h -> !"본사허브".equals(h.getName())).toList();
+
             for (Delivery delivery : activeDeliveries) {
-                // 1. Completion check (Original estimated_date + delayHours)
-                LocalDateTime currentEstimatedArrival = delivery.getEstimated_date() != null ?
-                        delivery.getEstimated_date().plusHours(delivery.getDelayHours()) : null;
+                Orders order = delivery.getOrders();
+                if (order == null || midHubs.isEmpty() || delivery.getDispatch_at() == null) continue;
 
-                if (currentEstimatedArrival != null && !currentEstimatedArrival.isAfter(now)) {
-                    delivery.setStatus("DELIVERED");
-                    delivery.setCompleted_at(now);
-                    deliveryRepository.save(delivery);
+                // 1. 중간 허브 찾기 및 예상 도착 시간 계산
+                Hub optimalHub = deliveryService.findOptimalIntermediateHub(
+                        order.getCurrLatitude(), order.getCurrLongitude(), hqHub, midHubs);
+                if (optimalHub == null) continue;
 
-                    // Add final history: arrived at RECEIVER
-                    DeliveryHistory receiverHistory = DeliveryHistory.builder()
-                            .location("RECEIVER")
-                            .currLatitude(delivery.getOrders() != null ? delivery.getOrders().getCurrLatitude() : 37.5049)
-                            .currLongitude(delivery.getOrders() != null ? delivery.getOrders().getCurrLongitude() : 127.0505)
-                            .arrivedAt(now)
-                            .delivery(delivery)
-                            .build();
-                    deliveryHistoryRepository.save(receiverHistory);
-                    continue;
-                }
+                double distHQToMid = kakaoMapService.getDrivingDistanceMeters(hqHub.getLatitude(), hqHub.getLongitude(), optimalHub.getLatitude(), optimalHub.getLongitude());
+                double hqToMidHours = distHQToMid / 60000.0;
+                // 본사 출발시간 기준 + 실제 거리 계산 소요시간
+                LocalDateTime midHubArrivedAt = delivery.getDispatch_at().plusMinutes((long) (hqToMidHours * 60));
 
-                // 2. Intermediate Hub arrival check & Leg 2 delay check
-                // If 3 hours have passed since dispatch and it hasn't logged the intermediate hub yet
                 List<DeliveryHistory> history = deliveryHistoryRepository.findByDeliverySeqOrderBySeqAsc(delivery.getSeq());
                 boolean hasIntermediateHubLogged = history.stream()
                         .anyMatch(h -> h.getHub() != null && !"본사허브".equals(h.getHub().getName()));
 
-                if (!hasIntermediateHubLogged && delivery.getDispatch_at() != null && delivery.getDispatch_at().plusHours(3).isBefore(now)) {
-                    // Find optimal intermediate hub for this delivery
-                    List<Hub> midHubs = hubRepository.findAll().stream()
-                            .filter(h -> !"본사허브".equals(h.getName()))
-                            .toList();
-                    Orders order = delivery.getOrders();
-                    if (order != null && !midHubs.isEmpty()) {
-                        Hub hqHub = hubRepository.findAll().stream()
-                                .filter(h -> "본사허브".equals(h.getName()))
-                                .findFirst()
-                                .orElse(null);
-                        
-                        Hub optimalHub = deliveryService.findOptimalIntermediateHub(
-                                order.getCurrLatitude(), order.getCurrLongitude(), hqHub, midHubs);
+                // 2. 중간 허브 도착 처리 및 최종 목적지 지연/실패 확률 적용
+                if (!hasIntermediateHubLogged && !now.isBefore(midHubArrivedAt)) {
+                    DeliveryHistory midHistory = DeliveryHistory.builder()
+                            .location("HUB")
+                            .currLatitude(optimalHub.getLatitude())
+                            .currLongitude(optimalHub.getLongitude())
+                            .arrivedAt(now) // 배치가 실행된 시점을 기준 도착으로 기록
+                            .delivery(delivery)
+                            .hub(optimalHub)
+                            .build();
+                    deliveryHistoryRepository.save(midHistory);
 
-                        if (optimalHub != null) {
-                            DeliveryHistory midHistory = DeliveryHistory.builder()
-                                    .location("HUB")
-                                    .currLatitude(optimalHub.getLatitude())
-                                    .currLongitude(optimalHub.getLongitude())
-                                    .arrivedAt(now)
-                                    .delivery(delivery)
-                                    .hub(optimalHub)
-                                    .build();
-                            deliveryHistoryRepository.save(midHistory);
-
-                            // Determine Leg 2 delay (5% probability)
-                            boolean isLeg2Delayed = random.nextInt(100) < 5;
-                            if (isLeg2Delayed) {
-                                delivery.setStatus("DELAYED");
-                                delivery.setDelayHours(delivery.getDelayHours() + 12);
-                            } else {
-                                // If Leg 1 was delayed, it stays DELAYED, otherwise SHIPPING
-                                if (!"DELAYED".equals(delivery.getStatus())) {
-                                    delivery.setStatus("SHIPPING");
-                                }
-                            }
-                            deliveryRepository.save(delivery);
-                        }
+                    // 확률 기반 로직 적용 (최종 배송 구간: 정상 80%, 실패 5%, 이틀 지연 5%, 하루 지연 10%)
+                    int randomValue = random.nextInt(100);
+                    if (randomValue < 5) {
+                        delivery.setStatus("FAILED");
+                    } else if (randomValue < 10) {
+                        delivery.setStatus("DELAYED");
+                        delivery.setDelayHours(48); // 이틀 지연
+                    } else if (randomValue < 20) {
+                        delivery.setStatus("DELAYED");
+                        delivery.setDelayHours(24); // 하루 지연
+                    } else {
+                        delivery.setStatus("SHIPPING"); // 정상 배송
                     }
+                    deliveryRepository.save(delivery);
+                    continue; // 상태 변경 후 다음 배송건으로
+                }
+
+                // 3. 최종 목적지 도착 처리
+                if ("FAILED".equals(delivery.getStatus())) continue;
+
+                // 지연 시간이 포함된 최종 도착 예정일 계산
+                LocalDateTime currentEstimatedArrival = delivery.getEstimated_date() != null ?
+                        delivery.getEstimated_date().plusHours(delivery.getDelayHours()) : null;
+
+                // 이미 중간 허브를 거쳤고, 최종 도착 시간을 넘겼다면 배송 완료 처리
+                if (hasIntermediateHubLogged && currentEstimatedArrival != null && !now.isBefore(currentEstimatedArrival)) {
+                    delivery.setStatus("DELIVERED");
+                    delivery.setCompleted_at(now);
+                    deliveryRepository.save(delivery);
+
+                    DeliveryHistory receiverHistory = DeliveryHistory.builder()
+                            .location("DESTINATION")
+                            .currLatitude(order.getCurrLatitude())
+                            .currLongitude(order.getCurrLongitude())
+                            .arrivedAt(now)
+                            .delivery(delivery)
+                            .build();
+                    deliveryHistoryRepository.save(receiverHistory);
                 }
             }
             return RepeatStatus.FINISHED;
         };
     }
 }
-
-/* =========================================================================
-   [ 포트폴리오 비교용: Spring @Scheduled 버전 스케줄러 구현 코드 (주석 처리) ]
-   -------------------------------------------------------------------------
-   Spring Batch는 대용량 처리에 특화된 Chunk 지향 구조, 로깅, 재시도/건너뛰기,
-   트랜잭션 세분화 및 실패 시 복구(JobRepository 기반) 등의 큰 이점이 있습니다.
-   반면 @Scheduled는 구조가 간단하지만, 예외 발생 시 직접 복구 처리를 다루어야 하며,
-   단일 스레드 기반이 될 경우 다른 스케줄러를 블로킹할 수 있어 대용량 배치 처리에는
-   부적합합니다.
-
-package com.example.java.delivery.batch;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Random;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import com.example.java.delivery.entity.Delivery;
-import com.example.java.delivery.entity.DeliveryHistory;
-import com.example.java.delivery.entity.Hub;
-import com.example.java.delivery.repository.DeliveryHistoryRepository;
-import com.example.java.delivery.repository.DeliveryRepository;
-import com.example.java.delivery.repository.HubRepository;
-import com.example.java.delivery.service.DeliveryService;
-import lombok.RequiredArgsConstructor;
-
-@Component
-@RequiredArgsConstructor
-public class DeliveryScheduler {
-
-    private final DeliveryRepository deliveryRepository;
-    private final HubRepository hubRepository;
-    private final DeliveryHistoryRepository deliveryHistoryRepository;
-    private final DeliveryService deliveryService;
-    private final Random random = new Random();
-
-    // 1시간마다 주기적으로 배송 출발 처리 및 배송 상태 업데이트
-    @Scheduled(cron = "0 0 * * * *")
-    @Transactional
-    public void runDeliveryUpdateScheduler() {
-        LocalDateTime now = LocalDateTime.now();
-
-        // 1. READY -> SHIPPING 출발 처리
-        List<Delivery> readyDeliveries = deliveryRepository.findAll().stream()
-                .filter(d -> "READY".equals(d.getStatus()) && d.getDispatch_at() != null && !d.getDispatch_at().isAfter(now))
-                .toList();
-
-        Hub hqHub = hubRepository.findAll().stream()
-                .filter(h -> "본사허브".equals(h.getName()))
-                .findFirst()
-                .orElse(null);
-
-        for (Delivery delivery : readyDeliveries) {
-            delivery.setStatus("SHIPPING");
-            deliveryRepository.save(delivery);
-
-            DeliveryHistory hqHistory = DeliveryHistory.builder()
-                    .location("HUB")
-                    .currLatitude(hqHub != null ? hqHub.getLatitude() : 37.5049)
-                    .currLongitude(hqHub != null ? hqHub.getLongitude() : 127.0505)
-                    .arrivedAt(now)
-                    .delivery(delivery)
-                    .hub(hqHub)
-                    .build();
-            deliveryHistoryRepository.save(hqHistory);
-        }
-
-        // 2. SHIPPING/DELAYED 배송 진행 시뮬레이션
-        List<Delivery> activeDeliveries = deliveryRepository.findAll().stream()
-                .filter(d -> "SHIPPING".equals(d.getStatus()) || "DELAYED".equals(d.getStatus()))
-                .toList();
-
-        for (Delivery delivery : activeDeliveries) {
-            // 완료 판정
-            if (delivery.getEstimated_date() != null && !delivery.getEstimated_date().isAfter(now)) {
-                delivery.setStatus("DELIVERED");
-                delivery.setCompleted_at(now);
-                deliveryRepository.save(delivery);
-
-                DeliveryHistory receiverHistory = DeliveryHistory.builder()
-                        .location("RECEIVER")
-                        .currLatitude(delivery.getOrders() != null ? delivery.getOrders().getCurrLatitude() : 37.5049)
-                        .currLongitude(delivery.getOrders() != null ? delivery.getOrders().getCurrLongitude() : 127.0505)
-                        .arrivedAt(now)
-                        .delivery(delivery)
-                        .build();
-                deliveryHistoryRepository.save(receiverHistory);
-                continue;
-            }
-
-            // 5% 확률 지연 발생 시뮬레이션
-            if ("SHIPPING".equals(delivery.getStatus()) && random.nextInt(100) < 5) {
-                delivery.setStatus("DELAYED");
-                delivery.setEstimated_date(delivery.getEstimated_date().plusHours(12));
-                deliveryRepository.save(delivery);
-                continue;
-            }
-
-            // 중간 허브 경유지 처리
-            List<DeliveryHistory> history = deliveryHistoryRepository.findByDeliverySeqOrderBySeqAsc(delivery.getSeq());
-            boolean hasIntermediateHubLogged = history.stream()
-                    .anyMatch(h -> h.getHub() != null && !"본사허브".equals(h.getHub().getName()));
-
-            if (!hasIntermediateHubLogged && delivery.getDispatch_at() != null && delivery.getDispatch_at().plusHours(3).isBefore(now)) {
-                List<Hub> midHubs = hubRepository.findAll().stream()
-                        .filter(h -> !"본사허브".equals(h.getName()))
-                        .toList();
-                if (delivery.getOrders() != null && !midHubs.isEmpty()) {
-                    Hub optimalHub = deliveryService.findOptimalIntermediateHub(
-                            delivery.getOrders().getCurrLatitude(), delivery.getOrders().getCurrLongitude(), hqHub, midHubs);
-                    if (optimalHub != null) {
-                        DeliveryHistory midHistory = DeliveryHistory.builder()
-                                .location("HUB")
-                                .currLatitude(optimalHub.getLatitude())
-                                .currLongitude(optimalHub.getLongitude())
-                                .arrivedAt(now)
-                                .delivery(delivery)
-                                .hub(optimalHub)
-                                .build();
-                        deliveryHistoryRepository.save(midHistory);
-                    }
-                }
-            }
-        }
-    }
-}
-========================================================================= */

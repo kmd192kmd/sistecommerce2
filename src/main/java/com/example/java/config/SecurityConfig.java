@@ -19,7 +19,7 @@ public class SecurityConfig {
                 // 정적 리소스 허용 (/src/** : static/src/images/... 로컬 이미지)
                 .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/src/**").permitAll()
                 // 회원 관련 허용
-                .requestMatchers("/member/login",
+                .requestMatchers("/member/login", "/member/**",
                                  "/member/signup/**", "/member/signup").permitAll()
                 // 메인, 상품 목록 허용
                 .requestMatchers("/", "/products/**", "/group-buys/**", "/hotdeals/**").permitAll()

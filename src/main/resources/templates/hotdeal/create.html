@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - 신규 핫딜 등록</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <link rel="stylesheet" href="/admin/style.css">
+</head>
+<body class="font-sans antialiased overflow-hidden">
+
+  <div class="flex h-screen w-screen relative">
+    
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity"></div>
+    
+        <div class="flex-1 flex flex-col h-full overflow-hidden">
+          
+          <div th:replace="~{admin/header :: header}"></div>
+    
+          <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+            
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-white">🔥 신규 핫딜 등록</h2>
+            </div>
+    
+            <div class="card max-w-4xl">
+      <h4 class="text-title mb-6">핫딜 기본 정보</h4>
+      
+      <form action="/admin/hot-deals/create" method="post" class="space-y-6">
+        
+        <div class="form-group">
+          <label class="text-label">핫딜 이름</label>
+          <input type="text" name="name" class="form-input" placeholder="예: 2026 여름맞이 반짝 특가전" required>
+        </div>
+    
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="form-group">
+                <label class="text-label">시작 날짜/시간</label>
+                <input type="datetime-local" name="startDate" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="text-label">종료 날짜/시간</label>
+                <input type="datetime-local" name="endDate" class="form-input" required>
+            </div>
+    
+            <div class="form-group">
+                <label class="text-label">적용 상품 (옵션 번호)</label>
+                <input type="number" name="optionsSeq" class="form-input" placeholder="옵션 고유번호(seq) 입력">
+            </div>
+    
+            <div class="form-group">
+                <label class="text-label">핫딜 전용 재고</label>
+                <input type="number" name="hotDealStock" class="form-input" placeholder="예: 100">
+            </div>
+        </div>
+    
+        <div class="p-4 rounded-lg bg-black/20 border border-gray-700 mt-6">
+            <h4 class="text-label mb-4 font-bold">할인 설정</h4>
+            <div class="flex items-center gap-6 mb-4">
+                <label class="flex items-center gap-2 cursor-pointer text-white">
+                    <input type="radio" value="RATE" class="form-radio text-blue-500" checked onchange="toggleDiscountType(this.value)">
+                    <span>할인율(%)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-white">
+                    <input type="radio" value="PRICE" class="form-radio text-blue-500" onchange="toggleDiscountType(this.value)">
+                    <span>할인 가격(원)</span>
+                </label>
+            </div>
+    
+            <div class="form-group" id="rateInputGroup">
+                <input type="number" name="discountRate" id="discountRate" class="form-input w-full md:w-1/2" placeholder="예: 20">
+            </div>
+    
+            <div class="form-group hidden" id="priceInputGroup">
+                <input type="number" name="discountPrice" id="discountPrice" class="form-input w-full md:w-1/2" placeholder="예: 5000">
+            </div>
+        </div>
+    
+        <div class="flex justify-end gap-3 mt-8">
+          <button type="button" class="btn btn-outline" onclick="history.back()">취소</button>
+          <button type="submit" class="btn btn-primary">핫딜 생성</button>
+        </div>
+      </form>
+    </div>
+
+      </main>
+    </div>
+  </div>
+
+ <script th:inline="javascript">
+   
+   function toggleDiscountType(type) {
+        const rateGroup = document.getElementById('rateInputGroup');
+        const priceGroup = document.getElementById('priceInputGroup');
+        
+        if (type === 'RATE') {
+            rateGroup.classList.remove('hidden');
+            priceGroup.classList.add('hidden');
+            document.getElementById('discountPrice').value = '';
+        } else {
+            rateGroup.classList.add('hidden');
+            priceGroup.classList.remove('hidden');
+            document.getElementById('discountRate').value = '';
+        }
+    }
+   
+</script>
+</body>
+</html>

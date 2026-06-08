@@ -97,5 +97,8 @@
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<th:block th:if="${session.auth != null}">
+    <div th:replace="~{fragments/chat :: chatWidget}"></div>
+</th:block>
 </body>
 </html>

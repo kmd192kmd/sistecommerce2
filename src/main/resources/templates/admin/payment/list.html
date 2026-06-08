@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>대금 목록</title>
+</head>
+<body>
+
+<h2>대금 목록 (임시)</h2>
+
+<table border="1">
+    <thead>
+        <tr>
+            <th>번호</th>
+            <th>구분</th>
+            <th>상태</th>
+            <th>발주번호</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="payment : ${payments}">
+            <td th:text="${payment.seq}"></td>
+            <td th:text="${payment.type}"></td>
+            <td th:text="${payment.status}"></td>
+            <td th:text="${payment.purchaseOrderSeq}"></td>
+        </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

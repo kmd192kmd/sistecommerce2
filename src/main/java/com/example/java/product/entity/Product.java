@@ -131,6 +131,9 @@ public class Product {
     @Builder.Default
     private String status = "NORMAL";
 
+    @Column(name = "thumbnail_url", length = 1000)
+    private String thumbnailUrl;
+
     /*
         INSERT 전에 자동 실행됩니다.
 
@@ -168,6 +171,11 @@ public class Product {
     */
     public ProductDto toDto() {
 
+        String thumb = this.thumbnailUrl;
+        if (thumb == null || thumb.isBlank()) {
+            thumb = "/src/images/product/default.png";
+        }
+
         return ProductDto.builder()
                 .seq(this.seq)
                 .sellerSeq(this.sellerSeq)
@@ -185,6 +193,8 @@ public class Product {
                 .createdDate(this.createdDate)
                 .updatedDate(this.updatedDate)
                 .status(this.status)
+                .thumbnailUrl(thumb)
+                .image(thumb)
                 .build();
     }
 }

@@ -5,7 +5,7 @@
 
 <div th:replace="~{fragments/header :: header}"></div>
 
-<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32 flex flex-col lg:flex-row gap-6 items-start">
+<main id="product-main-container" class="max-w-screen-wide mx-auto px-4 mt-8 pb-32 flex flex-col lg:flex-row gap-6 items-start">
 
     <aside class="w-full lg:w-64 flex-shrink-0 bg-white p-5 border border-gray-200">
         <div class="mb-8">
@@ -42,10 +42,10 @@
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='ratingDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='reviewDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
                        class="block px-3 py-2 border transition-colors"
-                       th:classappend="${sort == 'ratingDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
-                        <span th:if="${sort == 'ratingDesc'}">✓ </span>별점순
+                       th:classappend="${sort == 'reviewDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
+                        <span th:if="${sort == 'reviewDesc'}">✓ </span>리뷰순
                     </a>
                 </li>
             </ul>
@@ -56,7 +56,7 @@
                 <span class="w-1.5 h-4 bg-slate-900"></span> FILTER
             </h2>
             
-            <form action="/products" id="filter-form" method="get" class="space-y-6">
+            <form th:action="@{/products}" id="filter-form" method="get" class="space-y-6">
                 <!-- 기존 쿼리 파라미터 보존용 hidden 필드 -->
                 <input type="hidden" name="keyword" th:value="${keyword}">
                 <input type="hidden" name="categorySeq" th:value="${categorySeq}">
@@ -139,15 +139,15 @@
                     <h3 class="text-xs font-black text-gray-800 mb-3 pb-1 border-b border-gray-100">별점 (Rating)</h3>
                     <div class="space-y-2 text-sm text-gray-600 font-medium">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="rating" value="" th:checked="${rating == null or rating == ''}" onchange="this.form.submit()" class="text-amber-500 focus:ring-amber-500 border-gray-300">
+                            <input type="radio" name="rating" value="" th:checked="${rating == null or rating == ''}" class="text-amber-500 focus:ring-amber-500 border-gray-300">
                             전체
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="rating" value="4" th:checked="${rating == '4'}" onchange="this.form.submit()" class="text-amber-500 focus:ring-amber-500 border-gray-300">
+                            <input type="radio" name="rating" value="4" th:checked="${rating == '4'}" class="text-amber-500 focus:ring-amber-500 border-gray-300">
                             ⭐⭐⭐⭐ 4점 이상
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="rating" value="3" th:checked="${rating == '3'}" onchange="this.form.submit()" class="text-amber-500 focus:ring-amber-500 border-gray-300">
+                            <input type="radio" name="rating" value="3" th:checked="${rating == '3'}" class="text-amber-500 focus:ring-amber-500 border-gray-300">
                             ⭐⭐⭐ 3점 이상
                         </label>
                     </div>
@@ -155,7 +155,7 @@
 
                 <div class="pt-2 border-t border-gray-100">
                     <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-gray-800">
-                        <input type="checkbox" name="hideOutOfStock" value="true" th:checked="${hideOutOfStock}" onchange="this.form.submit()" class="text-amber-500 focus:ring-amber-500 border-gray-300 rounded">
+                        <input type="checkbox" name="hideOutOfStock" value="true" th:checked="${hideOutOfStock}" class="text-amber-500 focus:ring-amber-500 border-gray-300 rounded">
                         🚫 품절 상품 숨기기
                     </label>
                 </div>
@@ -165,92 +165,7 @@
                 </button>
             </form>
 
-            <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    const hiddenInput = document.getElementById('price-hidden-input');
-                    const minSlider = document.getElementById('price-min-slider');
-                    const maxSlider = document.getElementById('price-max-slider');
-                    const minDisplay = document.getElementById('price-min-display');
-                    const maxDisplay = document.getElementById('price-max-display');
-                    const fill = document.getElementById('slider-range-fill');
-                    const form = document.getElementById('filter-form');
-                    
-                    const sliderMaxLimit = 150000;
-                    
-                    let currentMin = 0;
-                    let currentMax = sliderMaxLimit;
-                    
-                    if (hiddenInput && hiddenInput.value) {
-                        const parts = hiddenInput.value.split('-');
-                        if (parts.length === 2) {
-                            currentMin = parseInt(parts[0]) || 0;
-                            if (parts[1] === 'max') {
-                                currentMax = sliderMaxLimit;
-                            } else {
-                                currentMax = parseInt(parts[1]) || sliderMaxLimit;
-                            }
-                        }
-                    }
-                    
-                    minSlider.value = currentMin;
-                    maxSlider.value = currentMax;
-                    updateSliderUI();
-                    
-                    function updateSliderUI() {
-                        let minVal = parseInt(minSlider.value);
-                        let maxVal = parseInt(maxSlider.value);
-                        
-                        if (minVal > maxVal - 10000) {
-                            minVal = maxVal - 10000;
-                            minSlider.value = minVal;
-                        }
-                        if (maxVal < minVal + 10000) {
-                            maxVal = minVal + 10000;
-                            maxSlider.value = maxVal;
-                        }
-                        
-                        minDisplay.innerText = minVal.toLocaleString() + '원';
-                        maxDisplay.innerText = (maxVal >= sliderMaxLimit) ? '15만원+' : maxVal.toLocaleString() + '원';
-                        
-                        const minPercent = (minVal / sliderMaxLimit) * 100;
-                        const maxPercent = (maxVal / sliderMaxLimit) * 100;
-                        fill.style.left = minPercent + '%';
-                        fill.style.right = (100 - maxPercent) + '%';
-                        
-                        if (minVal === 0 && maxVal >= sliderMaxLimit) {
-                            hiddenInput.value = 'all';
-                        } else {
-                            hiddenInput.value = minVal + '-' + (maxVal >= sliderMaxLimit ? 'max' : maxVal);
-                        }
-                    }
-                    
-                    minSlider.addEventListener('input', function() {
-                        const minVal = parseInt(minSlider.value);
-                        const maxVal = parseInt(maxSlider.value);
-                        if (minVal > maxVal - 10000) {
-                            this.value = maxVal - 10000;
-                        }
-                        updateSliderUI();
-                    });
-                    
-                    maxSlider.addEventListener('input', function() {
-                        const minVal = parseInt(minSlider.value);
-                        const maxVal = parseInt(maxSlider.value);
-                        if (maxVal < minVal + 10000) {
-                            this.value = minVal + 10000;
-                        }
-                        updateSliderUI();
-                    });
-                    
-                    minSlider.addEventListener('change', function() {
-                        form.submit();
-                    });
-                    
-                    maxSlider.addEventListener('change', function() {
-                        form.submit();
-                    });
-                });
-            </script>
+            <!-- Price Slider initialization will run from the main AJAX script at the bottom -->
         </div>
     </aside>
 
@@ -326,6 +241,14 @@
             </div>
         </div>
 
+        <!-- 상품 개수 표시 바 -->
+        <div class="flex items-center justify-between mb-6 text-xs font-bold text-gray-500 select-none">
+            <div></div>
+            <div>
+                총 <span th:text="${productPage.totalElements}" class="text-slate-900 font-black">0</span>개 상품
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             
             <a th:each="p : ${productList}" th:href="@{/products/{seq}(seq=${p.seq})}"
@@ -365,15 +288,15 @@
         <div th:if="${not #lists.isEmpty(productList)}" class="mt-12 flex justify-center items-center gap-1 text-sm font-bold">
             <!-- 이전 블록 (10페이지 전으로) -->
             <a th:if="${startPage > 0}" 
-               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${startPage - 1}, hideOutOfStock=${hideOutOfStock})}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${startPage - 10}, hideOutOfStock=${hideOutOfStock})}" 
                class="w-8 h-8 flex items-center justify-center border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-500 bg-white" title="이전 10페이지">&laquo;</a>
             
             <!-- 이전 페이지 -->
             <a th:if="${productPage.hasPrevious()}" 
                th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number - 1}, hideOutOfStock=${hideOutOfStock})}" 
-               class="px-3 py-1 text-gray-600 hover:text-amber-600 mr-1">&larr; Prev</a>
+               class="px-3 py-1 text-gray-600 hover:text-amber-600 mr-1">Prev</a>
             <span th:unless="${productPage.hasPrevious()}" 
-                   class="px-3 py-1 text-gray-400 mr-1">&larr; Prev</span>
+                   class="px-3 py-1 text-gray-400 mr-1">Prev</span>
                   
             <!-- 페이지 번호 목록 (최대 10개) -->
             <th:block th:if="${productPage.totalPages > 0}">
@@ -387,9 +310,9 @@
             <!-- 다음 페이지 -->
             <a th:if="${productPage.hasNext()}" 
                th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number + 1}, hideOutOfStock=${hideOutOfStock})}" 
-               class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-1">Next &rarr;</a>
+               class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-1">Next</a>
             <span th:unless="${productPage.hasNext()}" 
-                   class="px-3 py-1 text-gray-400 ml-1">Next &rarr;</span>
+                   class="px-3 py-1 text-gray-400 ml-1">Next</span>
 
             <!-- 다음 블록 (10페이지 후로) -->
             <a th:if="${endPage < productPage.totalPages - 1}" 
@@ -407,26 +330,48 @@
                         <h4 th:text="${r.name}" class="text-[11px] text-gray-700 truncate group-hover:text-amber-600 group-hover:underline">추천상품명</h4>
                         <div class="flex justify-between items-baseline mt-0.5">
                             <span th:text="${#numbers.formatInteger(r.price, 0, 'COMMA')} + '원'" class="text-xs font-bold text-slate-900">0원</span>
-                            <span class="text-[10px] text-red-500 font-bold flex items-center">⇧ 1</span>
+                            <span class="text-[10px] text-red-500 font-bold flex items-center">HOT</span>
                         </div>
                     </a>
                 </li>
             </ul>
         </div>
 
-        <div class="bg-white p-4 border border-gray-200 shadow-sm sticky top-24">
+        <div th:if="${not #lists.isEmpty(recentViewedList)}" class="bg-white p-4 border border-gray-200 shadow-sm sticky top-24">
             <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">🕒 최근 조회 상품</h3>
             <ul class="space-y-4">
                 <li th:each="rv : ${recentViewedList}">
-                    <a th:href="@{/products/{seq}(seq=${rv.seq})}" class="group flex gap-2 items-center">
+                    <!-- 정상 판매 상품인 경우 -->
+                    <a th:if="${rv.productStatus == 'NORMAL' and rv.hideYn == 'N' and rv.saleStatus != 'STOPPED'}" 
+                       th:href="@{/products/{seq}(seq=${rv.seq})}" class="group flex gap-2 items-center">
                         <div class="w-10 h-10 bg-gray-100 flex-shrink-0">
                             <img th:src="${rv.image}" class="w-full h-full object-cover">
                         </div>
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <h4 th:text="${rv.name}" class="text-[11px] text-gray-700 truncate group-hover:text-amber-600 group-hover:underline">최근본상품명</h4>
                             <p th:text="${#numbers.formatInteger(rv.price, 0, 'COMMA')} + '원'" class="text-xs font-bold text-slate-900 mt-0.5">0원</p>
                         </div>
                     </a>
+                    
+                    <!-- 판매중지 / 삭제 / 숨김 상품인 경우 (클릭 불가 처리 및 상태 배지 표시) -->
+                    <div th:unless="${rv.productStatus == 'NORMAL' and rv.hideYn == 'N' and rv.saleStatus != 'STOPPED'}" 
+                         class="flex gap-2 items-center opacity-50 cursor-not-allowed" title="구매가 불가능한 상품입니다.">
+                        <div class="w-10 h-10 bg-gray-100 flex-shrink-0 relative">
+                            <img th:src="${rv.image}" class="w-full h-full object-cover grayscale">
+                            <div class="absolute inset-0 bg-black/15 flex items-center justify-center">
+                                <span class="text-[9px] text-white bg-slate-900 px-1 font-bold">불가</span>
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1">
+                                <span th:if="${rv.productStatus == 'DELETED'}" class="text-[9px] font-black text-red-500 shrink-0">[삭제됨]</span>
+                                <span th:if="${rv.saleStatus == 'STOPPED'}" class="text-[9px] font-black text-slate-500 shrink-0">[판매중지]</span>
+                                <span th:if="${rv.hideYn == 'Y'}" class="text-[9px] font-black text-slate-500 shrink-0">[숨김]</span>
+                                <h4 th:text="${rv.name}" class="text-[11px] text-gray-400 truncate flex-1">최근본상품명</h4>
+                            </div>
+                            <p class="text-xs font-bold text-gray-400 mt-0.5">판매 종료</p>
+                        </div>
+                    </div>
                 </li>
             </ul>
         </div>
@@ -435,6 +380,206 @@
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
+
+<script>
+    // 1. 가격 슬라이더 초기화 및 이벤트 바인딩 함수
+    function initPriceSlider() {
+        const hiddenInput = document.getElementById('price-hidden-input');
+        const minSlider = document.getElementById('price-min-slider');
+        const maxSlider = document.getElementById('price-max-slider');
+        const minDisplay = document.getElementById('price-min-display');
+        const maxDisplay = document.getElementById('price-max-display');
+        const fill = document.getElementById('slider-range-fill');
+        
+        if (!minSlider || !maxSlider || !hiddenInput) return;
+        
+        const sliderMaxLimit = 150000;
+        let currentMin = 0;
+        let currentMax = sliderMaxLimit;
+        
+        if (hiddenInput && hiddenInput.value) {
+            const parts = hiddenInput.value.split('-');
+            if (parts.length === 2) {
+                currentMin = parseInt(parts[0]) || 0;
+                if (parts[1] === 'max') {
+                    currentMax = sliderMaxLimit;
+                } else {
+                    currentMax = parseInt(parts[1]) || sliderMaxLimit;
+                }
+            }
+        }
+        
+        minSlider.value = currentMin;
+        maxSlider.value = currentMax;
+        updateSliderUI();
+        
+        function updateSliderUI() {
+            let minVal = parseInt(minSlider.value);
+            let maxVal = parseInt(maxSlider.value);
+            
+            if (minVal > maxVal - 10000) {
+                minVal = maxVal - 10000;
+                minSlider.value = minVal;
+            }
+            if (maxVal < minVal + 10000) {
+                maxVal = minVal + 10000;
+                maxSlider.value = maxVal;
+            }
+            
+            if (minDisplay) minDisplay.innerText = minVal.toLocaleString() + '원';
+            if (maxDisplay) maxDisplay.innerText = (maxVal >= sliderMaxLimit) ? '15만원+' : maxVal.toLocaleString() + '원';
+            
+            if (fill) {
+                const minPercent = (minVal / sliderMaxLimit) * 100;
+                const maxPercent = (maxVal / sliderMaxLimit) * 100;
+                fill.style.left = minPercent + '%';
+                fill.style.right = (100 - maxPercent) + '%';
+            }
+            
+            if (minVal === 0 && maxVal >= sliderMaxLimit) {
+                hiddenInput.value = 'all';
+            } else {
+                hiddenInput.value = minVal + '-' + (maxVal >= sliderMaxLimit ? 'max' : maxVal);
+            }
+        }
+        
+        minSlider.addEventListener('input', function() {
+            const minVal = parseInt(minSlider.value);
+            const maxVal = parseInt(maxSlider.value);
+            if (minVal > maxVal - 10000) {
+                this.value = maxVal - 10000;
+            }
+            updateSliderUI();
+        });
+        
+        maxSlider.addEventListener('input', function() {
+            const minVal = parseInt(minSlider.value);
+            const maxVal = parseInt(maxSlider.value);
+            if (maxVal < minVal + 10000) {
+                this.value = minVal + 10000;
+            }
+            updateSliderUI();
+        });
+    }
+
+    // 2. 필터 폼 제출 함수 (AJAX로 로드)
+    function submitFilterForm() {
+        const form = document.getElementById('filter-form');
+        if (form) {
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams(formData);
+            
+            // 필터가 변경되면 무조건 0페이지로 보냄
+            searchParams.set('page', '0');
+            
+            const url = '/products?' + searchParams.toString();
+            loadProducts(url);
+        }
+    }
+
+    // 3. AJAX 상품 데이터 로드 함수
+    function loadProducts(url) {
+        const container = document.getElementById('product-main-container');
+        if (container) {
+            container.classList.add('opacity-50', 'pointer-events-none');
+        }
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Response error');
+            return response.text();
+        })
+        .then(html => {
+            if (container) {
+                container.outerHTML = html;
+            }
+            
+            // 주소창 URL 변경
+            history.pushState({ url: url }, '', url);
+            
+            // 신규 로드된 요소들에 대해 이벤트 리스너 재설정
+            initPriceSlider();
+            
+            // Lucide 아이콘 활성화
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+            
+            // 상단으로 부드러운 스크롤 이동
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(error => {
+            console.error('AJAX Load Error:', error);
+            if (container) {
+                container.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        });
+    }
+
+    // 4. 이벤트 위임(Event Delegation)을 통한 링크 클릭 가로채기
+    document.addEventListener('click', function(e) {
+        const anchor = e.target.closest('a');
+        if (anchor) {
+            const href = anchor.getAttribute('href');
+            if (href && href.startsWith('/products')) {
+                // 상품 상세 페이지(/products/{seq})는 가로채지 않고 정상 이동하게 둠
+                const urlObj = new URL(href, window.location.origin);
+                if (urlObj.pathname === '/products') {
+                    e.preventDefault();
+                    loadProducts(href);
+                }
+            }
+        }
+    });
+
+    // 5. 필터 폼 제출(조건 검색 적용 버튼 클릭) 가로채기
+    document.addEventListener('submit', function(e) {
+        if (e.target && e.target.id === 'filter-form') {
+            e.preventDefault();
+            submitFilterForm();
+        }
+    });
+
+    // 6. 브라우저 뒤로가기/앞으로가기 처리
+    window.addEventListener('popstate', function() {
+        if (window.location.pathname === '/products') {
+            const container = document.getElementById('product-main-container');
+            if (container) {
+                container.classList.add('opacity-50', 'pointer-events-none');
+            }
+            fetch(window.location.href, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                if (container) {
+                    container.outerHTML = html;
+                }
+                initPriceSlider();
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            })
+            .catch(error => {
+                console.error('AJAX History Load Error:', error);
+                if (container) {
+                    container.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            });
+        }
+    });
+
+    // 7. 페이지 최초 진입 시 슬라이더 초기 설정 실행
+    document.addEventListener('DOMContentLoaded', function() {
+        initPriceSlider();
+    });
+</script>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 </body>
 </html>

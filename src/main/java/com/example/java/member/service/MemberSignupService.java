@@ -1,22 +1,14 @@
 package com.example.java.member.service;
 
+import com.example.java.member.dto.MemberDto;
+import com.example.java.member.entity.*;
+import com.example.java.member.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.java.member.dto.MemberDto;
-import com.example.java.member.entity.Coupon;
-import com.example.java.member.entity.Member;
-import com.example.java.member.entity.MemberCoupon;
-import com.example.java.member.entity.Memberships;
-import com.example.java.member.entity.NotificationPreference;
-import com.example.java.member.repository.CouponRepository;
-import com.example.java.member.repository.MemberCouponRepository;
-import com.example.java.member.repository.MemberRepository;
-import com.example.java.member.repository.MembershipsRepository;
-import com.example.java.member.repository.NotificationPreferenceRepository;
-
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +37,8 @@ public class MemberSignupService {
                 .role("ROLE_USER")
                 .loginType("LOCAL")
                 .password(passwordEncoder.encode(memberDto.getPassword()))
+                .joinedAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build()
                 .toEntity();
     	return memberRepository.save(member);

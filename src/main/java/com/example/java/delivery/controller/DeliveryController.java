@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 
 @Controller
-@RequestMapping("/shop")
+@RequestMapping("/delivery")
 @RequiredArgsConstructor
 public class DeliveryController {
 

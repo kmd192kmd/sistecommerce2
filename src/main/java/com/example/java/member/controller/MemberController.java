@@ -71,7 +71,8 @@ public class MemberController {
             return "member/signup";  // 다시 폼으로
         }
 
-        return "redirect:/member/login";  // 성공 시 로그인 페이지로
+        model.addAttribute("signupSuccess", true);
+        return "member/signup";  // 성공 시 모달 띄우고 로그인 페이지로
     }
     
     

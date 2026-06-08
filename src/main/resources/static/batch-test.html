@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배송 배치 테스트 대시보드</title>
+    <!-- 폰트 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .dashboard-card {
+            background-color: var(--card-bg);
+            padding: 3.5rem 3rem;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 배경 글래스모피즘 빛 효과 */
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            width: 150px;
+            height: 150px;
+            background: rgba(59, 130, 246, 0.3);
+            filter: blur(50px);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        .icon-container {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(37,99,235,0.05) 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.2);
+        }
+
+        .icon-container svg {
+            width: 36px;
+            height: 36px;
+            color: var(--accent);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0 0 0.75rem;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+        }
+
+        .run-btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        .run-btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .run-btn:active {
+            transform: translateY(1px);
+        }
+
+        .run-btn:disabled {
+            background-color: #334155;
+            color: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .run-btn:disabled .spinner {
+            border-top-color: #cbd5e1;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease;
+            padding: 1rem;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .status-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .status-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .status-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-card">
+        <div class="content-wrapper">
+            <div class="icon-container">
+                <!-- 번개 모양 아이콘 -->
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <h1>배송 배치 테스트 도구</h1>
+            <p>팀원들이 젠킨스 없이 로컬 환경에서<br>배송 이력(History) 및 상태를 즉시 업데이트할 수 있는 관리자 대시보드입니다.</p>
+
+            <button id="runBtn" class="run-btn" onclick="runBatch()">
+                <span class="btn-text">배송 스케줄러 1바퀴 실행</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
+
+            <div id="statusMsg" class="status-message"></div>
+        </div>
+    </div>
+
+    <script>
+        async function runBatch() {
+            const btn = document.getElementById('runBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.querySelector('.btn-text');
+            const statusMsg = document.getElementById('statusMsg');
+
+            // 실행 중 (로딩 상태)
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = '배치 실행 중...';
+            
+            statusMsg.classList.remove('show', 'status-success', 'status-error');
+
+            try {
+                // 스프링 부트 서버의 BatchController 찌르기
+                const response = await fetch('/api/batch/run-delivery', {
+                    method: 'POST'
+                });
+
+                statusMsg.classList.add('show');
+                
+                if (response.ok) {
+                    statusMsg.innerHTML = '✨ <b>성공:</b> 배치가 실행되었습니다! DB에서 상태가 변경되었는지 확인해보세요.';
+                    statusMsg.classList.add('status-success');
+                } else {
+                    const errText = await response.text();
+                    statusMsg.innerHTML = '🚨 <b>실패:</b> ' + errText;
+                    statusMsg.classList.add('status-error');
+                }
+            } catch (error) {
+                statusMsg.classList.add('show');
+                statusMsg.innerHTML = '🚨 <b>통신 오류:</b> 서버(이클립스)가 꺼져 있거나 포트가 8080이 아닙니다.';
+                statusMsg.classList.add('status-error');
+            } finally {
+                // 원상 복구
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = '배송 스케줄러 1바퀴 실행';
+            }
+        }
+    </script>
+</body>
+</html>
