@@ -1,6 +1,8 @@
 # Created by https://www.toptal.com/developers/gitignore/api/java,eclipse,intellij,macos,windows,gradle
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,eclipse,intellij,macos,windows,gradle
 
+.idea/
+
 ### Eclipse ###
 .metadata
 bin/
@@ -299,3 +301,6 @@ CLAUDE.md
 src/main/resources/application-secret.yml
 src/main/resources/wallet/
 .antigravitycli/
+
+# Querydsl generated Q classes
+src/main/generated/
