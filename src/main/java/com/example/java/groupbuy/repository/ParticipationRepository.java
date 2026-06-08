@@ -26,4 +26,11 @@ public interface ParticipationRepository extends JpaRepository<Participation, Lo
      */
     boolean existsByGroupBuySeqAndMemberSeqAndStatusIn(
             Long groupBuySeq, Long memberSeq, Collection<ParticipationStatus> statuses);
+
+    /**
+     * 특정 공구에서 주어진 상태인 참여가 몇 건인지 센다 (화면의 "N명 참여" 집계용).
+     *   count By GroupBuySeq And Status → SELECT COUNT(*) ... WHERE group_buy_seq=? AND status=?
+     * 예: status=PARTICIPATING 으로 호출하면 현재 정규 참여 인원이 나온다.
+     */
+    long countByGroupBuySeqAndStatus(Long groupBuySeq, ParticipationStatus status);
 }

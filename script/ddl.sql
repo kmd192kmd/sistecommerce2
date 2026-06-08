@@ -355,9 +355,9 @@ CREATE TABLE seller (
     id VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
     supply_rate number NOT NULL,
-    delivery_seq number NOT NULL,
+    delivery_company_seq number NOT NULL,
     account_number varchar2(100) NOT NULL,
-    FOREIGN KEY (delivery_seq) REFERENCES delivery_company (seq)
+    FOREIGN KEY (delivery_company_seq) REFERENCES delivery_company (seq)
 );
 
 CREATE TABLE memberships (

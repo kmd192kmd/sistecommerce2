@@ -231,6 +231,9 @@ public class GroupBuyService {
                 .map(GroupBuyOptionView::from)
                 .toList();
 
+        long remain = remainSeconds(g.getEndAt(), LocalDateTime.now());
+        int currentCount = countParticipating(seq);
+
         return GroupBuyDetailResponse.builder()
                 .seq(g.getSeq())
                 .status(g.getStatus())
@@ -242,14 +245,19 @@ public class GroupBuyService {
                 .discountRate(discountRate(g.getOriginalPrice(), g.getFinalPrice()))
                 .startAt(g.getStartAt())
                 .endAt(g.getEndAt())
-                .remainSeconds(remainSeconds(g.getEndAt(), LocalDateTime.now()))
+                .remainSeconds(remain)
+                .remainText(remainText(remain))
                 .minCount(g.getMinCount())
                 .maxCount(g.getMaxCount())
+                .currentCount(currentCount)
+                .progress(progress(currentCount, g.getMinCount()))
                 .options(options)
                 .build();
     }
 
     private GroupBuySummaryResponse toSummary(GroupBuy g, LocalDateTime now) {
+        long remain = remainSeconds(g.getEndAt(), now);
+        int currentCount = countParticipating(g.getSeq());
         return GroupBuySummaryResponse.builder()
                 .seq(g.getSeq())
                 .status(g.getStatus())
@@ -258,12 +266,27 @@ public class GroupBuyService {
                 .originalPrice(g.getOriginalPrice())
                 .finalPrice(g.getFinalPrice())
                 .discountRate(discountRate(g.getOriginalPrice(), g.getFinalPrice()))
-                .remainSeconds(remainSeconds(g.getEndAt(), now))
-                .remainText(remainText(remainSeconds(g.getEndAt(), now)))
+                .remainSeconds(remain)
+                .remainText(remainText(remain))
                 .minCount(g.getMinCount())
-                .currentCount(0)   // TODO: participation 집계 후 실값
-                .progress(0)       // TODO: participation 집계 후 실값
+                .currentCount(currentCount)
+                .progress(progress(currentCount, g.getMinCount()))
                 .build();
+    }
+
+    /** 현재 정규 참여 인원 = 해당 공구의 PARTICIPATING 상태 participation 수. */
+    private int countParticipating(Long groupBuySeq) {
+        return (int) participationRepository.countByGroupBuySeqAndStatus(
+                groupBuySeq, ParticipationStatus.PARTICIPATING);
+    }
+
+    /** 진행률(%) = 현재 참여 인원 / 최소 성사 인원 * 100. 최소 인원이 0/누락이면 0, 100% 초과는 100으로 고정. */
+    private int progress(int currentCount, Integer minCount) {
+        if (minCount == null || minCount <= 0) {
+            return 0;
+        }
+        int p = (int) Math.round(currentCount * 100.0 / minCount);
+        return Math.min(p, 100);
     }
 
     /** 남은 초를 "N일 N시간" 식 표기로. 마감 지났으면 "마감". */

@@ -2,7 +2,7 @@ package com.example.java.product.entity;
 
 import java.time.LocalDateTime;
 
-import com.example.java.delivery.entity.Delivery;
+import com.example.java.delivery.entity.DeliveryCompany;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -69,6 +69,6 @@ public class Seller {
     private String accountNumber;	// 계좌번호
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "delivery_seq", nullable = false)
-    private Delivery delivery;
+    @JoinColumn(name = "delivery_company_seq", nullable = false)
+    private DeliveryCompany deliveryCompany;
 }

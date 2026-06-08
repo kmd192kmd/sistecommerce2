@@ -50,4 +50,13 @@ public class HotDeal {
     public void updateStatus(Integer status) {
         this.status = status;
     }
+    
+    public void update(String name, LocalDateTime startDate, LocalDateTime endDate, Integer discountRate, Integer
+    		  discountPrice) {
+        this.name = name;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.discountRate = discountRate;
+        this.discountPrice = discountPrice;
+    }
 }

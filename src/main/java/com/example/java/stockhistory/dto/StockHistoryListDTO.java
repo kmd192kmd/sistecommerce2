@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 public class StockHistoryListDTO {
 
     // StockHistory 기본 정보
+	private Long seq;
     private StockHistoryType type;
     private String reason;
     private StockHistorySourceType sourceType;
@@ -39,7 +40,8 @@ public class StockHistoryListDTO {
         Options options = entity.getOptions();
 
         return StockHistoryListDTO.builder()
-                .type(entity.getType())
+        		.seq(entity.getSeq())
+				.type(entity.getType())
                 .reason(entity.getReason())
                 .sourceType(entity.getSourceType())
                 .createdAt(entity.getCreatedAt())

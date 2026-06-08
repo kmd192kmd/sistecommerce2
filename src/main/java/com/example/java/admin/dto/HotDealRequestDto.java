@@ -1,24 +1,28 @@
 package com.example.java.admin.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.example.java.admin.hotdeal.Entity.HotDeal;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class HotDealRequestDto {
 
+	private Long seq;
+	
     @NotBlank(message = "핫딜 이름은 필수입니다.")
     private String name;
 
@@ -27,6 +31,9 @@ public class HotDealRequestDto {
 
     @NotNull(message = "종료일은 필수입니다.")
     private LocalDateTime endDate;
+    
+    private List<Long> optionsSeqs;
+    private List<Integer> hotDealStocks;
 
     // DB 제약조건: 둘 중 하나는 반드시 존재해야 함
     private Integer discountRate;
@@ -47,11 +54,15 @@ public class HotDealRequestDto {
     public HotDeal toEntity() {
         return HotDeal.builder()
                 .name(this.name)
-                .startDate(this.startDate)
-                .endDate(this.endDate)
-                .status(0) // 0: 대기 상태 
+                // 💡핵심: 사용자가 30분을 골라도 서버에서 강제로 00분 00초로 잘라버립니다.
+                .startDate(this.startDate.withMinute(0).withSecond(0).withNano(0))
+                .endDate(this.endDate.withMinute(0).withSecond(0).withNano(0))
+                .status(0) // 0: 대기 상태
                 .discountRate(this.discountRate)
                 .discountPrice(this.discountPrice)
                 .build();
     }
+    
+    
+
 }

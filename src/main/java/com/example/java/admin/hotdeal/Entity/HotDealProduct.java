@@ -47,4 +47,8 @@ public class HotDealProduct {
     public void addSoldQuantity(int quantity) {
         this.soldQuantity = (this.soldQuantity == null ? 0 : this.soldQuantity) + quantity;
     }
+    
+    public void updateHotDealStock(Integer stock) {
+        this.hotDealStock = stock;
+    }
 }
