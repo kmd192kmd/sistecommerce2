@@ -118,6 +118,28 @@ public class GroupBuyService {
         return saved.getSeq();
     }
 
+    /**
+     * 옵션 점유 (참여의 핵심 — 비관적 락으로 동시성 직렬화).
+     *
+     * 흐름:
+     *  1) findBySeqForUpdate 로 옵션 행에 비관적 쓰기 락(SELECT ... FOR UPDATE) → 같은 옵션 경쟁을 줄세움
+     *  2) occupy() 가 매진 검사 후 occupied_count + 1
+     *  3) 메서드 종료(commit) 시 JPA 변경감지로 UPDATE 자동 반영 + 락 해제 → 다음 대기자 진입
+     *
+     * 락이 commit까지 유지되므로, 동시에 들어온 요청은 한 명씩 최신 occupied_count를 보고
+     * 판단하게 되어 orderQty 초과가 원천 차단된다 (NFR-001).
+     *
+     * @param optionSeq 점유할 group_buy_options.seq
+     */
+    @Transactional
+    public void participate(Long optionSeq) {
+        GroupBuyOptions option = groupBuyOptionsRepository.findBySeqForUpdate(optionSeq)
+                .orElseThrow(() -> new IllegalArgumentException("해당 공구 옵션을 찾을 수 없습니다. seq=" + optionSeq));
+
+        option.occupy();
+        // 명시적 save 불필요: 락으로 조회한 option은 영속 상태라 commit 시 변경감지로 UPDATE 됨.
+    }
+
     /** 공구 목록 조회. */
     @Transactional(readOnly = true)
     public List<GroupBuyDto> findAll() {
