@@ -97,7 +97,7 @@
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
-<th:block th:if="${session.auth != null}">
+<th:block sec:authorize="isAuthenticated()">
     <div th:replace="~{fragments/chat :: chatWidget}"></div>
 </th:block>
 </body>

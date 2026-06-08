@@ -16,14 +16,21 @@ public class ChatRoom {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "member_id", nullable = false)
-    private Long memberId; // 상담을 요청한 사용자(고객) ID
+    // 필드명 변경: memberId -> memberSeq
+    @Column(name = "member_seq", nullable = false)
+    private Long memberSeq;
+
+    @Column(name = "admin_seq")
+    @Builder.Default
+    private Long adminSeq = 1L; // 1번 관리자 고정
 
     @Column(nullable = false)
-    private String title; // 채팅방 제목 (예: "배송 관련 문의")
+    private String title;
 
+    // String "ACTIVE" 대신 Integer 0 사용
     @Column(nullable = false)
-    private String status; // ACTIVE, CLOSED 등
+    @Builder.Default
+    private Integer status = 0; // 0: 활성(ACTIVE), 1: 종료(CLOSED)
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

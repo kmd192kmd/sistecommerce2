@@ -22,15 +22,15 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
 
     @Transactional
-    public ChatRoom createRoom(Long memberId, String title) {
+    public ChatRoom createRoom(Long memberSeq, String title) {
         ChatRoom room = ChatRoom.builder()
-                .memberId(memberId)
+                .memberSeq(memberSeq) // 변경된 필드 적용
                 .title(title)
-                .status("ACTIVE")
+                .status(0) // 상태 0으로 초기화
                 .build();
         return chatRoomRepository.save(room);
     }
-
+    
     public List<ChatRoom> getRoomsByMember(Long memberId) {
         return chatRoomRepository.findByMemberId(memberId);
     }
