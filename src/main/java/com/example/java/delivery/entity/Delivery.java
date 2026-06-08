@@ -2,7 +2,7 @@ package com.example.java.delivery.entity;
 
 import java.time.LocalDateTime;
 import com.example.java.delivery.dto.DeliveryDto;
-import com.example.java.orders.controller.entity.Orders;
+import com.example.java.orders.entity.Orders;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

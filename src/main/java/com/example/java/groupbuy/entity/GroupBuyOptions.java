@@ -28,9 +28,8 @@ public class GroupBuyOptions {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "group_buy_options_seq")
     @SequenceGenerator(name = "group_buy_options_seq", sequenceName = "group_buy_options_seq", allocationSize = 1)
     private Long seq;
-    
-    // group_buy ~ group_buy_options 
-    // 공동구매 도메인 내의 엔티티이므로 안전하게 연관관계 매핑 적용
+
+    // 우리 도메인 내의 엔티티이므로 안전하게 연관관계 매핑 적용
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_buy_seq", nullable = false)
     private GroupBuy groupBuy;

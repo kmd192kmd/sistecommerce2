@@ -1,6 +1,7 @@
-package com.example.java.orders.controller.entity;
+package com.example.java.orders.entity;
 
 import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,15 +27,25 @@ public class Orders {
 
     @Id
     @Column(name = "seq")
-    @SequenceGenerator(name = "orders_seq", allocationSize = 1, sequenceName = "orders_seq")
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orders_seq")
+    @SequenceGenerator(
+            name = "orders_seq_generator",
+            sequenceName = "orders_seq",
+            allocationSize = 1
+    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orders_seq_generator")
     private Long seq;
 
     @Column(name = "member_seq", nullable = false)
     private Long memberSeq;
 
-    @Column(name = "order_item_seq", nullable = false)
-    private Long orderItemSeq;
+    /*
+        변경 전:
+        orders.order_item_seq 컬럼이 있었음.
+
+        변경 후:
+        orders는 더 이상 order_item을 직접 참조하지 않음.
+        order_item.order_seq가 orders.seq를 참조함.
+     */
 
     @Column(name = "member_coupon_seq")
     private Long memberCouponSeq;
@@ -65,10 +77,33 @@ public class Orders {
     @Column(name = "remain_price", nullable = false)
     private Integer remainPrice;
 
+    /**
+     * DDL 주석 기준:
+     * 0: 주문생성
+     * 1: 결제대기
+     * 2: 결제완료
+     * 3: 상품준비중
+     * 4: 부분배송중
+     * 5: 배송중
+     * 6: 배송완료
+     * 7: 부분환불
+     * 8: 전체환불
+     * 9: 주문취소
+     */
     @Column(name = "order_status", nullable = false)
     @Builder.Default
     private Integer orderStatus = 0;
 
+    /**
+     * DDL 주석 기준:
+     * 0: 결제대기
+     * 1: 가상계좌입금대기
+     * 2: 결제완료
+     * 3: 결제실패
+     * 4: 부분환불
+     * 5: 전체환불
+     * 6: 결제취소
+     */
     @Column(name = "payment_status", nullable = false)
     @Builder.Default
     private Integer paymentStatus = 0;

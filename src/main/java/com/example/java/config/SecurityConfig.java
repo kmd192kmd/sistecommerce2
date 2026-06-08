@@ -28,6 +28,9 @@ public class SecurityConfig {
                 // 나머지는 인증 필요
                 //.anyRequest().authenticated()
                 
+                //주문 페이지 로그인 필요
+                .requestMatchers("/order/**").authenticated()
+                
                 // TODO 개발용으로 모두허용 (나중에 없애야)
                 .anyRequest().permitAll()
             )

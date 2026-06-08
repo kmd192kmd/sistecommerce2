@@ -15,7 +15,7 @@ import com.example.java.delivery.entity.Hub;
 import com.example.java.delivery.repository.DeliveryHistoryRepository;
 import com.example.java.delivery.repository.DeliveryRepository;
 import com.example.java.delivery.repository.HubRepository;
-import com.example.java.orders.controller.entity.Orders;
+import com.example.java.orders.entity.Orders;
 
 import lombok.RequiredArgsConstructor;
 
