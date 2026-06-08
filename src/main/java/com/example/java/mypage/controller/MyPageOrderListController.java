@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.example.java.member.security.CustomUserDetails;
-import com.example.java.mypage.dto.MyPageOrderDto;
-import com.example.java.mypage.service.MyPageService;
+import com.example.java.mypage.dto.MyPageOrderListDto;
+import com.example.java.mypage.service.MyPageOrderListService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,9 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 @Controller
 @RequestMapping("/mypage")
 @RequiredArgsConstructor
-public class MyPageController {
+public class MyPageOrderListController {
 
-    private final MyPageService myPageService;
+    private final MyPageOrderListService myPageOrderListService;
 
     @GetMapping({"", "/"})
     public String mypageRoot() {
@@ -41,7 +41,7 @@ public class MyPageController {
         Long memberSeq = userDetails.getMemberSeq();
 
         try {
-            List<MyPageOrderDto> orders = myPageService.getOrders(memberSeq, keyword);
+            List<MyPageOrderListDto> orders = myPageOrderListService.getOrders(memberSeq, keyword);
             model.addAttribute("orders", orders);
             model.addAttribute("keyword", keyword);
             
@@ -49,7 +49,6 @@ public class MyPageController {
             log.error("주문 목록 조회 중 에러 발생: ", e);
         }
 
-        return "mypage/orders";
+        return "mypage/orderList/orders";
     }
 }
-

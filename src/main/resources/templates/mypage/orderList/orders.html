@@ -112,16 +112,20 @@
                     <div class="p-6 flex flex-col md:flex-row items-center gap-6">
                         <div class="flex-1 flex gap-5 w-full">
                             <!-- 상품 썸네일 -->
-                            <div class="w-24 h-24 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-100">
-                                <img th:src="${o.image}" alt="상품 이미지" class="w-full h-full object-cover">
-                            </div>
+                            <a th:href="@{/products/{seq}(seq=${o.productSeq})}" class="shrink-0">
+                                <div class="w-24 h-24 rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:opacity-90 transition-opacity">
+                                    <img th:src="${o.image}" alt="상품 이미지" class="w-full h-full object-cover">
+                                </div>
+                            </a>
                             
                             <!-- 상품 정보 -->
                             <div class="flex flex-col justify-center">
                                 <div class="mb-2">
                                     <span th:class="'status-badge status-' + ${o.deliveryStatus}" th:text="${o.deliveryStatus}">배송중</span>
                                 </div>
-                                <h4 th:text="${o.name}" class="font-bold text-lg text-slate-900 leading-tight">프리미엄 상품명</h4>
+                                <a th:href="@{/products/{seq}(seq=${o.productSeq})}">
+                                    <h4 th:text="${o.name}" class="font-bold text-lg text-slate-900 leading-tight hover:text-amber-600 transition-colors">프리미엄 상품명</h4>
+                                </a>
                                 <div class="mt-2 text-sm text-slate-500 font-medium">
                                     <span th:text="${#numbers.formatInteger(o.price, 0, 'COMMA')} + '원'" class="text-slate-700 font-bold">15,000원</span>
                                     <span class="mx-1">·</span>
@@ -156,25 +160,12 @@
             <!-- 목록이 없을 때 -->
             <div th:if="${orders == null or orders.isEmpty()}" class="premium-card p-12 text-center">
                 <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                    <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                 </div>
                 <h3 class="text-lg font-bold text-slate-700">주문 내역이 없습니다.</h3>
                 <p class="text-slate-500 mt-2 text-sm">새로운 상품을 둘러보고 마음에 드는 상품을 주문해보세요.</p>
                 <a th:href="@{/}" class="inline-block mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">쇼핑하러 가기</a>
             </div>
-
-            <!-- 페이징 (퍼블리싱용 유지) -->
-            <nav th:if="${orders != null and !orders.isEmpty()}" class="flex items-center justify-center gap-2 mt-12 mb-8">
-                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                </a>
-                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-xl bg-amber-500 text-white font-bold shadow-sm shadow-amber-200">1</a>
-                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-colors">2</a>
-                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition-colors">3</a>
-                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                </a>
-            </nav>
         </section>
     </div>
 </main>

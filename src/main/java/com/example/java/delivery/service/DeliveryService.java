@@ -15,6 +15,7 @@ import com.example.java.delivery.entity.Hub;
 import com.example.java.delivery.repository.DeliveryHistoryRepository;
 import com.example.java.delivery.repository.DeliveryRepository;
 import com.example.java.delivery.repository.HubRepository;
+import com.example.java.common.util.SnowflakeIdGenerator;
 import com.example.java.orders.entity.Orders;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class DeliveryService {
     private final DeliveryHistoryRepository deliveryHistoryRepository;
     private final KakaoMapService kakaoMapService;
     private final HolidayService holidayService;
+    private final SnowflakeIdGenerator snowflakeIdGenerator;
     private final Random random = new Random();
 
 
@@ -142,12 +144,12 @@ public class DeliveryService {
         double hours = (distHQToMid / 60000.0) + (distMidToDest / 40000.0);
         LocalDateTime estimatedDate = dispatchAt.plusHours((int) Math.ceil(hours));
 
-        // 4. Generate unique tracking number based on orderType
+        // 4. Generate unique tracking number based on orderType using Snowflake
         String trackingPrefix = "ORD";
         if ("B2B".equalsIgnoreCase(orderType)) trackingPrefix = "B2B";
         else if ("B2C".equalsIgnoreCase(orderType)) trackingPrefix = "B2C";
         else if ("RETURN".equalsIgnoreCase(orderType)) trackingPrefix = "RET";
-        String trackingNumber = trackingPrefix + "-" + System.currentTimeMillis() + "-" + (1000 + random.nextInt(9000));
+        String trackingNumber = trackingPrefix + "-" + snowflakeIdGenerator.nextId();
 
         // 5. Save Delivery
         Delivery delivery = Delivery.builder()

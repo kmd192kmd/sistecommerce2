@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MyPageOrderDto {
+public class MyPageOrderListDto {
     private String orderDate;
     private String deliveryStatus;
     private String image;
@@ -19,4 +19,5 @@ public class MyPageOrderDto {
     private Integer price;
     private Integer qty;
     private String trackingNumber;
+    private Long productSeq;
 }

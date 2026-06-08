@@ -4,7 +4,6 @@ import static com.example.java.orders.entity.QOrders.orders;
 import static com.example.java.orders.entity.QOrderItem.orderItem;
 import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
-import static com.example.java.product.entity.QProductImage.productImage;
 import static com.example.java.delivery.entity.QDelivery.delivery;
 
 import java.time.format.DateTimeFormatter;
@@ -12,25 +11,22 @@ import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
-import com.example.java.mypage.dto.MyPageOrderDto;
-import com.example.java.product.entity.QProductImage;
+import com.example.java.mypage.dto.MyPageOrderListDto;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-public class MyPageQueryRepositoryImpl implements MyPageQueryRepository {
+public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository {
 
     private final JPAQueryFactory queryFactory;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
 
     @Override
-    public List<MyPageOrderDto> findOrdersByMemberSeq(Long memberSeq, String keyword) {
-        QProductImage subImage = new QProductImage("subImage");
+    public List<MyPageOrderListDto> findOrdersByMemberSeq(Long memberSeq, String keyword) {
 
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(orders.memberSeq.eq(memberSeq));
@@ -43,32 +39,18 @@ public class MyPageQueryRepositoryImpl implements MyPageQueryRepository {
                 .select(
                         orders.orderDate,
                         delivery.status,
-                        productImage.imageUrl,
+                        product.thumbnailUrl,
                         orderItem.productName,
                         orderItem.finalPrice,
                         orderItem.quantity,
-                        delivery.tracking_number
+                        delivery.tracking_number,
+                        product.seq
                 )
                 .from(orders)
                 .join(orderItem).on(orders.seq.eq(orderItem.orderSeq))
                 .join(options).on(orderItem.optionsSeq.eq(options.seq))
                 .join(product).on(options.product.seq.eq(product.seq))
                 .leftJoin(delivery).on(orders.seq.eq(delivery.orders.seq))
-                .leftJoin(productImage).on(
-                        productImage.productSeq.eq(product.seq)
-                                .and(productImage.thumbnailYn.eq("Y"))
-                                .and(productImage.status.eq("NORMAL"))
-                                .and(productImage.seq.eq(
-                                        JPAExpressions
-                                                .select(subImage.seq.min())
-                                                .from(subImage)
-                                                .where(
-                                                        subImage.productSeq.eq(product.seq),
-                                                        subImage.thumbnailYn.eq("Y"),
-                                                        subImage.status.eq("NORMAL")
-                                                )
-                                ))
-                )
                 .where(builder)
                 .orderBy(orders.seq.desc())
                 .fetch();
@@ -85,7 +67,7 @@ public class MyPageQueryRepositoryImpl implements MyPageQueryRepository {
                         deliveryStatus = "배송준비중";
                     }
 
-                    String imageUrl = row.get(productImage.imageUrl);
+                    String imageUrl = row.get(product.thumbnailUrl);
                     if (imageUrl == null || imageUrl.trim().isEmpty()) {
                         imageUrl = "/images/default-product.png";
                     }
@@ -95,7 +77,7 @@ public class MyPageQueryRepositoryImpl implements MyPageQueryRepository {
                         trackingNum = "발급대기";
                     }
 
-                    return MyPageOrderDto.builder()
+                    return MyPageOrderListDto.builder()
                             .orderDate(orderDateStr)
                             .deliveryStatus(deliveryStatus)
                             .image(imageUrl)
@@ -103,6 +85,7 @@ public class MyPageQueryRepositoryImpl implements MyPageQueryRepository {
                             .price(row.get(orderItem.finalPrice))
                             .qty(row.get(orderItem.quantity))
                             .trackingNumber(trackingNum)
+                            .productSeq(row.get(product.seq))
                             .build();
                 })
                 .toList();
