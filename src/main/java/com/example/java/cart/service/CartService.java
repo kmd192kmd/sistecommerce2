@@ -4,12 +4,16 @@ import com.example.java.cart.dto.CartDto;
 import com.example.java.cart.entity.Cart;
 import com.example.java.cart.repository.CartLogRepository;
 import com.example.java.cart.repository.CartRepository;
+import com.example.java.member.entity.Member;
+import com.example.java.member.repository.MemberRepository;
 import com.example.java.product.entity.Options;
 import com.example.java.product.entity.Product;
+import com.example.java.product.repository.OptionsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +23,8 @@ import java.util.stream.Collectors;
 public class CartService {
     private final CartRepository cartRepository;
     private final CartLogRepository cartLogRepository;
+    private final MemberRepository memberRepository;
+    private final OptionsRepository optionsRepository;
 
     public List<CartDto> list(Long memberSeq) {
         return cartRepository.findByMember_Seq(memberSeq).stream()
@@ -43,5 +49,22 @@ public class CartService {
                 .additionalPrice(options.getAdditionalPrice())
                 .stock(options.getStock())
                 .build();
+    }
+
+    @Transactional
+    public void addCart(CartDto cartDto) {
+
+        Member member = memberRepository.getReferenceById(cartDto.getMemberSeq());
+        Options options = optionsRepository.getReferenceById(cartDto.getOptionsSeq());
+
+        Cart cart = Cart.builder()
+                .member(member)
+                .options(options)
+                .quantity(cartDto.getQuantity())
+                .createdDate(LocalDate.now())
+                .build();
+
+        cartRepository.save(cart);
+
     }
 }
