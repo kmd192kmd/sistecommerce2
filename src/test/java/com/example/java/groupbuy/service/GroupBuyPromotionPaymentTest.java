@@ -103,6 +103,15 @@ class GroupBuyPromotionPaymentTest {
         return rows.isEmpty() ? null : rows.get(0).getStatus();
     }
 
+    /** 대기열(waiting_queue) 행을 직접 INSERT (만료 시 승격 대상 구성용). */
+    private void insertWaiting(long gbSeq, long optSeq, long memberSeq) {
+        jdbc.update("""
+                INSERT INTO waiting_queue (seq, group_buy_seq, group_buy_options_seq, member_seq, created_at)
+                VALUES (waiting_queue_seq.NEXTVAL, ?, ?, ?, ?)
+                """,
+                gbSeq, optSeq, memberSeq, Timestamp.valueOf(LocalDateTime.now()));
+    }
+
     @Test
     void 승격자가_기한내_결제하면_참여중으로_확정되고_점유는_그대로다() {
         // given: 정원 1 공구. 그 1자리는 이미 승격자가 점유(occupied=1) + 결제대기 participation
@@ -151,5 +160,28 @@ class GroupBuyPromotionPaymentTest {
                 .hasMessageContaining("결제 대기");
 
         verify(paymentPort, times(0)).pay(eq(9L), anyInt());
+    }
+
+    @Test
+    void 결제기한_만료자는_EXPIRED되고_점유반납후_다음대기자가_승격된다() {
+        // given: 정원1(이미 점유). member9가 결제대기인데 기한 지남 + 대기열에 member10
+        long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
+        long gb = ids[0], opt = ids[1];
+        insertPaymentPending(gb, opt, 9L, LocalDateTime.now().minusMinutes(1)); // 기한 지남
+        insertWaiting(gb, opt, 10L);                                            // 대기열 1명
+
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
+
+        // when: 만료 처리 (스케줄러가 호출하는 서비스 메서드)
+        groupBuyService.expirePromotion(pSeq);
+
+        // then: 9번 EXPIRED / 10번 승격 / 점유 유지 / 환불 없음(결제 전이었으므로)
+        assertThat(statusOf(gb, 9L)).as("기한 만료자는 EXPIRED").isEqualTo(ParticipationStatus.EXPIRED);
+        assertThat(statusOf(gb, 10L)).as("같은 옵션 다음 대기자가 승격").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
+
+        GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
+        assertThat(after.getOccupiedCount()).as("점유 유지 (release -1 + 승격 +1 = 0)").isEqualTo(1);
+
+        verify(paymentPort, times(0)).cancel(eq(9L), anyInt()); // 결제 전이라 환불 없음
     }
 }

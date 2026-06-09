@@ -285,21 +285,27 @@ public class GroupBuyService {
         // 6) 점유 복구: 이 자리를 비운다 (occupied_count -1)
         option.release();
 
-        // 7) 같은 옵션 대기열 FIFO(created_at 최소) 1명 자동 승격 (NFR-002 공정성)
+        // 7) 같은 옵션 대기열 FIFO 1명 자동 승격 (있으면). 취소·만료가 공유하는 로직.
+        promoteNextWaiting(option, groupBuy, now);
+    }
+
+    /**
+     * 같은 옵션 대기열의 FIFO(created_at 최소) 1명을 결제대기(PAYMENT_PENDING)로 승격시킨다 (대기자가 있으면).
+     * 취소(cancel)·결제기한 만료(expirePromotion)에서 공통으로 호출한다 (NFR-002 공정성).
+     *
+     * 전제: 호출 전에 release()로 자리가 1개 비어 있어야 occupy()가 성공한다
+     *       (release -1 → 승격 occupy +1 = 순증감 0: 빈자리를 승격자가 그대로 이어받음).
+     *
+     * 승격자는 아직 결제 전이라 PAYMENT_PENDING으로만 INSERT하고 orders/payment는 만들지 않는다
+     * (승격자가 실제 결제할 때 한 트랜잭션으로 생성). 결제기한은 min(now + T_pay, 마감)으로 잘라
+     * 마감을 절대 넘기지 않게 한다(불변조건 T_lock >= T_pay).
+     */
+    private void promoteNextWaiting(GroupBuyOptions option, GroupBuy groupBuy, LocalDateTime now) {
         waitingQueueRepository.findFirstByGroupBuyOptionsOrderByCreatedAtAsc(option)
                 .ifPresent(next -> {
-                    // 방금 release로 한 자리 났으므로 occupy는 성공한다.
-                    // (release -1 → occupy +1 = 순증감 0: 빈자리를 승격자가 그대로 이어받음)
-                    option.occupy();
+                    option.occupy();                     // 빈자리 점유
+                    waitingQueueRepository.delete(next); // 대기 이탈 = 행 삭제
 
-                    // 대기 이탈 = 행 삭제 (waiting_queue엔 status 컬럼이 없다)
-                    waitingQueueRepository.delete(next);
-
-                    // 승격자는 아직 결제 전이므로 PAYMENT_PENDING(결제대기)으로 INSERT.
-                    // 이 시점엔 orders/payment를 만들지 않는다 
-                    // -> 승격자가 실제 결제할 때 한 트랜잭션으로 생성.
-                    // 결제기한 = min(now + T_pay, 마감) : 
-                    // 마감을 절대 넘기지 않게 잘라준다(불변조건).
                     LocalDateTime deadline = now.plusHours(PROMOTION_PAY_HOURS);
                     if (deadline.isAfter(groupBuy.getEndAt())) {
                         deadline = groupBuy.getEndAt();
@@ -371,6 +377,55 @@ public class GroupBuyService {
 
         // 6) 확정: PAYMENT_PENDING → PARTICIPATING. occupied_count는 이미 점유돼 있어 변동 없음.
         participation.confirmPayment();
+    }
+
+    /**
+     * 승격자 결제기한 만료 처리 (스케줄러가 만료 대상마다 1건씩 호출).
+     *
+     * 결제대기(PAYMENT_PENDING) 상태로 결제기한을 넘긴 승격자를 EXPIRED로 만들고,
+     * 점유를 복구(release)한 뒤 같은 옵션의 다음 대기자를 승격시킨다.
+     * 승격자는 결제 전이라 환불은 없다.
+     *
+     * 흐름:
+     *  1) participation 조회 (스케줄러가 넘긴 seq)
+     *  2) 옵션 행 락 → 결제(confirmPromotedPayment)·취소와 직렬화
+     *  3) refresh 상태 재확인 → 그 사이 결제 완료(PARTICIPATING)됐으면 만료 안 함 (경쟁 방어)
+     *  4) 기한 재확인 (조회 시점 이후 변화 방어)
+     *  5) EXPIRED 전이 + 점유 복구(release) + 다음 대기자 승격
+     *
+     * @param participationSeq 만료시킬 결제대기 참여 seq
+     */
+    @Transactional
+    public void expirePromotion(Long participationSeq) {
+        Participation participation = participationRepository.findById(participationSeq).orElse(null);
+        if (participation == null) {
+            return; // 이미 사라진 경우 — 무시
+        }
+
+        // 2) 옵션 행 비관적 락 (결제/취소와 같은 행 경쟁을 직렬화)
+        GroupBuyOptions option = groupBuyOptionsRepository
+                .findBySeqForUpdate(participation.getGroupBuyOptions().getSeq())
+                .orElseThrow(() -> new IllegalStateException("옵션을 찾을 수 없습니다."));
+
+        // 3) 락 획득 후 상태 재확인: 락 대기 중 승격자가 결제를 끝냈을 수 있다.
+        //    PAYMENT_PENDING이 아니면 만료시키지 않는다 (결제 완료자를 만료시키는 사고 방지).
+        entityManager.refresh(participation);
+        if (participation.getStatus() != ParticipationStatus.PAYMENT_PENDING) {
+            return;
+        }
+
+        // 4) 기한 재확인 (스케줄러 조회 후 시점까지의 안전장치)
+        LocalDateTime now = LocalDateTime.now();
+        if (participation.getPaymentDeadline() == null || !now.isAfter(participation.getPaymentDeadline())) {
+            return; // 아직 기한 안 지남 → 만료 보류
+        }
+
+        GroupBuy groupBuy = option.getGroupBuy();
+
+        // 5) 만료 확정 + 점유 복구 + 다음 대기자 승격 (환불 없음 — 승격자는 결제 전)
+        participation.expire();          // status → EXPIRED
+        option.release();                // occupied_count -1 (자리 반납)
+        promoteNextWaiting(option, groupBuy, now); // 같은 옵션 FIFO 다음 1명 승격
     }
 
     /** 공구 목록 조회. */

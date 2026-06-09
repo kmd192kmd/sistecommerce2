@@ -39,4 +39,4 @@ ON participation (
   CASE WHEN status IN ('CANCELLED','FAILED','EXPIRED') THEN NULL ELSE member_seq END
 );
 
-commit ;
+select * from PARTICIPATION;
