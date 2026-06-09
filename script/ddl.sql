@@ -1252,4 +1252,3 @@ ALTER TABLE memberships MODIFY (
 
 alter table cart Drop column update_date;
 
-select * from cart;
