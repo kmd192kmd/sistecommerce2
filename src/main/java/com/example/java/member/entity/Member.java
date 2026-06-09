@@ -85,5 +85,11 @@ public class Member {
 
     @Column(name = "login_type", nullable = false)
     private String loginType;
-	
+
+    public void updateProfile(String nickname, String email, String phone) {
+        this.nickname  = nickname;
+        this.email     = email;
+        this.phone     = phone;
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
 }
