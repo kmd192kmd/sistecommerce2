@@ -145,11 +145,21 @@
         </div>
 
         <!-- 상품 상세 설명 영역 -->
-        <div id="detailSection" class="p-8 text-sm text-gray-700 leading-relaxed min-h-[300px]">
-            <p th:text="*{content}">
-                상품 상세 설명
-            </p>
-        </div>
+		<!--
+		    product.content 안에는 상품 등록 화면에서 작성한 HTML이 들어 있습니다.
+
+		    예:
+		    <img src="...">
+		    <br>
+		    <p>상품 설명</p>
+
+		    th:text를 사용하면 HTML 태그가 문자 그대로 출력됩니다.
+		    th:utext를 사용해야 HTML 태그가 실제 태그로 해석되어
+		    이미지와 줄바꿈이 화면에 정상 표시됩니다.
+		-->
+		<div th:utext="${product.content}">
+		    상품 상세 설명
+		</div>
 
         <!-- 상품평 영역 -->
         <div id="reviewSection" class="hidden p-8 min-h-[300px]">

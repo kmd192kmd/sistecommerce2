@@ -30,6 +30,13 @@
                 <label class="flex items-center gap-1 cursor-pointer">
                     <input type="radio"
                            name="approvalStatus"
+                           value="ALL"
+                           th:checked="${approvalStatus == 'ALL'}">
+                    <span>전체</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                    <input type="radio"
+                           name="approvalStatus"
                            value=""
                            th:checked="${approvalStatus == null or approvalStatus == ''}">
                     <span>승인 대기</span>
@@ -51,13 +58,6 @@
                     <span>반려</span>
                 </label>
 
-                <label class="flex items-center gap-1 cursor-pointer">
-                    <input type="radio"
-                           name="approvalStatus"
-                           value="ALL"
-                           th:checked="${approvalStatus == 'ALL'}">
-                    <span>전체</span>
-                </label>
             </div>
 
             <!-- 기간 검색 -->
@@ -135,6 +135,41 @@
                        placeholder="검색어를 입력하세요."
                        class="h-9 flex-1 max-w-xl border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:border-gray-500">
 
+                <!--
+                    판매자가 상품 목록을 정렬할 수 있는 선택 박스입니다.
+
+                    정렬 조건:
+                    - 판매량순
+                    - 최신순
+                    - 가격순
+                    - 별점순
+
+                    선택값은 GET 파라미터 sortType으로 Controller에 전달됩니다.
+                -->
+                <select name="sortType"
+                        id="sortTypeSelect"
+                        class="h-9 w-28 border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:border-gray-500">
+                    <option value="salesDesc"
+                            th:selected="${sortType == 'salesDesc'}">
+                        판매량순
+                    </option>
+
+                    <option value="latestDesc"
+                            th:selected="${sortType == null or sortType == 'latestDesc'}">
+                        최신순
+                    </option>
+
+                    <option value="priceAsc"
+                            th:selected="${sortType == 'priceAsc'}">
+                        가격순
+                    </option>
+
+                    <option value="ratingDesc"
+                            th:selected="${sortType == 'ratingDesc'}">
+                        별점순
+                    </option>
+                </select>
+
                 <button type="submit"
                         class="h-9 px-5 bg-black text-white text-xs font-bold hover:bg-gray-800">
                     검색
@@ -209,23 +244,23 @@
                 </td>
 
                 <td>
-                    <span th:if="${product.approvalStatus == 'PENDING'}"
+                    <span th:if="${product.requestStatus == 'PENDING'}"
                           class="text-gray-700 font-bold">
                         승인대기
                     </span>
 
-                    <span th:if="${product.approvalStatus == 'APPROVED'}"
+                    <span th:if="${product.requestStatus == 'APPROVED'}"
                           class="text-blue-600 font-bold">
                         승인
                     </span>
 
-                    <span th:if="${product.approvalStatus == 'REJECTED'}"
+                    <span th:if="${product.requestStatus == 'REJECTED'}"
                           class="text-red-500 font-bold">
                         반려
                     </span>
                 </td>
 
-                <td class="text-left px-4"
+                <td class="text-center px-4"
                     th:text="${product.productName}">
                     상품명
                 </td>
@@ -260,14 +295,17 @@
                 </td>
 
                 <td>
+                    <!--
+                        반려 사유도 product_request 기준으로 확인합니다.
+                    -->
                     <button type="button"
-                            th:if="${product.approvalStatus == 'REJECTED'}"
+                            th:if="${product.requestStatus == 'REJECTED'}"
                             class="reject-reason-btn bg-black text-white text-xs px-4 py-1.5 hover:bg-gray-800"
                             th:data-reject-reason="${product.rejectReason}">
                         사유보기
                     </button>
 
-                    <span th:unless="${product.approvalStatus == 'REJECTED'}"
+                    <span th:unless="${product.requestStatus == 'REJECTED'}"
                           class="text-gray-300">
                         -
                     </span>
@@ -297,7 +335,7 @@
     <nav class="bg-gray-200 py-5 flex items-center justify-center gap-2 text-xs">
 
         <a th:if="${page > 1}"
-           th:href="@{/products/manage(page=${page - 1}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword})}"
+           th:href="@{/products/manage(page=${page - 1}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword}, sortType=${sortType})}"
            class="px-2 py-1 text-gray-500 hover:text-black">
             ← Previous
         </a>
@@ -308,7 +346,7 @@
         </span>
 
         <a th:each="pageNum : ${#numbers.sequence(startPage, endPage)}"
-           th:href="@{/products/manage(page=${pageNum}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword})}"
+           th:href="@{/products/manage(page=${pageNum}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword}, sortType=${sortType})}"
            th:text="${pageNum}"
            th:classappend="${pageNum == page} ? 'bg-black text-white' : 'text-gray-600 hover:bg-white'"
            class="w-7 h-7 flex items-center justify-center">
@@ -316,7 +354,7 @@
         </a>
 
         <a th:if="${page < totalPage}"
-           th:href="@{/products/manage(page=${page + 1}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword})}"
+           th:href="@{/products/manage(page=${page + 1}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword}, sortType=${sortType})}"
            class="px-2 py-1 text-gray-500 hover:text-black">
             Next →
         </a>
@@ -389,6 +427,21 @@
             document.getElementById('searchForm').submit();
         });
     });
+
+    /*
+        정렬 조건을 바꾸면 자동으로 검색 form을 제출합니다.
+
+        예:
+        판매량순 선택
+        → /products/manage?sortType=salesDesc 로 다시 조회
+    */
+    const sortTypeSelect = document.getElementById('sortTypeSelect');
+
+    if (sortTypeSelect) {
+        sortTypeSelect.addEventListener('change', function () {
+            document.getElementById('searchForm').submit();
+        });
+    }
 
     /*
         기간 버튼 클릭

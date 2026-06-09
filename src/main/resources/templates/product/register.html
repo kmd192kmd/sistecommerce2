@@ -54,6 +54,19 @@
               method="post"
               action="/api/product/register"
               enctype="multipart/form-data">
+			  
+		    <!--
+		        추가된 부분
+
+		        상품을 등록하는 판매자 번호입니다.
+
+		        실제 로그인 기능과 연결되어 있다면
+		        Controller에서 model.addAttribute("sellerSeq", 로그인한 판매자 번호);
+		        형태로 내려주고 th:value="${sellerSeq}"를 사용합니다.
+		    -->
+		    <input type="hidden"
+		           name="sellerSeq"
+		           th:value="11">
 
             <div class="grid grid-cols-[180px_1fr] gap-8">
 
@@ -917,27 +930,47 @@
             .replaceAll("'", '&#039;');
     }
 
-    /*
-        상품 등록 전 처리
-    */
-    productRegisterForm.addEventListener('submit', function (event) {
-        if (!categorySeqInput.value) {
-            event.preventDefault();
-            alert('카테고리를 선택해주세요.');
-            return;
-        }
+	/*
+	    상품 등록 전 처리
 
-        if (mainImageInput.files.length === 0) {
-            event.preventDefault();
-            alert('대표 이미지를 등록해주세요.');
-            return;
-        }
-		
-		const selectedOptionCount = document.querySelectorAll('.option-type-checkbox:checked').length;
+	    수정된 부분:
+	    기존에는 form이 /api/product/register로 직접 이동하면서
+	    서버가 반환한 JSON 응답이 화면에 그대로 표시되었습니다.
+
+	    이제는 기본 submit을 막고 fetch로 등록 요청을 보냅니다.
+
+	    처리 흐름:
+	    1. 입력값 검증
+	    2. 상세 설명 HTML을 hidden input에 넣기
+	    3. FormData 생성
+	    4. /api/product/register로 비동기 요청
+	    5. 성공하면 alert 표시
+	    6. 상품 관리 페이지로 이동
+	*/
+	productRegisterForm.addEventListener('submit', async function (event) {
+
+	    /*
+	        수정된 부분:
+	        form 기본 제출을 먼저 막습니다.
+
+	        이 코드가 있어야 JSON 응답 화면으로 이동하지 않습니다.
+	    */
+	    event.preventDefault();
+
+	    if (!categorySeqInput.value) {
+	        alert('카테고리를 선택해주세요.');
+	        return;
+	    }
+
+	    if (mainImageInput.files.length === 0) {
+	        alert('대표 이미지를 등록해주세요.');
+	        return;
+	    }
+
+	    const selectedOptionCount = document.querySelectorAll('.option-type-checkbox:checked').length;
 
 	    if (selectedOptionCount === 0) {
 	        if (!stockInput.value || Number(stockInput.value) < 0) {
-	            event.preventDefault();
 	            alert('상품 수량을 입력해주세요.');
 	            return;
 	        }
@@ -945,22 +978,89 @@
 	        updateTotalStockFromOptions();
 
 	        if (Number(stockInput.value) < 1) {
-	            event.preventDefault();
 	            alert('옵션 재고를 1개 이상 입력해주세요.');
 	            return;
 	        }
 	    }
 
-        const contentHtml = detailEditor.innerHTML.trim();
+	    const contentHtml = detailEditor.innerHTML.trim();
 
-        if (!contentHtml) {
-            event.preventDefault();
-            alert('상품 상세 설명을 입력해주세요.');
-            return;
-        }
+	    if (!contentHtml) {
+	        alert('상품 상세 설명을 입력해주세요.');
+	        return;
+	    }
 
-        contentInput.value = contentHtml;
-    });
+	    contentInput.value = contentHtml;
+
+	    /*
+	        추가된 부분:
+	        중복 클릭 방지를 위해 등록 버튼을 잠시 비활성화합니다.
+	    */
+	    const submitButton = productRegisterForm.querySelector('button[type="submit"]');
+	    submitButton.disabled = true;
+	    submitButton.textContent = '등록 중...';
+
+	    try {
+	        /*
+	            추가된 부분:
+	            현재 form 안의 모든 입력값과 파일을 FormData로 묶습니다.
+
+	            enctype="multipart/form-data"와 같은 역할을 fetch에서 처리합니다.
+	        */
+	        const formData = new FormData(productRegisterForm);
+
+	        const response = await fetch('/api/product/register', {
+	            method: 'POST',
+	            body: formData
+	        });
+
+	        /*
+	            추가된 부분:
+	            서버에서 오류가 오면 오류 메시지를 alert로 보여줍니다.
+	        */
+	        if (!response.ok) {
+	            const errorMessage = await response.text();
+	            alert(errorMessage || '상품 등록 중 오류가 발생했습니다.');
+	            return;
+	        }
+
+	        /*
+	            추가된 부분:
+	            서버가 보내준 JSON 응답을 읽습니다.
+	        */
+	        const result = await response.json();
+
+	        /*
+	            추가된 부분:
+	            밤밤티 알림처럼 사용자에게 성공 메시지를 보여줍니다.
+	        */
+	        alert(result.message || '상품 등록 요청이 관리자에게 전송되었습니다.');
+
+	        /*
+	            추가된 부분:
+	            등록 성공 후 상품 관리 페이지로 이동합니다.
+	            이동할 주소가 다르면 여기만 바꾸면 됩니다.
+	        */
+	        window.location.href = '/products/manage';
+
+	    } catch (error) {
+
+	        /*
+	            추가된 부분:
+	            네트워크 오류나 예상하지 못한 오류 처리입니다.
+	        */
+	        alert('상품 등록 중 오류가 발생했습니다.');
+
+	    } finally {
+
+	        /*
+	            추가된 부분:
+	            오류가 나서 페이지 이동을 하지 않는 경우 버튼을 다시 활성화합니다.
+	        */
+	        submitButton.disabled = false;
+	        submitButton.textContent = '등록';
+	    }
+	});
 </script>
 
 </body>
