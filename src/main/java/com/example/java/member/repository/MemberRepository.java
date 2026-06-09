@@ -1,5 +1,6 @@
 package com.example.java.member.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,5 +13,6 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
 	boolean existsByUsername(String username);
 
 	boolean existsByNickname(String nickname);
-	
+
+	List<Member> findByNameAndEmail(String name, String email);
 }
