@@ -1087,7 +1087,7 @@ COMMENT ON COLUMN restock_notification.created_date IS '알림 신청일';
 COMMENT ON COLUMN participation.group_buy_seq IS '어떤 공동구매인지 식별';
 COMMENT ON COLUMN participation.group_buy_options_seq IS '공동 구매 상품의 어떤 옵션인지 식별';
 COMMENT ON COLUMN participation.member_seq IS '공동 구매에 참여한 회원';
-COMMENT ON COLUMN participation.status IS '결제 대기(PAYMENT_PENDING) / 참여 중(PARTICIPATING) / 참여 확정(CONFIRMED) / 취소(CANCELLED) / 무산(FAILED)';
+COMMENT ON COLUMN participation.status IS '결제 대기(PAYMENT_PENDING) / 참여 중(PARTICIPATING) / 참여 확정(CONFIRMED) / 취소(CANCELLED) / 무산(FAILED) / 만료(EXPIRED, 승격 후 결제기한 미결제로 자격 소멸)';
 COMMENT ON COLUMN participation.payment_deadline IS '대기열의 첫 번째 사용자가 승격되었을 때 결제할 수 있는 시간(승격시각 이후 24시간), 마감 기한이 도래하면 즉시 만료';
 COMMENT ON COLUMN participation.promoted_at IS '대기열의 첫 번째 사용자가 승격된 시각';
 COMMENT ON COLUMN participation.created_at IS '참여 또는 승격된 시각';

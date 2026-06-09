@@ -22,9 +22,21 @@ ALTER TABLE waiting_queue ADD CONSTRAINT UQ_waiting_queue_member
 UNIQUE (group_buy_options_seq, member_seq);
 
 -- 4. participation: 한 사람이 같은 공구에 활성 상태로 중복 참여 방지
---    CANCELLED/FAILED는 NULL 처리해 인덱스에서 제외 → 취소 후 재참여 허용
+--    CANCELLED/FAILED/EXPIRED는 NULL 처리해 인덱스에서 제외 → 취소·무산·만료 후 재참여 허용
+--    (EXPIRED = 승격 후 결제기한 미결제로 자격 소멸. 결제 놓친 사람도 다시 참여 가능해야 하므로 제외)
 CREATE UNIQUE INDEX UQ_participation_active
 ON participation (
-  CASE WHEN status IN ('CANCELLED','FAILED') THEN NULL ELSE group_buy_seq END,
-  CASE WHEN status IN ('CANCELLED','FAILED') THEN NULL ELSE member_seq END
+  CASE WHEN status IN ('CANCELLED','FAILED','EXPIRED') THEN NULL ELSE group_buy_seq END,
+  CASE WHEN status IN ('CANCELLED','FAILED','EXPIRED') THEN NULL ELSE member_seq END
 );
+
+-- UQ_participation_active 재생성: EXPIRED도 인덱스에서 제외 (만료자 재참여 허용)
+DROP INDEX UQ_participation_active;
+
+CREATE UNIQUE INDEX UQ_participation_active
+ON participation (
+  CASE WHEN status IN ('CANCELLED','FAILED','EXPIRED') THEN NULL ELSE group_buy_seq END,
+  CASE WHEN status IN ('CANCELLED','FAILED','EXPIRED') THEN NULL ELSE member_seq END
+);
+
+commit ;

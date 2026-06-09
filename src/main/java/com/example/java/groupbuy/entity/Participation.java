@@ -80,4 +80,14 @@ public class Participation {
     public void confirmPayment() {
         this.status = ParticipationStatus.PARTICIPATING;
     }
+
+    /**
+     * 승격자 결제기한 만료: PAYMENT_PENDING → EXPIRED.
+     * 결제기한 내 결제하지 않아 자격이 소멸된 경우(스케줄러가 호출).
+     * 점유(occupied_count) 복구와 다음 대기자 승격은 서비스에서 별도로 처리한다.
+     * EXPIRED는 활성 참여가 아니므로(중복참여 검사·UNIQUE 제약에서 제외) 같은 공구 재참여가 가능하다.
+     */
+    public void expire() {
+        this.status = ParticipationStatus.EXPIRED;
+    }
 }
