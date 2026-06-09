@@ -26,14 +26,13 @@ public class MyReviewController {
 
     /**
      * 내가 쓴 리뷰 목록
-     * TODO: 구현 예정
      */
     @GetMapping
     public String getMyReviews(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Model model) {
 
-        // TODO: 구현 예정
+        model.addAttribute("reviews", myReviewService.getMyReviews(userDetails.getMemberSeq()));
         return "mypage/reviews";
     }
 

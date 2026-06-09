@@ -665,12 +665,45 @@ public class ReviewRepository {
         내가 쓴 리뷰 목록 조회 (마이페이지용)
 
         회원 번호로 본인이 작성한 NORMAL 상태의 리뷰를 최신순으로 조회합니다.
-        상품명과 대표 이미지를 함께 가져옵니다.
-
-        TODO: 구현 예정
+        상품명과 thumbnail_yn = 'Y' 인 대표 이미지를 함께 가져옵니다.
     */
     public List<com.example.java.mypage.dto.MyReviewDto> findMyReviews(Long memberSeq) {
-        // TODO: 구현 예정
-        throw new UnsupportedOperationException("findMyReviews 미구현");
+
+        String sql = """
+                SELECT
+                    r.seq           AS review_seq,
+                    r.product_seq,
+                    p.product_name,
+                    (SELECT pi.image_url
+                       FROM product_image pi
+                      WHERE pi.product_seq = p.seq
+                        AND pi.thumbnail_yn = 'Y'
+                        AND pi.status = 'NORMAL'
+                        AND ROWNUM = 1) AS product_image_url,
+                    r.rating,
+                    r.content,
+                    r.created_date,
+                    r.updated_date
+                FROM review r
+                INNER JOIN product p ON r.product_seq = p.seq
+                WHERE r.member_seq = :memberSeq
+                  AND r.status = 'NORMAL'
+                ORDER BY r.seq DESC
+                """;
+
+        Map<String, Object> params = Map.of("memberSeq", memberSeq);
+
+        return namedParameterJdbcTemplate.query(sql, params, (rs, rowNum) ->
+                com.example.java.mypage.dto.MyReviewDto.builder()
+                        .reviewSeq(rs.getLong("review_seq"))
+                        .productSeq(rs.getLong("product_seq"))
+                        .productName(rs.getString("product_name"))
+                        .productImageUrl(rs.getString("product_image_url"))
+                        .rating(rs.getInt("rating"))
+                        .content(rs.getString("content"))
+                        .createdDate(toLocalDateTime(rs.getTimestamp("created_date")))
+                        .updatedDate(toLocalDateTime(rs.getTimestamp("updated_date")))
+                        .build()
+        );
     }
 }
