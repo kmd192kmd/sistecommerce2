@@ -92,4 +92,8 @@ public class Member {
         this.phone     = phone;
         this.updatedAt = java.time.LocalDateTime.now();
     }
+    
+    public void changeStatus(Integer status) {
+        this.status = status;
+    }
 }
