@@ -30,6 +30,8 @@ public class SecurityConfig {
                 
                 //주문 페이지 로그인 필요
                 .requestMatchers("/order/**").authenticated()
+
+                .requestMatchers("/payments/**").permitAll()
                 
                 // TODO 개발용으로 모두허용 (나중에 없애야)
                 .anyRequest().permitAll()

@@ -15,6 +15,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+
 
 @Controller
 @RequiredArgsConstructor
@@ -23,6 +28,16 @@ public class OrdersController {
     private final OrdersViewService ordersViewService;
     private final OrdersCommandService ordersCommandService;
     private final MemberRepository memberRepository;
+
+    @Value("${toss.client-key}")
+    private String tossClientKey;
+
+    @Value("${toss.success-url}")
+    private String tossSuccessUrl;
+
+    @Value("${toss.fail-url}")
+    private String tossFailUrl;
+
 
     /**
      * 주문/결제 화면
@@ -53,6 +68,10 @@ public class OrdersController {
         model.addAttribute("order", ordersViewService.getOrderPreview());
         model.addAttribute("createdOrderUid", createdOrderUid);
 
+        model.addAttribute("tossClientKey", tossClientKey);
+        model.addAttribute("tossSuccessUrl", tossSuccessUrl);
+        model.addAttribute("tossFailUrl", tossFailUrl);
+
         return "order/checkout";
     }
 
@@ -62,21 +81,16 @@ public class OrdersController {
      * 현재 로그인한 회원의 member.seq를 조회해서 orders.member_seq에 저장한다.
      */
     @PostMapping("/order/checkout")
-    public String prepareCheckout(CheckoutRequestDto requestDto,
-                                  Authentication authentication) {
+    @ResponseBody
+    public ResponseEntity<OrderCreateResultDto> prepareCheckout(CheckoutRequestDto requestDto,
+                                                                Authentication authentication) {
 
         Long memberSeq = getLoginMemberSeq(authentication);
 
         OrderCreateResultDto result =
                 ordersCommandService.createOrderFromCheckout(requestDto, memberSeq);
 
-        String redirectUrl = "redirect:/order/checkout?createdOrderUid=" + result.orderUid();
-
-        if (requestDto.getCouponSeq() != null) {
-            redirectUrl += "&couponSeq=" + requestDto.getCouponSeq();
-        }
-
-        return redirectUrl;
+        return ResponseEntity.ok(result);
     }
 
     /**
