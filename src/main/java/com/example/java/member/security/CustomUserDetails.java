@@ -8,24 +8,28 @@ import java.util.Map;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import com.example.java.member.entity.Member;
 
 import lombok.Getter;
 
 /**
- * 일반 로그인(UserDetails)과 소셜 로그인(OAuth2User) 모두 지원.
+ * 일반 로그인(UserDetails)과 Google OIDC 로그인(OidcUser) 모두 지원.
  * 컨트롤러에서 {@code @AuthenticationPrincipal CustomUserDetails}로 통일해서 사용 가능.
  */
 @Getter
-public class CustomUserDetails implements UserDetails, OAuth2User {
+public class CustomUserDetails implements UserDetails, OidcUser {
 
     private final Long memberSeq;
     private final String username;
     private final String password;
     private final String role;
     private final Map<String, Object> attributes;
+    private final OidcIdToken idToken;
+    private final OidcUserInfo userInfo;
 
     /** 일반 로그인용 */
     public CustomUserDetails(Member member) {
@@ -34,16 +38,26 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
         this.password   = member.getPassword();
         this.role       = member.getRole();
         this.attributes = Collections.emptyMap();
+        this.idToken    = null;
+        this.userInfo   = null;
     }
 
-    /** 소셜 로그인용 */
-    public CustomUserDetails(Member member, Map<String, Object> attributes) {
+    /** Google OIDC 로그인용 */
+    public CustomUserDetails(Member member, Map<String, Object> attributes,
+                              OidcIdToken idToken, OidcUserInfo userInfo) {
         this.memberSeq  = member.getSeq();
         this.username   = member.getUsername();
         this.password   = member.getPassword();
         this.role       = member.getRole();
         this.attributes = attributes;
+        this.idToken    = idToken;
+        this.userInfo   = userInfo;
     }
+
+    /** OidcUser */
+    @Override public Map<String, Object> getClaims() { return idToken != null ? idToken.getClaims() : Collections.emptyMap(); }
+    @Override public OidcUserInfo getUserInfo() { return userInfo; }
+    @Override public OidcIdToken getIdToken() { return idToken; }
 
     /** OAuth2User */
     @Override

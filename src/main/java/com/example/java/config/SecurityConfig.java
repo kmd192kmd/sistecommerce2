@@ -57,7 +57,7 @@ public class SecurityConfig {
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/member/login")           // 소셜 로그인도 같은 로그인 페이지 사용
                 .userInfoEndpoint(userInfo -> userInfo
-                    .userService(customOAuth2UserService)
+                    .oidcUserService(customOAuth2UserService) // Google은 OIDC 프로토콜 사용
                 )
                 .successHandler(oauth2SuccessHandler)
                 .failureHandler(oauth2FailureHandler)

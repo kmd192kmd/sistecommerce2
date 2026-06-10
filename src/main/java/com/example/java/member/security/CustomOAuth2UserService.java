@@ -2,10 +2,10 @@ package com.example.java.member.security;
 
 import java.util.Map;
 
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,16 +18,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+public class CustomOAuth2UserService extends OidcUserService {
 
     private final MemberRepository memberRepository;
 
     @Override
     @Transactional
-    public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
+    public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
 
-        OAuth2User oAuth2User = super.loadUser(userRequest);
-        Map<String, Object> attributes = oAuth2User.getAttributes();
+        OidcUser oidcUser = super.loadUser(userRequest);
+        Map<String, Object> attributes = oidcUser.getAttributes();
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId(); // "google"
         OAuth2UserInfo userInfo = resolveUserInfo(registrationId, attributes);
@@ -47,9 +47,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     );
                 });
 
-        log.debug("소셜 로그인: {} ({})", username, registrationId);
+        log.debug("구글 OIDC 로그인: {}", username);
 
-        return new CustomUserDetails(member, attributes);
+        return new CustomUserDetails(member, attributes, oidcUser.getIdToken(), oidcUser.getUserInfo());
     }
 
     private OAuth2UserInfo resolveUserInfo(String registrationId, Map<String, Object> attributes) {
