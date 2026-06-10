@@ -25,11 +25,11 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    private static final List<Long> TEST_OPTIONS_SEQS = List.of(2158L, 2159L);
+    private static final List<Long> TEST_OPTIONS_SEQS = List.of(3312L, 3361L);
 
     private static final Map<Long, Integer> TEST_QUANTITY_MAP = Map.of(
-            2158L, 1,
-            2159L, 2
+    		3312L, 1,
+            3361L, 1
     );
 
     private static final long TEST_RATE_COUPON_SEQ = 80L;

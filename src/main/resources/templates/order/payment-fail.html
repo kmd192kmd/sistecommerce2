@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('결제 실패')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="max-w-screen-wide mx-auto px-4 mt-16 pb-32">
+    <section class="bg-white border border-gray-200 p-10 text-center">
+        <h1 class="text-2xl font-black text-red-600">결제에 실패했습니다.</h1>
+
+        <p class="mt-4 text-sm text-gray-600">
+            주문번호:
+            <span class="font-bold" th:text="${orderId}">GM-0000</span>
+        </p>
+
+        <p class="mt-2 text-sm text-gray-600">
+            오류코드:
+            <span class="font-bold" th:text="${code}">ERROR</span>
+        </p>
+
+        <p class="mt-1 text-sm text-gray-600" th:text="${message}">
+            결제 실패 메시지
+        </p>
+
+        <a href="/order/checkout"
+           class="inline-block mt-8 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black px-6 py-3">
+            다시 결제하기
+        </a>
+    </section>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+</html>
