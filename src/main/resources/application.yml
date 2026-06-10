@@ -32,6 +32,16 @@ spring:
   jackson:
     time-zone: Asia/Seoul
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  session:
+    store-type: redis
+    redis:
+      namespace: shop:session   # 다른 도메인 Redis 키와 충돌 방지
+
   security:
     oauth2:
       client:
