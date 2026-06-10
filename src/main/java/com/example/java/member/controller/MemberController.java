@@ -25,7 +25,12 @@ public class MemberController {
     private final MemberSignupService memberSignupService;
 
     @GetMapping("/login")
-    public String loginPage() {
+    public String loginPage(@RequestParam(value = "error", required = false) String error,
+                            @RequestParam(value = "logout", required = false) String logout,
+                            Model model) {
+        if (error != null) {
+            model.addAttribute("error", "아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
         return "member/login";
     }
 
