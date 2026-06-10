@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageImpl;
 import java.util.ArrayList;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -75,4 +76,5 @@ public class AdminOrderService {
 
         return new PageImpl<>(dtoList, pageable, orderPage.getTotalElements());
     }
+
 }

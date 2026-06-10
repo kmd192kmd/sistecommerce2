@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>판매처 관리 - Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/admin/style.css">
+  <style>
+    .theme-bg-body { background-color: var(--bg-body); }
+    .theme-bg-panel { background-color: var(--bg-panel); }
+    .theme-text-main { color: var(--text-main); }
+    .theme-text-muted { color: var(--text-muted); }
+    .theme-text-white { color: var(--text-white); }
+    .theme-border { border-color: var(--border-color); }
+
+    /* Custom Split Layout */
+    .split-layout { display: flex; gap: 1.5rem; height: calc(100vh - 160px); }
+    .split-panel { flex: 1; display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 0.5rem; overflow: hidden; }
+    .panel-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; }
+    .panel-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-white); }
+    .panel-content { flex: 1; overflow-y: auto; padding: 1rem; }
+    
+    .list-item { padding: 1.2rem; border: 1px solid var(--border-color); border-radius: 0.5rem; margin-bottom: 0.8rem; cursor: pointer; transition: all 0.2s; background: var(--bg-body); }
+    .list-item:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    .list-item-title { font-weight: 600; font-size: 1.1rem; color: #3b82f6; margin-bottom: 0.3rem; }
+    
+    .status-normal { background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .status-deleted { background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+  </style>
+</head>
+<body class="font-sans antialiased overflow-hidden theme-bg-body theme-text-main">
+  <div class="flex h-screen w-screen relative">
+    
+    <!-- 공통 사이드바 연동 -->
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+      <!-- 공통 헤더 연동 -->
+      <div th:replace="~{admin/header :: header}"></div>
+      
+      <main class="flex-1 overflow-y-auto p-4 md:p-6">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h2 class="text-title text-2xl font-bold tracking-tight">판매처 및 등록 상품 관리</h2>
+            <p class="text-label text-sm mt-1 theme-text-muted">판매처 목록과 상품 정보를 동적으로 조회하고 관리합니다.</p>
+          </div>
+          
+          <form action="/admin/seller/list" method="get" class="flex gap-2">
+            <input type="text" name="name" th:value="${keyword}" placeholder="판매처 이름 검색"
+                   class="form-input text-sm w-64 outline-none border theme-border px-3 py-2 rounded" style="background: var(--bg-body); color: var(--text-main);">
+            <button type="submit" class="btn btn-primary text-sm px-4 py-2 font-medium bg-blue-600 text-white rounded hover:bg-blue-700">검색</button>
+          </form>
+        </div>
+
+        <div class="split-layout">
+          <!-- 판매처 목록 패널 -->
+          <div class="split-panel">
+            <div class="panel-header">
+              <h3>등록된 판매처 목록</h3>
+            </div>
+            <div class="panel-content">
+              <div th:each="seller : ${sellers}" class="list-item" th:data-seq="${seller.seq}" th:data-name="${seller.name}" onclick="loadProducts(this.getAttribute('data-seq'), this.getAttribute('data-name'))">
+                <div class="list-item-title" th:text="${seller.name}">판매처 이름</div>
+                <div class="text-sm theme-text-muted" th:text="'담당자: ' + ${seller.phone}">담당자 연락처</div>
+              </div>
+              <div th:if="${#lists.isEmpty(sellers)}" class="text-center py-10 theme-text-muted">
+                검색된 판매처가 없습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- 상품 목록 패널 (AJAX 연동 영역) -->
+          <div class="split-panel">
+            <div class="panel-header">
+              <h3 id="product-panel-title">상품 목록 (판매처를 선택하세요)</h3>
+              <input type="text" id="productSearchInput" placeholder="상품명 결과 내 검색..." 
+                     class="text-sm px-2 py-1 rounded border theme-border outline-none" style="background: var(--bg-body); color: var(--text-main);" onkeyup="searchProducts()">
+            </div>
+            <div class="panel-content" id="product-list-container">
+              <div class="text-center py-20 theme-text-muted">
+                좌측 리스트에서 판매처를 클릭하면<br><br>해당 판매처의 상세 상품 정보가 이곳에 표시됩니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      
+      <script>
+        let currentSellerSeq = null;
+        let currentSellerName = '';
+
+        function loadProducts(sellerSeq, sellerName) {
+            currentSellerSeq = sellerSeq;
+            currentSellerName = sellerName;
+            document.getElementById('product-panel-title').innerText = `[${sellerName}] 상품 로딩중...`;
+            document.getElementById('productSearchInput').value = '';
+            fetchProductData();
+        }
+
+        function searchProducts() {
+            if(!currentSellerSeq) return;
+            fetchProductData();
+        }
+
+        function fetchProductData() {
+            const keyword = document.getElementById('productSearchInput').value;
+            const url = `/admin/seller/${currentSellerSeq}/products` + (keyword ? `?productName=${encodeURIComponent(keyword)}` : '');
+            
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('product-panel-title').innerText = `[${currentSellerName}] 등록 상품`;
+                    const container = document.getElementById('product-list-container');
+                    container.innerHTML = '';
+                    
+                    if(data.length === 0) {
+                        container.innerHTML = '<div class="text-center py-10 theme-text-muted">조건에 맞는 상품이 없습니다.</div>';
+                        return;
+                    }
+                    
+                    data.forEach(item => {
+                        const p = item.product;
+                        const badgeClass = p.status === 'NORMAL' ? 'status-normal' : 'status-deleted';
+                        
+                        container.innerHTML += `
+                            <div class="list-item" style="cursor:default;">
+                                <div class="flex justify-between items-center mb-2">
+                                    <div class="font-bold text-lg text-white">${p.productName}</div>
+                                    <span class="${badgeClass}">${p.status}</span>
+                                </div>
+                                <div class="grid grid-cols-4 gap-2 mb-4 mt-4 p-3 rounded theme-border border" style="background: rgba(0,0,0,0.1);">
+                                    <div class="text-center"><div class="text-xs theme-text-muted">누적 판매량</div><div class="font-bold text-white mt-1">${p.salesCount}</div></div>
+                                    <div class="text-center"><div class="text-xs theme-text-muted">총 남은 재고</div><div class="font-bold text-white mt-1">${item.totalStock}</div></div>
+                                    <div class="text-center"><div class="text-xs theme-text-muted">조회수</div><div class="font-bold text-white mt-1">${p.viewCount}</div></div>
+                                    <div class="text-center"><div class="text-xs theme-text-muted">단가</div><div class="font-bold text-white mt-1">${p.price.toLocaleString()}원</div></div>
+                                </div>
+                                <div class="flex justify-end items-center gap-3 pt-3 border-t theme-border">
+                                    <select id="statusSelect_${p.seq}" class="text-sm px-2 py-1.5 border rounded theme-border" style="background: var(--bg-body); color: var(--text-main);">
+                                        <option value="NORMAL" ${p.status==='NORMAL'?'selected':''}>NORMAL (정상)</option>
+                                        <option value="DELETED" ${p.status==='DELETED'?'selected':''}>DELETED (삭제)</option>
+                                    </select>
+                                    <button class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1.5 rounded font-medium transition-colors" onclick="changeStatus(${p.seq})">상태 적용</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                })
+                .catch(err => alert("상품 정보를 가져오는데 실패했습니다."));
+        }
+
+        function changeStatus(productSeq) {
+            const status = document.getElementById(`statusSelect_${productSeq}`).value;
+            fetch(`/admin/seller/product/${productSeq}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `status=${status}`
+            })
+            .then(res => res.text())
+            .then(msg => {
+                alert(msg);
+                fetchProductData(); // UI 즉시 갱신
+            })
+            .catch(err => alert("상태 변경에 실패했습니다."));
+        }
+      </script>
+      <!-- 공통 admin.js 연동 -->
+      <script src="/admin/admin.js"></script>
+    </div>
+  </div>
+</body>
+</html>

@@ -53,14 +53,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const menuToggles = document.querySelectorAll('.menu-toggle');
 
-    menuToggles.forEach(toggle => {
+    // 1. 초기 로드 시 localStorage에서 열려있던 메뉴 복원
+    menuToggles.forEach((toggle, index) => {
+        const submenu = toggle.nextElementSibling;
+        const arrowIcon = toggle.querySelector('.arrow-icon') || toggle.querySelector('svg:last-child');
+        
+        const isOpen = localStorage.getItem('sidebar_menu_' + index);
+        if (isOpen === 'true' && submenu) {
+            submenu.classList.remove('hidden');
+            if (arrowIcon) arrowIcon.classList.add('rotate-180');
+        }
+
         toggle.addEventListener('click', function () {
-
-            const submenu = this.nextElementSibling;
-            const arrowIcon = this.querySelector('.arrowIcon');
-
             if (submenu) {
                 submenu.classList.toggle('hidden');
+                const isHidden = submenu.classList.contains('hidden');
+                localStorage.setItem('sidebar_menu_' + index, !isHidden);
             }
 
             if (arrowIcon) {
