@@ -92,4 +92,15 @@ public class Member {
         this.phone     = phone;
         this.updatedAt = java.time.LocalDateTime.now();
     }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.pwChangedAt = java.time.LocalDateTime.now();
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
+
+    public void changeStatus(Integer status) {
+        this.status = status;
+
+    }
 }

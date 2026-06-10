@@ -8,14 +8,6 @@
 
 <main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
 
-    <!-- 주문 생성 완료 안내 -->
-    <div th:if="${createdOrderUid != null}"
-         class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 text-sm font-bold">
-        주문 데이터가 생성되었습니다.
-        주문번호:
-        <span th:text="${createdOrderUid}">GM-0000</span>
-    </div>
-
     <!-- 상단 타이틀 + 단계 표시 -->
     <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
         <div>
@@ -36,9 +28,6 @@
           method="post"
           id="checkoutForm"
           class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
-
-        <!-- 새 배송지/기존 배송지 구분값 -->
-        <input type="hidden" id="deliveryType" name="deliveryType" value="EXISTING">
 
         <!-- 좌측 주문 정보 -->
         <div class="space-y-5">
@@ -98,56 +87,41 @@
                     <span class="text-xs text-gray-400">주문 시 사용할 배송지를 선택하세요</span>
                 </div>
 
-                <div class="p-5 space-y-4">
+                <div class="p-5 space-y-5">
 
-                    <!-- 배송지 선택 카드 -->
+                    <!-- 배송지 사용 방식 선택 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-
-                        <!-- 기존 배송지 목록 -->
-                        <label th:each="addr, stat : ${deliveryAddresses}"
-                               class="relative border p-4 cursor-pointer hover:border-amber-400 delivery-card"
-                               th:classappend="${stat.index == 0} ? ' border-amber-500 bg-amber-50/40' : ' border-gray-200 bg-white'">
-
+                        <label id="existingDeliveryCard"
+                               class="relative border border-amber-500 bg-amber-50/40 p-4 cursor-pointer hover:border-amber-400">
                             <input type="radio"
-                                   name="deliveryAddressSeq"
-                                   th:value="${addr.seq}"
-                                   th:checked="${stat.index == 0}"
-                                   class="absolute top-4 right-4 accent-amber-500 delivery-type-radio"
+                                   name="deliveryTypeRadio"
+                                   value="EXISTING"
+                                   checked
+                                   class="absolute top-4 right-4 accent-amber-500"
                                    onclick="selectExistingDelivery()">
 
                             <div class="flex items-center gap-2 mb-2">
-                                <span th:text="${addr.alias}"
-                                      class="text-sm font-black">
-                                    집
-                                </span>
-
-                                <span th:if="${addr.defaultYn == 'Y'}"
-                                      class="text-[10px] font-bold bg-slate-900 text-amber-400 px-1.5 py-0.5">
-                                    기본
+                                <span class="text-sm font-black">기존 배송지</span>
+                                <span class="text-[10px] font-bold bg-slate-900 text-amber-400 px-1.5 py-0.5">
+                                    선택
                                 </span>
                             </div>
 
-                            <p th:text="${addr.recipientName} + ' / ' + ${addr.recipientPhone}"
-                               class="text-xs text-gray-600 font-semibold">
-                                수령인
+                            <p class="text-xs text-gray-600 font-semibold">
+                                저장된 배송지 목록에서 선택합니다.
                             </p>
 
-                            <p class="text-xs text-gray-500 mt-1 leading-relaxed">
-                                <span th:text="'(' + ${addr.zipcode} + ') ' + ${addr.address}">
-                                    주소
-                                </span>
-                                <span th:text="${addr.addressDetail}">
-                                    상세주소
-                                </span>
+                            <p class="text-xs text-gray-500 mt-1">
+                                기본 배송지 또는 기존에 입력한 배송지를 사용할 수 있습니다.
                             </p>
                         </label>
 
-                        <!-- 새 배송지 입력 선택 -->
-                        <label class="relative border border-gray-200 bg-white p-4 cursor-pointer hover:border-amber-400 delivery-card">
+                        <label id="newDeliveryCard"
+                               class="relative border border-gray-200 bg-white p-4 cursor-pointer hover:border-amber-400">
                             <input type="radio"
-                                   name="deliveryAddressSeq"
-                                   value=""
-                                   class="absolute top-4 right-4 accent-amber-500 delivery-type-radio"
+                                   name="deliveryTypeRadio"
+                                   value="NEW"
+                                   class="absolute top-4 right-4 accent-amber-500"
                                    onclick="selectNewDelivery()">
 
                             <div class="flex items-center gap-2 mb-2">
@@ -161,10 +135,73 @@
                                 이번 주문에 사용할 배송지를 직접 입력합니다.
                             </p>
 
-                            <p class="text-xs text-gray-500 mt-1 leading-relaxed">
-                                회원 기본 배송지 기능이 완성되기 전까지 주문 화면에서 배송지를 입력할 수 있습니다.
+                            <p class="text-xs text-gray-500 mt-1">
+                                입력한 배송지는 주문 테이블에 저장됩니다.
                             </p>
                         </label>
+                    </div>
+
+                    <!-- 서버로 넘길 배송지 타입 -->
+                    <input type="hidden" id="deliveryType" name="deliveryType" value="EXISTING">
+
+                    <!-- 기존 배송지 목록 -->
+                    <div id="existingDeliveryListArea"
+                         class="border border-gray-200 bg-gray-50/60 p-5 space-y-3">
+
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-black">기존 배송지 목록</h3>
+                            <span class="text-xs text-gray-500"
+                                  th:text="${#lists.size(deliveryAddresses)} + '개 배송지'">
+                                2개 배송지
+                            </span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <label th:each="addr, stat : ${deliveryAddresses}"
+                                   class="block bg-white border p-4 cursor-pointer hover:border-amber-400"
+                                   th:classappend="${stat.index == 0} ? ' border-amber-500' : ' border-gray-200'">
+
+                                <div class="flex items-start gap-3">
+                                    <input type="radio"
+                                           name="deliveryAddressSeq"
+                                           th:value="${addr.seq}"
+                                           th:checked="${stat.index == 0}"
+                                           class="mt-1 accent-amber-500 existing-delivery-radio">
+
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span th:text="${addr.alias}"
+                                                  class="text-sm font-black">
+                                                집
+                                            </span>
+
+                                            <span th:if="${addr.defaultYn == 'Y'}"
+                                                  class="text-[10px] font-bold bg-slate-900 text-amber-400 px-1.5 py-0.5">
+                                                기본
+                                            </span>
+                                        </div>
+
+                                        <p th:text="${addr.recipientName} + ' / ' + ${addr.recipientPhone}"
+                                           class="text-xs text-gray-600 font-semibold">
+                                            수령인 / 연락처
+                                        </p>
+
+                                        <p class="text-xs text-gray-500 mt-1 leading-relaxed">
+                                            <span th:text="'(' + ${addr.zipcode} + ') ' + ${addr.address}">
+                                                주소
+                                            </span>
+                                            <span th:text="${addr.addressDetail}">
+                                                상세주소
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <p class="text-[11px] text-gray-400 leading-relaxed">
+                            현재는 테스트용 배송지 목록입니다. 회원 배송지 기능이 완성되면 로그인 회원의 배송지 목록을 조회하도록 교체하면 됩니다.
+                        </p>
                     </div>
 
                     <!-- 새 배송지 입력 폼 -->
@@ -303,20 +340,28 @@
                     <select id="couponSeq"
                             name="couponSeq"
                             class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
-                            onchange="changeCoupon(this.value)">
-                        <option value="">쿠폰 사용 안 함</option>
+                            onchange="applyCouponWithoutReload()">
+                        <option value=""
+                                data-discount-type=""
+                                data-discount-price="0"
+                                data-discount-rate="0">
+                            쿠폰 사용 안 함
+                        </option>
 
                         <option th:each="coupon : ${coupons}"
                                 th:value="${coupon.seq}"
                                 th:selected="${selectedCouponSeq != null and selectedCouponSeq == coupon.seq}"
+                                th:data-discount-type="${coupon.discountType}"
+                                th:data-discount-price="${coupon.discountPrice != null ? coupon.discountPrice : 0}"
+                                th:data-discount-rate="${coupon.discountRate != null ? coupon.discountRate : 0}"
                                 th:text="${coupon.name} + ' (' + ${coupon.discountText} + ')'">
                             쿠폰
                         </option>
                     </select>
 
                     <div class="bg-gray-50 border border-gray-100 p-4 text-xs text-gray-500 leading-relaxed">
-                        현재 테스트 단계에서는 지정한 테스트 쿠폰만 조회합니다.
-                        실제 결제 승인 전에는 서버에서 쿠폰 유효성, 할인금액, 최종 결제금액을 다시 검증해야 합니다.
+                        쿠폰을 선택해도 페이지가 새로고침되지 않습니다.
+                        실제 주문 생성 시에는 서버에서 쿠폰 유효성, 할인금액, 최종 결제금액을 다시 검증합니다.
                     </div>
                 </div>
             </section>
@@ -360,9 +405,9 @@
                             <i data-lucide="credit-card" class="w-5 h-5"></i>
                         </div>
 
-                        <p class="text-sm font-black">토스페이먼츠 결제위젯 영역</p>
+                        <p class="text-sm font-black">토스페이먼츠 결제창 연동</p>
                         <p class="text-xs text-gray-500 mt-1">
-                            현재는 주문 데이터 생성까지만 처리합니다. 다음 단계에서 토스페이먼츠 결제창을 연결합니다.
+                            결제하기 버튼을 누르면 주문 데이터를 생성한 뒤 토스페이먼츠 결제창을 호출합니다.
                         </p>
                     </div>
                 </div>
@@ -397,7 +442,8 @@
                 <div class="p-5 space-y-3 text-sm">
                     <div class="flex justify-between">
                         <span class="text-gray-500">상품금액</span>
-                        <span class="font-semibold"
+                        <span id="productTotalPriceText"
+                              class="font-semibold"
                               th:text="${#numbers.formatInteger(priceSummary.productTotalPrice, 0, 'COMMA')} + '원'">
                             0원
                         </span>
@@ -405,7 +451,8 @@
 
                     <div class="flex justify-between">
                         <span class="text-gray-500">배송비</span>
-                        <span class="font-semibold"
+                        <span id="deliveryFeeText"
+                              class="font-semibold"
                               th:text="${#numbers.formatInteger(priceSummary.deliveryFee, 0, 'COMMA')} + '원'">
                             0원
                         </span>
@@ -413,7 +460,8 @@
 
                     <div class="flex justify-between text-red-500">
                         <span>쿠폰 할인</span>
-                        <span class="font-semibold"
+                        <span id="couponDiscountText"
+                              class="font-semibold"
                               th:text="'- ' + ${#numbers.formatInteger(priceSummary.couponDiscount, 0, 'COMMA')} + '원'">
                             - 0원
                         </span>
@@ -421,7 +469,8 @@
 
                     <div class="flex justify-between text-red-500">
                         <span>핫딜 할인</span>
-                        <span class="font-semibold"
+                        <span id="hotdealDiscountText"
+                              class="font-semibold"
                               th:text="'- ' + ${#numbers.formatInteger(priceSummary.hotdealDiscount, 0, 'COMMA')} + '원'">
                             - 0원
                         </span>
@@ -430,7 +479,8 @@
                     <div class="border-t border-gray-100 pt-4 mt-4">
                         <div class="flex justify-between items-end">
                             <span class="text-base font-black">최종 결제금액</span>
-                            <span class="text-2xl font-black text-amber-700"
+                            <span id="finalPriceText"
+                                  class="text-2xl font-black text-amber-700"
                                   th:text="${#numbers.formatInteger(priceSummary.finalPrice, 0, 'COMMA')} + '원'">
                                 0원
                             </span>
@@ -438,19 +488,26 @@
                     </div>
 
                     <input type="hidden" name="orderUid" th:value="${order.orderUid}">
-                    <input type="hidden" name="amount" th:value="${priceSummary.finalPrice}">
+                    <input type="hidden" id="amount" name="amount" th:value="${priceSummary.finalPrice}">
 
-                    <button type="submit"
+                    <!-- JS 금액 재계산 기준값 -->
+                    <input type="hidden" id="baseProductTotalPrice" th:value="${priceSummary.productTotalPrice}">
+                    <input type="hidden" id="baseDeliveryFee" th:value="${priceSummary.deliveryFee}">
+                    <input type="hidden" id="baseHotdealDiscount" th:value="${priceSummary.hotdealDiscount}">
+
+                    <button type="button"
                             id="paymentButton"
+                            onclick="requestTossPayment()"
                             class="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 mt-5 text-base transition-colors">
-                        <span th:text="${#numbers.formatInteger(priceSummary.finalPrice, 0, 'COMMA')} + '원 결제하기'">
+                        <span id="paymentButtonText"
+                              th:text="${#numbers.formatInteger(priceSummary.finalPrice, 0, 'COMMA')} + '원 결제하기'">
                             결제하기
                         </span>
                     </button>
 
                     <p class="text-[11px] text-gray-400 leading-relaxed">
-                        현재 테스트 단계에서는 결제하기 클릭 시 order_item과 orders 데이터를 생성합니다.
-                        토스페이먼츠 연동 후에는 결제 승인 전 서버 금액 검증을 반드시 수행하세요.
+                        결제하기 클릭 시 주문 데이터가 생성되고, 이후 토스페이먼츠 결제창이 열립니다.
+                        실제 결제 승인 전 서버 금액 검증을 반드시 수행합니다.
                     </p>
                 </div>
             </section>
@@ -461,74 +518,207 @@
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 
-<script>
-    /*
-        쿠폰 선택 시 금액 재계산을 위해 checkout 페이지를 다시 요청한다.
-    */
-    function changeCoupon(couponSeq) {
-        const url = new URL(window.location.href);
+<!-- Toss Payments SDK v2 -->
+<script src="https://js.tosspayments.com/v2/standard"></script>
 
-        if (couponSeq) {
-            url.searchParams.set("couponSeq", couponSeq);
-        } else {
-            url.searchParams.delete("couponSeq");
+<script th:inline="javascript">
+    const tossClientKey = /*[[${tossClientKey}]]*/ "";
+    const tossSuccessUrl = /*[[${tossSuccessUrl}]]*/ "";
+    const tossFailUrl = /*[[${tossFailUrl}]]*/ "";
+    const loginMemberSeq = /*[[${loginMemberSeq}]]*/ "guest";
+
+    /*
+        테스트용 customerKey.
+        운영에서는 memberSeq처럼 추측 가능한 값 대신 회원별 UUID를 저장해서 사용하는 것이 안전하다.
+    */
+    const tossCustomerKey = "member-" + loginMemberSeq;
+
+    async function requestTossPayment() {
+        const form = document.getElementById("checkoutForm");
+
+        if (!form.reportValidity()) {
+            return;
         }
 
-        window.location.href = url.toString();
+        const paymentButton = document.getElementById("paymentButton");
+        paymentButton.disabled = true;
+        paymentButton.classList.add("opacity-60", "cursor-not-allowed");
+
+        try {
+            const formData = new FormData(form);
+
+            const response = await fetch("/order/checkout", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                const message = await response.text();
+                alert("주문 생성에 실패했습니다.\n" + message);
+                return;
+            }
+
+            const order = await response.json();
+
+            const selectedPaymentMethod =
+                document.querySelector("input[name='paymentMethod']:checked")?.value || "CARD";
+
+            const tossPayments = TossPayments(tossClientKey);
+            const payment = tossPayments.payment({
+                customerKey: tossCustomerKey
+            });
+
+            await payment.requestPayment({
+                method: selectedPaymentMethod,
+                amount: {
+                    currency: "KRW",
+                    value: order.finalPrice
+                },
+                orderId: order.orderUid,
+                orderName: order.orderName,
+                successUrl: tossSuccessUrl,
+                failUrl: tossFailUrl
+            });
+
+        } catch (error) {
+            console.error(error);
+            alert("결제 요청 중 오류가 발생했습니다. 브라우저 콘솔의 오류 메시지를 확인하세요.");
+        } finally {
+            paymentButton.disabled = false;
+            paymentButton.classList.remove("opacity-60", "cursor-not-allowed");
+        }
     }
 
     /*
-        새 배송지 선택.
+        쿠폰 선택 시 페이지 새로고침 없이 결제 금액만 다시 계산한다.
+        실제 주문 저장 금액은 서버에서 다시 계산한다.
     */
+    function applyCouponWithoutReload() {
+        const couponSelect = document.getElementById("couponSeq");
+        const selectedOption = couponSelect.options[couponSelect.selectedIndex];
+
+        const productTotalPrice = Number(document.getElementById("baseProductTotalPrice").value || 0);
+        const deliveryFee = Number(document.getElementById("baseDeliveryFee").value || 0);
+        const hotdealDiscount = Number(document.getElementById("baseHotdealDiscount").value || 0);
+
+        const discountType = selectedOption.dataset.discountType;
+        const discountPrice = Number(selectedOption.dataset.discountPrice || 0);
+        const discountRate = Number(selectedOption.dataset.discountRate || 0);
+
+        let couponDiscount = 0;
+
+        if (discountType === "0") {
+            couponDiscount = Math.floor(productTotalPrice * discountRate / 100);
+        }
+
+        if (discountType === "1") {
+            couponDiscount = discountPrice;
+        }
+
+        if (couponDiscount > productTotalPrice) {
+            couponDiscount = productTotalPrice;
+        }
+
+        let finalPrice = productTotalPrice + deliveryFee - couponDiscount - hotdealDiscount;
+
+        if (finalPrice < 0) {
+            finalPrice = 0;
+        }
+
+        document.getElementById("productTotalPriceText").textContent = formatWon(productTotalPrice);
+        document.getElementById("deliveryFeeText").textContent = formatWon(deliveryFee);
+        document.getElementById("couponDiscountText").textContent = "- " + formatWon(couponDiscount);
+        document.getElementById("hotdealDiscountText").textContent = "- " + formatWon(hotdealDiscount);
+        document.getElementById("finalPriceText").textContent = formatWon(finalPrice);
+        document.getElementById("paymentButtonText").textContent = formatWon(finalPrice) + " 결제하기";
+
+        document.getElementById("amount").value = finalPrice;
+    }
+
+    function formatWon(value) {
+        return Number(value).toLocaleString("ko-KR") + "원";
+    }
+
     function selectNewDelivery() {
         const deliveryType = document.getElementById("deliveryType");
+        const existingArea = document.getElementById("existingDeliveryListArea");
+        const newArea = document.getElementById("newDeliveryInputArea");
+        const existingCard = document.getElementById("existingDeliveryCard");
+        const newCard = document.getElementById("newDeliveryCard");
+        const requiredFields = document.querySelectorAll(".new-delivery-field");
+        const existingRadios = document.querySelectorAll(".existing-delivery-radio");
 
         if (deliveryType) {
             deliveryType.value = "NEW";
         }
 
-        toggleDeliveryInput(true);
+        if (existingArea) {
+            existingArea.classList.add("hidden");
+        }
+
+        if (newArea) {
+            newArea.classList.remove("hidden");
+        }
+
+        if (existingCard) {
+            existingCard.classList.remove("border-amber-500", "bg-amber-50/40");
+            existingCard.classList.add("border-gray-200", "bg-white");
+        }
+
+        if (newCard) {
+            newCard.classList.remove("border-gray-200", "bg-white");
+            newCard.classList.add("border-amber-500", "bg-amber-50/40");
+        }
+
+        existingRadios.forEach(radio => {
+            radio.checked = false;
+        });
+
+        requiredFields.forEach(field => {
+            field.setAttribute("required", "required");
+        });
     }
 
-    /*
-        기존 배송지 선택.
-    */
     function selectExistingDelivery() {
         const deliveryType = document.getElementById("deliveryType");
+        const existingArea = document.getElementById("existingDeliveryListArea");
+        const newArea = document.getElementById("newDeliveryInputArea");
+        const existingCard = document.getElementById("existingDeliveryCard");
+        const newCard = document.getElementById("newDeliveryCard");
+        const requiredFields = document.querySelectorAll(".new-delivery-field");
+        const existingRadios = document.querySelectorAll(".existing-delivery-radio");
 
         if (deliveryType) {
             deliveryType.value = "EXISTING";
         }
 
-        toggleDeliveryInput(false);
-    }
-
-    /*
-        새 배송지 입력 영역 표시/숨김 처리.
-    */
-    function toggleDeliveryInput(show) {
-        const inputArea = document.getElementById("newDeliveryInputArea");
-        const requiredFields = document.querySelectorAll(".new-delivery-field");
-
-        if (!inputArea) {
-            return;
+        if (existingArea) {
+            existingArea.classList.remove("hidden");
         }
 
-        if (show) {
-            inputArea.classList.remove("hidden");
-
-            requiredFields.forEach(field => {
-                if (field.id !== "addressDetail") {
-                    field.setAttribute("required", "required");
-                }
-            });
-        } else {
-            inputArea.classList.add("hidden");
-
-            requiredFields.forEach(field => {
-                field.removeAttribute("required");
-            });
+        if (newArea) {
+            newArea.classList.add("hidden");
         }
+
+        if (existingCard) {
+            existingCard.classList.remove("border-gray-200", "bg-white");
+            existingCard.classList.add("border-amber-500", "bg-amber-50/40");
+        }
+
+        if (newCard) {
+            newCard.classList.remove("border-amber-500", "bg-amber-50/40");
+            newCard.classList.add("border-gray-200", "bg-white");
+        }
+
+        const hasChecked = Array.from(existingRadios).some(radio => radio.checked);
+
+        if (!hasChecked && existingRadios.length > 0) {
+            existingRadios[0].checked = true;
+        }
+
+        requiredFields.forEach(field => {
+            field.removeAttribute("required");
+        });
     }
 </script>
 
