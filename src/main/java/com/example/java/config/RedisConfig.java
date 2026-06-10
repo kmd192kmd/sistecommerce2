@@ -7,6 +7,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisIndexedHttpSession;
 
 /**
  * Redis 설정.
@@ -18,8 +19,12 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  *
  * Bean 이름을 "sessionRedis"로 명시해 다른 RedisTemplate Bean과 충돌을 방지.
  * 다른 도메인에서 RedisTemplate이 필요하면 @Qualifier("chatRedis") 등 별도 Bean을 추가할 것.
+ *
+ * @EnableRedisIndexedHttpSession: principal name 인덱스를 생성해
+ * FindByIndexNameSessionRepository.findByPrincipalName() 사용 가능.
  */
 @Configuration
+@EnableRedisIndexedHttpSession(redisNamespace = "shop:session")
 public class RedisConfig {
 
     @Value("${spring.data.redis.host}")
