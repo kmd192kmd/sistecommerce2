@@ -27,9 +27,17 @@ public class InventoryApiController {
             @RequestParam("page") int page
     ) {
 
-        return inventoryService.getListWithCond(
+        Slice<InventoryListDTO> result = inventoryService.getListWithCond(
                 search,
                 PageRequest.of(page, 20)
         );
+        
+        System.out.println(
+                "page=" + page +
+                ", size=" + result.getContent().size() +
+                ", hasNext=" + result.hasNext()
+        );
+
+        return result;
     }
 }

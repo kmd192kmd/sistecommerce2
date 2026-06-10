@@ -5,6 +5,7 @@
     <title>재고 관리</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="/admin/style.css">
 
     <style>
@@ -168,6 +169,8 @@
                     <th class="p-2">현재 재고</th>
                     <th class="p-2">안전 재고</th>
                     <th class="p-2">등록일</th>
+                    <th class="p-2">비고</th>
+					<th class="p-2">관리</th>
                 </tr>
                 </thead>
 
@@ -221,6 +224,16 @@
                     <td class="p-2"
                         th:text="${#temporals.format(item.createdDate, 'yyyy.MM.dd')}">
                     </td>
+                    <td class="p-2 font-bold"
+					    th:text="${item.stock <= item.safetyStock ? '부족' : '정상'}"
+					    th:classappend="${item.stock <= item.safetyStock ? ' text-red-500' : ' text-green-500'}">
+					</td>					
+					<td class="p-2">
+					    <a th:href="@{/admin/purchase-orders/new/{optionsSeq}(optionsSeq=${item.optionsSeq})}"
+					       class="btn btn-primary text-sm px-3 py-1">
+					        <i class="fa-solid fa-cart-plus"></i> 발주 등록
+					    </a>
+					</td>
 
                 </tr>
 
@@ -262,8 +275,11 @@ if (loadMoreBtn) {
 
 async function loadMore() {
 
-    const response =
-        await fetch(`/api/inventories?page=${page}`);
+	const params = new URLSearchParams(window.location.search);
+	params.set("page", page);
+
+	const response =
+        await fetch(`/api/inventories?${params.toString()}`);
 
     const slice = await response.json();
 
@@ -280,6 +296,7 @@ async function loadMore() {
             item.stock <= item.safetyStock
                 ? "text-red-500"
                 : "";
+        const isUnderSafe = item.stock <= item.safetyStock;
 
         tbody.insertAdjacentHTML("beforeend", `
             <tr class="border-b border-[var(--border-color)]">
@@ -303,23 +320,30 @@ async function loadMore() {
                 <td class="p-2 font-bold ${stockColor}">
                     ${item.stock}
                 </td>
-
                 <td class="p-2">
                     ${item.safetyStock}
                 </td>
-
                 <td class="p-2">
                     ${item.createdDate
                         ? item.createdDate.substring(0,10).replaceAll("-", ".")
                         : "-"}
                 </td>
+                <td class="p-2 font-bold ${isUnderSafe ? 'text-red-500' : 'text-green-500'}">
+				    ${isUnderSafe ? '발주 필요' : '정상'}
+				</td>				
+				<td class="p-2">
+				    <a href="/admin/purchase-orders/new/${item.optionsSeq}"
+				       class="btn btn-primary text-sm px-3 py-1">
+				       <i class="fa-solid fa-cart-plus"></i> 발주 등록
+				    </a>
+				</td>
 
             </tr>
         `);
 
     });
 
-    if (!slice.hasNext) {
+    if (slice.last) {
         loadMoreBtn.style.display = "none";
     }
 
