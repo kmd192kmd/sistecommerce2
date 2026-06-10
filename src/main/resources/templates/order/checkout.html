@@ -337,27 +337,28 @@
                         쿠폰 선택
                     </label>
 
-                    <select id="couponSeq"
-                            name="couponSeq"
-                            class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
-                            onchange="applyCouponWithoutReload()">
-                        <option value=""
-                                data-discount-type=""
-                                data-discount-price="0"
-                                data-discount-rate="0">
-                            쿠폰 사용 안 함
-                        </option>
+					<select id="memberCouponSeq"
+					        name="memberCouponSeq"
+					        class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+					        onchange="applyCouponWithoutReload()">
 
-                        <option th:each="coupon : ${coupons}"
-                                th:value="${coupon.seq}"
-                                th:selected="${selectedCouponSeq != null and selectedCouponSeq == coupon.seq}"
-                                th:data-discount-type="${coupon.discountType}"
-                                th:data-discount-price="${coupon.discountPrice != null ? coupon.discountPrice : 0}"
-                                th:data-discount-rate="${coupon.discountRate != null ? coupon.discountRate : 0}"
-                                th:text="${coupon.name} + ' (' + ${coupon.discountText} + ')'">
-                            쿠폰
-                        </option>
-                    </select>
+					    <option value=""
+					            data-discount-type=""
+					            data-discount-price="0"
+					            data-discount-rate="0">
+					        쿠폰 사용 안 함
+					    </option>
+
+					    <option th:each="coupon : ${coupons}"
+					            th:value="${coupon.seq}"
+					            th:selected="${selectedMemberCouponSeq != null and selectedMemberCouponSeq == coupon.seq}"
+					            th:data-discount-type="${coupon.discountType}"
+					            th:data-discount-price="${coupon.discountPrice != null ? coupon.discountPrice : 0}"
+					            th:data-discount-rate="${coupon.discountRate != null ? coupon.discountRate : 0}"
+					            th:text="${coupon.name} + ' (' + ${coupon.discountText} + ')'">
+					        쿠폰
+					    </option>
+					</select>
 
                     <div class="bg-gray-50 border border-gray-100 p-4 text-xs text-gray-500 leading-relaxed">
                         쿠폰을 선택해도 페이지가 새로고침되지 않습니다.
@@ -546,6 +547,9 @@
 
         try {
             const formData = new FormData(form);
+			
+			const memberCouponSeq = document.getElementById("memberCouponSeq")?.value || "";
+			formData.set("memberCouponSeq", memberCouponSeq);
 
             const response = await fetch("/order/checkout", {
                 method: "POST",
@@ -593,47 +597,47 @@
         쿠폰 선택 시 페이지 새로고침 없이 결제 금액만 다시 계산한다.
         실제 주문 저장 금액은 서버에서 다시 계산한다.
     */
-    function applyCouponWithoutReload() {
-        const couponSelect = document.getElementById("couponSeq");
-        const selectedOption = couponSelect.options[couponSelect.selectedIndex];
+	function applyCouponWithoutReload() {
+	    const couponSelect = document.getElementById("memberCouponSeq");
+	    const selectedOption = couponSelect.options[couponSelect.selectedIndex];
 
-        const productTotalPrice = Number(document.getElementById("baseProductTotalPrice").value || 0);
-        const deliveryFee = Number(document.getElementById("baseDeliveryFee").value || 0);
-        const hotdealDiscount = Number(document.getElementById("baseHotdealDiscount").value || 0);
+	    const productTotalPrice = Number(document.getElementById("baseProductTotalPrice").value || 0);
+	    const deliveryFee = Number(document.getElementById("baseDeliveryFee").value || 0);
+	    const hotdealDiscount = Number(document.getElementById("baseHotdealDiscount").value || 0);
 
-        const discountType = selectedOption.dataset.discountType;
-        const discountPrice = Number(selectedOption.dataset.discountPrice || 0);
-        const discountRate = Number(selectedOption.dataset.discountRate || 0);
+	    const discountType = selectedOption.dataset.discountType;
+	    const discountPrice = Number(selectedOption.dataset.discountPrice || 0);
+	    const discountRate = Number(selectedOption.dataset.discountRate || 0);
 
-        let couponDiscount = 0;
+	    let couponDiscount = 0;
 
-        if (discountType === "0") {
-            couponDiscount = Math.floor(productTotalPrice * discountRate / 100);
-        }
+	    if (discountType === "0") {
+	        couponDiscount = Math.floor(productTotalPrice * discountRate / 100);
+	    }
 
-        if (discountType === "1") {
-            couponDiscount = discountPrice;
-        }
+	    if (discountType === "1") {
+	        couponDiscount = discountPrice;
+	    }
 
-        if (couponDiscount > productTotalPrice) {
-            couponDiscount = productTotalPrice;
-        }
+	    if (couponDiscount > productTotalPrice) {
+	        couponDiscount = productTotalPrice;
+	    }
 
-        let finalPrice = productTotalPrice + deliveryFee - couponDiscount - hotdealDiscount;
+	    let finalPrice = productTotalPrice + deliveryFee - couponDiscount - hotdealDiscount;
 
-        if (finalPrice < 0) {
-            finalPrice = 0;
-        }
+	    if (finalPrice < 0) {
+	        finalPrice = 0;
+	    }
 
-        document.getElementById("productTotalPriceText").textContent = formatWon(productTotalPrice);
-        document.getElementById("deliveryFeeText").textContent = formatWon(deliveryFee);
-        document.getElementById("couponDiscountText").textContent = "- " + formatWon(couponDiscount);
-        document.getElementById("hotdealDiscountText").textContent = "- " + formatWon(hotdealDiscount);
-        document.getElementById("finalPriceText").textContent = formatWon(finalPrice);
-        document.getElementById("paymentButtonText").textContent = formatWon(finalPrice) + " 결제하기";
+	    document.getElementById("productTotalPriceText").textContent = formatWon(productTotalPrice);
+	    document.getElementById("deliveryFeeText").textContent = formatWon(deliveryFee);
+	    document.getElementById("couponDiscountText").textContent = "- " + formatWon(couponDiscount);
+	    document.getElementById("hotdealDiscountText").textContent = "- " + formatWon(hotdealDiscount);
+	    document.getElementById("finalPriceText").textContent = formatWon(finalPrice);
+	    document.getElementById("paymentButtonText").textContent = formatWon(finalPrice) + " 결제하기";
 
-        document.getElementById("amount").value = finalPrice;
-    }
+	    document.getElementById("amount").value = finalPrice;
+	}
 
     function formatWon(value) {
         return Number(value).toLocaleString("ko-KR") + "원";

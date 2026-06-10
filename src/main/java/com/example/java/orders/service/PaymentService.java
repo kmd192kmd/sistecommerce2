@@ -1,5 +1,8 @@
 package com.example.java.orders.service;
 
+import com.example.java.cart.repository.CartRepository;
+import com.example.java.member.entity.MemberCoupon;
+import com.example.java.member.repository.MemberCouponRepository;
 import com.example.java.orders.entity.Orders;
 import com.example.java.orders.entity.Payment;
 import com.example.java.orders.repository.OrdersRepository;
@@ -33,6 +36,8 @@ public class PaymentService {
 
     private final OrdersRepository ordersRepository;
     private final PaymentRepository paymentRepository;
+    private final MemberCouponRepository memberCouponRepository;
+    private final CartRepository cartRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${toss.secret-key}")
@@ -41,7 +46,16 @@ public class PaymentService {
     private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
 
     /**
-     * 토스 successUrl에서 받은 paymentKey, orderId, amount로 결제 승인 요청을 처리한다.
+     * 토스 결제 성공 후 호출되는 최종 승인 처리.
+     *
+     * 흐름:
+     * 1. orderId로 주문 조회
+     * 2. DB 주문 금액과 토스 amount 비교
+     * 3. 토스 confirm API 호출
+     * 4. payment 저장
+     * 5. orders 결제완료 처리
+     * 6. 사용 쿠폰 상태 변경
+     * 7. 장바구니 비우기
      */
     @Transactional
     public void confirmPayment(String paymentKey,
@@ -52,24 +66,32 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderId=" + orderId));
 
         /*
-            이미 결제 완료된 주문이면 중복 처리 방지.
-            사용자가 successUrl을 새로고침할 수 있으므로 필요하다.
+            이미 결제 완료된 주문이면 중복 처리하지 않는다.
+            토스 성공 URL 새로고침, 브라우저 재요청 등에 대비한 처리다.
          */
         if (order.getPaymentStatus() != null && order.getPaymentStatus() == 2) {
             return;
         }
 
         /*
-            서버 DB 기준 금액과 토스에서 돌아온 amount를 비교한다.
-            다르면 승인 API 호출 금지.
+            서버 DB에 저장된 최종 결제금액과 토스에서 돌아온 amount를 반드시 비교한다.
+            화면 hidden amount 값은 사용자가 조작할 수 있으므로 신뢰하면 안 된다.
          */
-        if (!order.getFinalPrice().equals(amount)) {
-            order.setPaymentStatus(3); // 결제실패
+        if (order.getFinalPrice() == null || !order.getFinalPrice().equals(amount)) {
+            order.setPaymentStatus(3);
             ordersRepository.save(order);
 
-            throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
+            throw new IllegalArgumentException(
+                    "결제 금액이 일치하지 않습니다. DB finalPrice="
+                            + order.getFinalPrice()
+                            + ", toss amount="
+                            + amount
+            );
         }
 
+        /*
+            같은 paymentKey로 이미 저장된 결제내역이 있으면 중복 저장하지 않는다.
+         */
         if (paymentRepository.findByExternalPaymentId(paymentKey).isPresent()) {
             return;
         }
@@ -79,7 +101,7 @@ public class PaymentService {
         String status = getText(tossResponse, "status");
 
         if (!"DONE".equals(status)) {
-            order.setPaymentStatus(3); // 결제실패
+            order.setPaymentStatus(3);
             ordersRepository.save(order);
 
             throw new IllegalStateException("토스 결제 승인이 완료되지 않았습니다. status=" + status);
@@ -87,14 +109,20 @@ public class PaymentService {
 
         String method = getText(tossResponse, "method");
         String approvedAt = getText(tossResponse, "approvedAt");
+
         String receiptUrl = null;
 
-        if (tossResponse.has("receipt") && tossResponse.get("receipt").has("url")) {
+        if (tossResponse.has("receipt")
+                && tossResponse.get("receipt") != null
+                && tossResponse.get("receipt").has("url")) {
             receiptUrl = tossResponse.get("receipt").get("url").asText();
         }
 
         LocalDateTime approvedDateTime = parseTossDateTime(approvedAt);
 
+        /*
+            payment 테이블 저장
+         */
         Payment payment = Payment.builder()
                 .orderSeq(order.getSeq())
                 .paymentUid(createPaymentUid())
@@ -114,19 +142,39 @@ public class PaymentService {
         paymentRepository.save(payment);
 
         /*
-            결제 완료 처리.
-            order_date는 주문 생성일이 아니라 결제 완료 시각으로 저장한다.
+            orders 테이블 결제완료 처리
          */
-        order.setOrderStatus(2);       // 결제완료
-        order.setPaymentStatus(2);     // 결제완료
+        order.setOrderStatus(2);
+        order.setPaymentStatus(2);
         order.setOrderDate(approvedDateTime);
         order.setRemainPrice(amount);
 
         ordersRepository.save(order);
+
+        /*
+            결제 완료 후 사용한 회원 쿠폰을 사용완료 처리한다.
+            orders.member_coupon_seq에는 member_coupon.seq가 들어 있어야 한다.
+         */
+        if (order.getMemberCouponSeq() != null) {
+            MemberCoupon memberCoupon = memberCouponRepository.findById(order.getMemberCouponSeq())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "회원 쿠폰 정보를 찾을 수 없습니다. memberCouponSeq=" + order.getMemberCouponSeq()
+                    ));
+
+            if (memberCoupon.getStatus() != null && memberCoupon.getStatus() == 0) {
+                memberCoupon.use();
+            }
+        }
+
+        /*
+            결제 성공 후 장바구니 비우기.
+            현재 주문 구조는 '회원의 장바구니 전체 결제'이므로 해당 회원의 장바구니를 모두 삭제한다.
+         */
+        cartRepository.deleteByMember_Seq(order.getMemberSeq());
     }
 
     /**
-     * 결제 실패 리다이렉트 처리.
+     * 결제 실패 URL로 돌아온 경우 주문과 결제 실패 기록을 남긴다.
      */
     @Transactional
     public void markPaymentFail(String orderId,
@@ -144,12 +192,17 @@ public class PaymentService {
             return;
         }
 
+        /*
+            이미 결제 완료된 주문이면 실패 처리하지 않는다.
+         */
         if (order.getPaymentStatus() != null && order.getPaymentStatus() == 2) {
             return;
         }
 
-        order.setPaymentStatus(3); // 결제실패
+        order.setPaymentStatus(3);
         ordersRepository.save(order);
+
+        String failReason = "[" + nullToEmpty(code) + "] " + nullToEmpty(message);
 
         Payment payment = Payment.builder()
                 .orderSeq(order.getSeq())
@@ -163,13 +216,16 @@ public class PaymentService {
                 .requestDate(LocalDateTime.now())
                 .payDate(null)
                 .receiptUrl(null)
-                .failReason("[" + code + "] " + message)
+                .failReason(failReason)
                 .updateDate(LocalDateTime.now())
                 .build();
 
         paymentRepository.save(payment);
     }
 
+    /**
+     * 토스 결제 승인 API 호출.
+     */
     private JsonNode requestTossConfirm(String paymentKey,
                                         String orderId,
                                         Integer amount) {
@@ -182,11 +238,9 @@ public class PaymentService {
 
             String requestBody = objectMapper.writeValueAsString(body);
 
-            String authorization = createBasicAuthorizationHeader();
-
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(TOSS_CONFIRM_URL))
-                    .header("Authorization", authorization)
+                    .header("Authorization", createBasicAuthorizationHeader())
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
@@ -201,13 +255,13 @@ public class PaymentService {
             JsonNode responseBody = objectMapper.readTree(response.body());
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String message = responseBody.has("message")
+                String errorMessage = responseBody.has("message")
                         ? responseBody.get("message").asText()
                         : response.body();
 
                 throw new ResponseStatusException(
                         HttpStatusCode.valueOf(response.statusCode()),
-                        message
+                        errorMessage
                 );
             }
 
@@ -221,10 +275,13 @@ public class PaymentService {
         }
     }
 
+    /**
+     * Toss Secret Key를 Basic Auth 헤더로 변환.
+     *
+     * 형식:
+     * Authorization: Basic Base64(secretKey + ":")
+     */
     private String createBasicAuthorizationHeader() {
-        /*
-            토스 API 인증은 secretKey + ":" 문자열을 Base64 인코딩해서 Basic 헤더로 보낸다.
-         */
         String value = tossSecretKey + ":";
         String encoded = Base64.getEncoder()
                 .encodeToString(value.getBytes(StandardCharsets.UTF_8));
@@ -232,6 +289,14 @@ public class PaymentService {
         return "Basic " + encoded;
     }
 
+    /**
+     * 토스 method 문자열을 프로젝트 payment_method 코드로 변환.
+     *
+     * 프로젝트 정의에 맞게 숫자는 조정 가능.
+     * 0: 카드
+     * 1: 계좌이체
+     * 2: 가상계좌
+     */
     private Integer mapPaymentMethod(String method) {
         if (method == null) {
             return 0;
@@ -245,6 +310,10 @@ public class PaymentService {
         };
     }
 
+    /**
+     * 토스 approvedAt 예:
+     * 2026-06-09T17:00:00+09:00
+     */
     private LocalDateTime parseTossDateTime(String value) {
         if (value == null || value.isBlank()) {
             return LocalDateTime.now();
@@ -263,5 +332,9 @@ public class PaymentService {
 
     private String createPaymentUid() {
         return "PAY-" + System.currentTimeMillis();
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 }

@@ -19,18 +19,25 @@ public class OrdersViewService {
 
     private final OrdersQueryRepository ordersQueryRepository;
 
-    public List<CheckoutItemDto> getCheckoutItems() {
-        List<CheckoutItemDto> items = ordersQueryRepository.findCheckoutItemsByTestOptionsSeq();
+    /**
+     * 로그인 회원의 장바구니 상품 목록.
+     */
+    public List<CheckoutItemDto> getCheckoutItems(Long memberSeq) {
+        List<CheckoutItemDto> items =
+                ordersQueryRepository.findCheckoutItemsByMemberCart(memberSeq);
 
         if (items.isEmpty()) {
-            throw new IllegalStateException("테스트 결제 상품을 찾을 수 없습니다.");
+            throw new IllegalStateException("장바구니에 결제할 상품이 없습니다.");
         }
 
         return items;
     }
 
-    public List<CouponDto> getCoupons() {
-        return ordersQueryRepository.findTestCoupons();
+    /**
+     * 로그인 회원이 실제 발급받은 사용 가능한 쿠폰 목록.
+     */
+    public List<CouponDto> getCoupons(Long memberSeq) {
+        return ordersQueryRepository.findAvailableCouponsByMemberSeq(memberSeq);
     }
 
     public List<DeliveryAddressDto> getDeliveryAddresses() {
@@ -58,8 +65,14 @@ public class OrdersViewService {
         );
     }
 
-    public PriceSummaryDto getPriceSummary(Long couponSeq) {
-        List<CheckoutItemDto> items = getCheckoutItems();
+    /**
+     * 서버 기준 최종 결제금액 계산.
+     *
+     * 상품 금액은 로그인 회원의 장바구니 기준으로 계산한다.
+     * memberCouponSeq는 coupon.seq가 아니라 member_coupon.seq다.
+     */
+    public PriceSummaryDto getPriceSummary(Long memberSeq, Long memberCouponSeq) {
+        List<CheckoutItemDto> items = getCheckoutItems(memberSeq);
 
         int productTotalPrice = items.stream()
                 .mapToInt(CheckoutItemDto::totalPrice)
@@ -68,7 +81,12 @@ public class OrdersViewService {
         int deliveryFee = productTotalPrice >= 30000 ? 0 : 3000;
         int hotdealDiscount = 0;
 
-        CouponDto selectedCoupon = ordersQueryRepository.findTestCoupon(couponSeq);
+        CouponDto selectedCoupon =
+                ordersQueryRepository.findAvailableCouponByMemberSeqAndMemberCouponSeq(
+                        memberSeq,
+                        memberCouponSeq
+                );
+
         int couponDiscount = calculateCouponDiscount(productTotalPrice, selectedCoupon);
 
         int finalPrice = productTotalPrice + deliveryFee - couponDiscount - hotdealDiscount;
@@ -95,7 +113,7 @@ public class OrdersViewService {
             return 0;
         }
 
-        if ("0".equals(coupon.discountType())) {
+        if (Integer.valueOf(0).equals(coupon.discountType())) {
             if (coupon.discountRate() == null) {
                 return 0;
             }
@@ -103,7 +121,7 @@ public class OrdersViewService {
             return productTotalPrice * coupon.discountRate() / 100;
         }
 
-        if ("1".equals(coupon.discountType())) {
+        if (Integer.valueOf(1).equals(coupon.discountType())) {
             if (coupon.discountPrice() == null) {
                 return 0;
             }

@@ -27,42 +27,30 @@ public class OrdersCommandService {
     private final OrdersRepository ordersRepository;
     private final OrderItemRepository orderItemRepository;
 
-    /**
-     * 좌표 입력 기능 연동 전 임시 좌표.
-     *
-     * TODO 실제 연동 시 교체
-     * - 주소 검색 API 또는 배송지 테이블의 좌표값을 사용해야 한다.
-     */
     private static final Double DEFAULT_LATITUDE = 37.5665000;
     private static final Double DEFAULT_LONGITUDE = 126.9780000;
 
-    /**
-     * 결제하기 버튼 클릭 시 주문 데이터를 생성한다.
-     *
-     * 수정된 DDL 기준:
-     * - orders 먼저 INSERT
-     * - 생성된 orders.seq를 order_item.order_seq에 넣어서 order_item 여러 개 INSERT
-     *
-     * 로그인 연동 후:
-     * - memberSeq는 Controller에서 현재 로그인한 회원 기준으로 전달받는다.
-     */
     @Transactional
     public OrderCreateResultDto createOrderFromCheckout(CheckoutRequestDto requestDto,
                                                         Long memberSeq) {
 
         validateCheckoutRequest(requestDto, memberSeq);
 
-        List<CheckoutItemDto> items = ordersViewService.getCheckoutItems();
+        /*
+            하드코딩 옵션이 아니라 로그인 회원의 장바구니 상품을 조회한다.
+         */
+        List<CheckoutItemDto> items = ordersViewService.getCheckoutItems(memberSeq);
 
         if (items.isEmpty()) {
-            throw new IllegalStateException("주문 상품이 없습니다.");
+            throw new IllegalStateException("장바구니에 결제할 상품이 없습니다.");
         }
 
         /*
             화면에서 넘어온 amount는 신뢰하지 않는다.
-            서버에서 상품/쿠폰/배송비 기준으로 다시 계산한다.
+            장바구니 상품 + 회원 쿠폰 기준으로 서버에서 다시 계산한다.
          */
-        PriceSummaryDto priceSummary = ordersViewService.getPriceSummary(requestDto.getCouponSeq());
+        PriceSummaryDto priceSummary =
+                ordersViewService.getPriceSummary(memberSeq, requestDto.getMemberCouponSeq());
 
         DeliveryInfo deliveryInfo = resolveDeliveryInfo(requestDto);
 
@@ -74,20 +62,9 @@ public class OrdersCommandService {
         String orderUid = createOrderUid();
         String orderName = createOrderName(items);
 
-        /*
-            1. orders 먼저 저장한다.
-            변경된 구조에서는 orders가 order_item을 직접 참조하지 않는다.
-         */
         Orders order = Orders.builder()
                 .memberSeq(memberSeq)
-
-                /*
-                    현재 테스트 단계에서는 coupon.seq를 직접 받고 있으므로 member_coupon_seq는 null.
-                    TODO 실제 연동 시 교체
-                    - 실제 회원 쿠폰 기능을 붙이면 member_coupon.seq를 받아서 저장한다.
-                 */
-                .memberCouponSeq(null)
-
+                .memberCouponSeq(requestDto.getMemberCouponSeq())
                 .orderUid(orderUid)
                 .productTotalPrice(productTotalPrice)
                 .couponDiscount(totalCouponDiscount)
@@ -95,31 +72,19 @@ public class OrdersCommandService {
                 .finalPrice(finalPrice)
                 .totalRefundPrice(0)
                 .remainPrice(finalPrice)
-
-                /*
-                    DDL 주석 기준:
-                    order_status = 1: 결제대기
-                    payment_status = 0: 결제대기
-                 */
                 .orderStatus(1)
                 .paymentStatus(0)
-
-                .orderDate(null)      // 결제 완료 시점에 업데이트
+                .orderDate(null)
                 .regdate(LocalDateTime.now())
-
                 .zipcode(deliveryInfo.zipcode())
                 .address(deliveryInfo.address())
                 .addressDetail(deliveryInfo.addressDetail())
-
                 .currLatitude(DEFAULT_LATITUDE)
                 .currLongitude(DEFAULT_LONGITUDE)
                 .build();
 
         Orders savedOrder = ordersRepository.save(order);
 
-        /*
-            2. 저장된 orders.seq를 order_item.order_seq에 넣어서 주문상품들을 저장한다.
-         */
         createOrderItems(savedOrder.getSeq(), items, totalCouponDiscount);
 
         return new OrderCreateResultDto(
@@ -173,13 +138,6 @@ public class OrdersCommandService {
             );
         }
 
-        /*
-            기존 배송지 선택은 아직 DB 연동 전이므로 화면 테스트용 배송지 목록에서 찾는다.
-
-            TODO 실제 연동 시 교체
-            - delivery_address 테이블에서 로그인 회원의 deliveryAddressSeq를 조회
-            - 조회한 주소를 orders에 저장
-         */
         List<DeliveryAddressDto> addresses = ordersViewService.getDeliveryAddresses();
 
         DeliveryAddressDto selected = addresses.stream()
@@ -213,10 +171,6 @@ public class OrdersCommandService {
 
             int itemCouponDiscount;
 
-            /*
-                쿠폰 할인금액을 상품금액 비율대로 각 order_item에 배분한다.
-                마지막 상품에는 남은 할인금액을 넣어서 절삭 오차를 방지한다.
-             */
             if (i == items.size() - 1) {
                 itemCouponDiscount = remainingCouponDiscount;
             } else {

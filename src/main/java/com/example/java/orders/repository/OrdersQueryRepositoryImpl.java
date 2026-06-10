@@ -1,20 +1,19 @@
 package com.example.java.orders.repository;
 
+import static com.example.java.cart.entity.QCart.cart;
 import static com.example.java.member.entity.QCoupon.coupon;
+import static com.example.java.member.entity.QMemberCoupon.memberCoupon;
 import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
-import static com.example.java.product.entity.QProductImage.productImage;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.stereotype.Repository;
 
 import com.example.java.orders.dto.CheckoutItemDto;
 import com.example.java.orders.dto.CouponDto;
-import com.example.java.product.entity.QProductImage;
 import com.querydsl.core.Tuple;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import lombok.RequiredArgsConstructor;
@@ -25,27 +24,24 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    private static final List<Long> TEST_OPTIONS_SEQS = List.of(3312L, 3361L);
-
-    private static final Map<Long, Integer> TEST_QUANTITY_MAP = Map.of(
-    		3312L, 1,
-            3361L, 1
-    );
-
-    private static final long TEST_RATE_COUPON_SEQ = 80L;
-    private static final long TEST_PRICE_COUPON_SEQ = 81L;
-
+    /**
+     * 로그인 회원의 장바구니 상품을 주문/결제 화면용 DTO로 조회한다.
+     */
     @Override
-    public List<CheckoutItemDto> findCheckoutItemsByTestOptionsSeq() {
-
-        QProductImage subImage = new QProductImage("subImage");
+    public List<CheckoutItemDto> findCheckoutItemsByMemberCart(Long memberSeq) {
+        if (memberSeq == null) {
+            return List.of();
+        }
 
         List<Tuple> rows = queryFactory
                 .select(
+                        cart.seq,
+                        cart.quantity,
                         options.seq,
                         product.seq,
                         product.productName,
                         product.price,
+                        product.thumbnailUrl,
                         options.additionalPrice,
                         options.color,
                         options.optionsSize,
@@ -62,38 +58,22 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                         options.connectionType,
                         options.wearableSpec,
                         options.materialType,
-                        options.optionsType,
-                        productImage.imageUrl
+                        options.optionsType
                 )
-                .from(options)
-                .join(product).on(options.product.seq.eq(product.seq))
-                .leftJoin(productImage).on(
-                        productImage.productSeq.eq(product.seq)
-                                .and(productImage.status.eq("NORMAL"))
-                                .and(productImage.seq.eq(
-                                        JPAExpressions
-                                                .select(subImage.seq.min())
-                                                .from(subImage)
-                                                .where(
-                                                        subImage.productSeq.eq(product.seq),
-                                                        subImage.status.eq("NORMAL")
-                                                )
-                                ))
-                )
-                .where(options.seq.in(TEST_OPTIONS_SEQS))
-                .orderBy(options.seq.asc())
+                .from(cart)
+                .join(cart.options, options)
+                .join(options.product, product)
+                .where(cart.member.seq.eq(memberSeq))
+                .orderBy(cart.seq.asc())
                 .fetch();
 
         return rows.stream()
                 .map(row -> {
-                    Long optionsSeq = row.get(options.seq);
-
                     Integer productPrice = row.get(product.price);
                     Integer additionalPrice = row.get(options.additionalPrice);
+                    Integer quantity = row.get(cart.quantity);
 
                     int finalUnitPrice = nullToZero(productPrice) + nullToZero(additionalPrice);
-
-                    int quantity = TEST_QUANTITY_MAP.getOrDefault(optionsSeq, 1);
 
                     String optionText = buildOptionText(
                             row.get(options.color),
@@ -114,41 +94,51 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                             row.get(options.optionsType)
                     );
 
-                    String imageUrl = row.get(productImage.imageUrl);
+                    String imageUrl = row.get(product.thumbnailUrl);
 
                     if (imageUrl == null || imageUrl.isBlank()) {
                         imageUrl = "/images/no-image.png";
                     }
 
                     return new CheckoutItemDto(
-                            optionsSeq,
+                            row.get(options.seq),
                             row.get(product.seq),
                             row.get(product.productName),
                             imageUrl,
                             optionText,
                             finalUnitPrice,
-                            quantity
+                            quantity == null ? 1 : quantity
                     );
                 })
                 .toList();
     }
 
     @Override
-    public List<CouponDto> findTestCoupons() {
+    public List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq) {
+        if (memberSeq == null) {
+            return List.of();
+        }
+
+        LocalDate today = LocalDate.now();
+
         return queryFactory
                 .select(
-                        coupon.seq,
+                        memberCoupon.seq,
                         coupon.name,
                         coupon.discountType,
                         coupon.discountPrice,
                         coupon.discountRate
                 )
-                .from(coupon)
+                .from(memberCoupon)
+                .join(memberCoupon.coupon, coupon)
                 .where(
-                        coupon.seq.in(TEST_RATE_COUPON_SEQ, TEST_PRICE_COUPON_SEQ),
-                        coupon.status.eq(1)
+                        memberCoupon.member.seq.eq(memberSeq),
+                        memberCoupon.status.eq(0),
+                        coupon.status.eq(1),
+                        coupon.startDate.loe(today),
+                        coupon.expireDate.goe(today)
                 )
-                .orderBy(coupon.seq.asc())
+                .orderBy(memberCoupon.seq.desc())
                 .fetch()
                 .stream()
                 .map(row -> {
@@ -157,7 +147,7 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                     Integer discountRate = row.get(coupon.discountRate);
 
                     return new CouponDto(
-                            row.get(coupon.seq),
+                            row.get(memberCoupon.seq),
                             row.get(coupon.name),
                             discountType,
                             discountPrice,
@@ -169,24 +159,30 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
     }
 
     @Override
-    public CouponDto findTestCoupon(Long couponSeq) {
-        if (couponSeq == null) {
+    public CouponDto findAvailableCouponByMemberSeqAndMemberCouponSeq(Long memberSeq, Long memberCouponSeq) {
+        if (memberSeq == null || memberCouponSeq == null) {
             return null;
         }
 
+        LocalDate today = LocalDate.now();
+
         Tuple row = queryFactory
                 .select(
-                        coupon.seq,
+                        memberCoupon.seq,
                         coupon.name,
                         coupon.discountType,
                         coupon.discountPrice,
                         coupon.discountRate
                 )
-                .from(coupon)
+                .from(memberCoupon)
+                .join(memberCoupon.coupon, coupon)
                 .where(
-                        coupon.seq.eq(couponSeq),
-                        coupon.seq.in(TEST_RATE_COUPON_SEQ, TEST_PRICE_COUPON_SEQ),
-                        coupon.status.eq(1)
+                        memberCoupon.seq.eq(memberCouponSeq),
+                        memberCoupon.member.seq.eq(memberSeq),
+                        memberCoupon.status.eq(0),
+                        coupon.status.eq(1),
+                        coupon.startDate.loe(today),
+                        coupon.expireDate.goe(today)
                 )
                 .fetchOne();
 
@@ -199,7 +195,7 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
         Integer discountRate = row.get(coupon.discountRate);
 
         return new CouponDto(
-                row.get(coupon.seq),
+                row.get(memberCoupon.seq),
                 row.get(coupon.name),
                 discountType,
                 discountPrice,
