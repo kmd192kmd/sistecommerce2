@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.java.product.dto.CategoryDto;
 import com.example.java.product.dto.ProductDto;
 import com.example.java.product.entity.Product;
 import com.example.java.product.repository.ProductDetailRepository;
@@ -15,29 +16,54 @@ import lombok.RequiredArgsConstructor;
 /*
     ProductDetailService
 
-    상품 등록, 상세 조회, 수정, 삭제(CRUD) 등 상세 화면과 상품 관리 기능을 담당합니다.
+    상품 등록, 상세 조회, 수정, 삭제(CRUD) 등
+    상세 화면과 상품 관리 기능을 담당합니다.
 */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ProductDetailService {
 
+    /*
+        ProductDetailRepository
+
+        상품 상세, 등록, 수정, 삭제에 필요한 DB 작업을 담당합니다.
+
+        Controller는 DB에 직접 접근하지 않고,
+        Service를 통해 상품 관련 기능을 실행합니다.
+
+        흐름:
+        Controller → Service → Repository → DB
+    */
     private final ProductDetailRepository productDetailRepository;
 
     /*
-        상품 등록
+        CategoryService
+
+        상품 등록 화면에서
+        대분류 / 중분류 / 소분류 카테고리 목록을 가져오기 위해 사용합니다.
+    */
+    private final CategoryService categoryService;
+
+    /*
+        1. 상품 등록
+
+        ProductDto를 Product 엔티티로 변환한 뒤 DB에 저장합니다.
     */
     @Transactional
     public ProductDto createProduct(ProductDto dto) {
 
         Product product = dto.toEntity();
+
         Product saved = productDetailRepository.save(product);
 
         return convertToDtoWithDetails(saved);
     }
 
     /*
-        상품 상세 조회 (기본)
+        2. 상품 상세 조회
+
+        로그인 회원 정보가 필요 없는 경우 사용합니다.
     */
     @Transactional
     public ProductDto getProductDetail(Long seq) {
@@ -46,16 +72,42 @@ public class ProductDetailService {
     }
 
     /*
-        상품 상세 조회 (회원 찜 여부 및 조회수 증가 포함)
+        2-1. 상품 상세 조회
+
+        처리 순서:
+        1. 상품 리뷰 통계 갱신
+        2. 상품 엔티티 조회
+        3. 접근 불가 상품 검증
+        4. 조회수 증가
+        5. DTO 변환
+        6. 이미지 목록 조회
+        7. 옵션 목록 조회
+        8. 로그인 회원이 있으면 찜 여부 확인
     */
     @Transactional
     public ProductDto getProductDetail(Long seq, Long memberSeq) {
 
+        /*
+            상품 리뷰 통계 갱신
+
+            review 테이블 기준으로 평균 별점과 리뷰 수를 다시 계산해서
+            product 테이블의 avg_rating, review_count에 저장합니다.
+
+            상품 상세 화면에서 별점과 리뷰 수가 최신 상태로 보이도록
+            상품 엔티티를 조회하기 전에 먼저 갱신합니다.
+        */
         productDetailRepository.updateProductReviewStats(seq);
 
         Product product = productDetailRepository.findById(seq)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. 번호: " + seq));
 
+        /*
+            접근 불가 상품 검증
+
+            STOPPED : 판매 중지
+            hideYn = Y : 숨김 상품
+            DELETED : 삭제 상품
+        */
         if ("STOPPED".equals(product.getSaleStatus())
                 || "Y".equals(product.getHideYn())
                 || "DELETED".equals(product.getStatus())) {
@@ -63,21 +115,38 @@ public class ProductDetailService {
             throw new IllegalStateException("해당 상품은 접근이 불가능합니다.");
         }
 
+        /*
+            상세 페이지에 들어왔으므로 조회수를 1 증가시킵니다.
+        */
         Long currentViewCount = product.getViewCount() == null ? 0L : product.getViewCount();
         product.setViewCount(currentViewCount + 1);
 
         Product updated = productDetailRepository.save(product);
+
+        /*
+            Product 엔티티를 화면용 ProductDto로 변환합니다.
+        */
         ProductDto dto = convertToDtoWithDetails(updated);
 
+        /*
+            로그인한 회원인 경우에만 찜 여부를 확인합니다.
+        */
+//        if (memberSeq != null) {
+//            dto.setWished(productDetailRepository.existsWish(seq, memberSeq));
+//        }
+        
         if (memberSeq != null) {
-            dto.setWished(productDetailRepository.existsWish(seq, memberSeq));
+            dto.setWished(false);
         }
 
         return dto;
     }
 
     /*
-        조회수 증가 없는 상품 조회
+        조회수 증가 없이 상품 조회
+
+        수정 화면, 최근 조회 상품, 추천 상품 등
+        조회수를 올리지 않고 상품 정보만 필요할 때 사용합니다.
     */
     public ProductDto getProductWithoutViewCount(Long seq) {
 
@@ -88,7 +157,10 @@ public class ProductDetailService {
     }
 
     /*
-        상품 수정
+        3. 상품 수정
+
+        상품 번호로 기존 상품을 찾은 뒤
+        전달받은 DTO 값으로 수정합니다.
     */
     @Transactional
     public ProductDto updateProduct(Long seq, ProductDto dto) {
@@ -122,7 +194,14 @@ public class ProductDetailService {
     }
 
     /*
-        상품 삭제
+        4. 상품 논리 삭제
+
+        실제 DELETE가 아니라
+        Repository에서 status = 'DELETED', hide_yn = 'Y'로 변경합니다.
+
+        반환값:
+        true  : 삭제 성공
+        false : 삭제할 상품 없음
     */
     @Transactional
     public boolean deleteProduct(Long seq) {
@@ -132,25 +211,76 @@ public class ProductDetailService {
         return result > 0;
     }
 
+    /*
+        상품 등록 화면용 전체 카테고리 목록 조회
+
+        category 테이블 구조:
+        - seq
+        - category_name
+        - depth_level
+        - parent_seq
+
+        화면에서는 이 목록을 이용해서
+        대분류 → 중분류 → 소분류 순서로 선택합니다.
+    */
+    public List<CategoryDto> getAllCategories() {
+
+        return categoryService.getAllCategories();
+    }
+
+    /*
+        Product 엔티티를 ProductDto로 변환하면서
+        화면에 필요한 추가 정보도 함께 넣습니다.
+
+        포함 정보:
+        - 상품 기본 정보
+        - 대표 이미지
+        - 전체 이미지 목록
+        - 옵션 목록
+        - 옵션 문자열 목록
+    */
     private ProductDto convertToDtoWithDetails(Product product) {
 
         ProductDto dto = product.toDto();
 
-        List<ProductDto.ProductImageDto> imageList = productDetailRepository.findProductImages(product.getSeq());
+        /*
+            상품 이미지 목록 조회
+        */
+        List<ProductDto.ProductImageDto> imageList =
+                productDetailRepository.findProductImages(product.getSeq());
+
         dto.setImageList(imageList);
 
+        /*
+            대표 이미지 찾기
+
+            thumbnail_yn = 'Y'인 이미지를 우선 사용합니다.
+            없으면 기본 이미지를 사용합니다.
+        */
         String thumbnailUrl = imageList.stream()
                 .filter(img -> "Y".equals(img.getThumbnailYn()))
                 .map(ProductDto.ProductImageDto::getImageUrl)
                 .findFirst()
-                .orElse("/src/images/product/default.png");
+                .orElse("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400&auto=format&fit=crop");
 
         dto.setImage(thumbnailUrl);
         dto.setThumbnailUrl(thumbnailUrl);
 
-        List<ProductDto.ProductOptionDto> optionList = productDetailRepository.findProductOptions(product.getSeq());
+        /*
+            상품 옵션 목록 조회
+        */
+        List<ProductDto.ProductOptionDto> optionList =
+                productDetailRepository.findProductOptions(product.getSeq());
+
         dto.setOptionList(optionList);
 
+        /*
+            옵션명을 문자열 목록으로 변환합니다.
+
+            예:
+            optionList의 optionName만 뽑아서
+            ["블랙 / M", "화이트 / L"] 형태로 만듭니다.
+        */
         List<String> optionStrings = optionList.stream()
                 .map(ProductDto.ProductOptionDto::getOptionName)
                 .filter(str -> str != null && !str.isBlank())

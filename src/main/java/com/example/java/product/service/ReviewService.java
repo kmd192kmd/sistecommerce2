@@ -438,6 +438,7 @@ public class ReviewService {
                         .seq(review.getSeq())
                         .productSeq(review.getProductSeq())
                         .memberSeq(review.getMemberSeq())
+                        .nickname(review.getNickname())
                         .orderItemSeq(review.getOrderItemSeq())
                         .rating(review.getRating())
                         .content(review.getContent())

@@ -171,9 +171,12 @@ public class ProductDetailRepository {
     }
 
     /*
-        찜 여부 확인
-    */
+	    찜 여부 확인
+	*/
     public boolean existsWish(Long productSeq, Long memberSeq) {
+
+        System.out.println("existsWish productSeq = " + productSeq);
+        System.out.println("existsWish memberSeq = " + memberSeq);
 
         String sql = """
                 SELECT COUNT(*)

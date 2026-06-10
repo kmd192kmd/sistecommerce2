@@ -1,0 +1,86 @@
+ <!DOCTYPE html>
+    <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+    <head>
+      <meta charset="UTF-8">
+      <title>핫딜 목록 - Admin</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="stylesheet" href="/admin/style.css">
+    </head>
+    <body class="font-sans antialiased overflow-hidden">
+      <div class="flex h-screen w-screen relative">
+
+        <div th:replace="~{admin/sidebar :: sidebar}"></div>
+
+        <div class="flex-1 flex flex-col h-full overflow-hidden">
+          <div th:replace="~{admin/header :: header}"></div>
+
+          <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+            <div class="flex justify-between items-center mb-2">
+              <div>
+                <h2 class="text-title text-2xl font-bold">핫딜 관리</h2>
+                <p class="text-label text-sm mt-1">등록된 핫딜 이벤트를 관리합니다.</p>
+              </div>
+              <a href="/hotdeal/create" class="btn btn-primary text-sm">새 핫딜 생성</a>
+            </div>
+
+            <div class="card overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left whitespace-nowrap">
+                  <thead class="text-xs text-label uppercase border-b border-gray-700/50">
+                    <tr>
+                      <th class="px-6 py-3">No.</th>
+                      <th class="px-6 py-3">핫딜명</th>
+                      <th class="px-6 py-3">할인 혜택</th>
+                      <th class="px-6 py-3">시작일</th>
+                      <th class="px-6 py-3">종료일</th>
+                      <th class="px-6 py-3">상태</th>
+                      <th class="px-6 py-3">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="hotdeal : ${hotdeals}" class="border-b border-gray-700/50 hover:bg-black/10">
+                      <td class="px-6 py-4 text-value font-medium" th:text="${hotdeal.seq}"></td>
+                      <td class="px-6 py-4 text-value font-bold" th:text="${hotdeal.name}"></td>
+                      <td class="px-6 py-4 text-indigo-400 font-medium">
+                        <span th:if="${hotdeal.discountPrice != null}"th:text = "${#numbers.formatInteger(hotdeal.discountPrice, 0, 'COMMA')} +'원 할인'"></span>
+                        <span th:if="${hotdeal.discountRate != null}" th:text = "${hotdeal.discountRate} + '% 할인'"></span>
+                      </td>
+                      <td class="px-6 py-4 text-label" th:text="${#temporals.format(hotdeal.startDate, 'yyyy-MM-dd
+  HH:mm')}"></td>
+                      <td class="px-6 py-4 text-label" th:text="${#temporals.format(hotdeal.endDate, 'yyyy-MM-dd
+  HH:mm')}"></td>
+                      <td class="px-6 py-4">
+                        <span th:if="${hotdeal.status == 0}" class="badge bg-yellow-100 text-yellow-800">대기</span>
+                        <span th:if="${hotdeal.status == 1}" class="badge bg-green-100 text-green-800">진행중</span>
+                        <span th:if="${hotdeal.status == 2}" class="badge bg-gray-100 text-gray-800">종료</span>
+                      </td>
+                      <td class="px-6 py-4">
+                       <a th:if="${hotdeal.status == 0}" th:href="@{/hotdeal/edit(seq=${hotdeal.seq})}" class="text-indigo-400
+                          hover:underline mr-2">수정</a>
+                            <span th:unless="${hotdeal.status == 0}" class="text-gray-500 cursor-not-allowed mr-2 text-xs" title="대기
+                          상태에서만 수정 가능합니다">수정불가</span>
+                    
+                         <!-- 상태가 0(대기)일 때만 삭제 버튼 활성화 -->
+                          <form th:if="${hotdeal.status == 0}" th:action="@{/hotdeal/delete}" method="post" class="inline"
+                      onsubmit="return confirm('정말로 이 핫딜을 삭제하시겠습니까? (할당된 재고는 원래 상품으로 복구됩니다.)');">
+                              <input type="hidden" name="seq" th:value="${hotdeal.seq}">
+                              <button type="submit" class="text-red-400 hover:underline">삭제</button>
+                          </form>
+                         <!-- 상태가 0이 아니면 텍스트만 표시 -->
+                          <span th:unless="${hotdeal.status == 0}" class="text-gray-500 cursor-not-allowed text-xs" title="대기 상태에서만 삭제 가능합니다">삭제불가</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(hotdeals)}">
+                      <td colspan="7" class="px-6 py-8 text-center text-gray-500 font-medium">등록된 핫딜이 없습니다.
+  </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </main>
+          <script src="/admin/admin.js"></script>
+        </div>
+      </div>
+    </body>
+    </html>

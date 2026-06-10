@@ -1,7 +1,8 @@
 -- 공구 참여 동시성 테스트 전용 최소 스키마 (Testcontainers Oracle XE init script).
 -- 실제 ddl.sql 정의와 동일하되, 락/참여 흐름과 무관한 FK는 생략한다.
--- participate()가 group_buy 상태 확인 → 옵션 점유 → participation INSERT 까지 하므로
--- group_buy / group_buy_options / participation 세 테이블이 필요하다.
+-- participate()가 group_buy 상태 확인 → 옵션 점유 → participation INSERT,
+-- 옵션 매진 시에는 waiting_queue INSERT 까지 하므로
+-- group_buy / group_buy_options / participation / waiting_queue 네 테이블이 필요하다.
 
 CREATE TABLE group_buy (
     seq number NOT NULL PRIMARY KEY,
@@ -36,8 +37,23 @@ CREATE TABLE participation (
     created_at timestamp NOT NULL
 );
 
--- participation 은 save()로 INSERT 되므로 시퀀스가 필요하다 (allocationSize=1 → NOCACHE).
+-- 옵션 매진 시 대기열 등록 대상 테이블. status 컬럼 없음(대기 이탈=행 삭제).
+CREATE TABLE waiting_queue (
+    seq number NOT NULL PRIMARY KEY,
+    group_buy_seq number NOT NULL,
+    group_buy_options_seq number NOT NULL,
+    member_seq number NOT NULL,
+    created_at timestamp NOT NULL
+);
+
+-- participation / waiting_queue 둘 다 save()로 INSERT 되므로 시퀀스가 필요하다 (allocationSize=1 → NOCACHE).
 CREATE SEQUENCE participation_seq START WITH 1 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE waiting_queue_seq START WITH 1 INCREMENT BY 1 NOCACHE;
+
+-- 취소 테스트는 시나리오별로 공구/옵션을 동적 생성한다(특히 T_lock 검증은 '마감 임박' 공구가 필요).
+-- 아래 더미(seq=1)와 겹치지 않도록 100부터 시작.
+CREATE SEQUENCE group_buy_seq START WITH 100 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE group_buy_options_seq START WITH 100 INCREMENT BY 1 NOCACHE;
 
 -- 진행 중(ONGOING) 공구 1건. end_at 은 타임존 영향 없이 항상 미래가 되도록 먼 미래 고정값.
 INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at, min_count, max_count, original_price, final_price, status)

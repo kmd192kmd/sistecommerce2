@@ -17,4 +17,10 @@ public class StubPaymentAdapter implements GroupBuyPaymentPort {
         // 실제 PG 연동 대신 로그만 남기고 성공으로 간주한다.
         log.info("[StubPayment] 공구 참여 결제 성공 처리(스텁) memberSeq={}, amount={}", memberSeq, amount);
     }
+
+    @Override
+    public void cancel(Long memberSeq, int amount) {
+        // 실제 PG 환불 대신 로그만 남기고 성공으로 간주한다.
+        log.info("[StubPayment] 공구 참여 환불 처리(스텁) memberSeq={}, amount={}", memberSeq, amount);
+    }
 }

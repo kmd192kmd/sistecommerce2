@@ -1,8 +1,6 @@
 package com.example.java.admin.repository;
 
 import static com.example.java.product.entity.QProduct.product;
-import static com.example.java.product.entity.QCategory.category;
-import static com.example.java.product.entity.QOptions.options;
 
 import org.springframework.stereotype.Repository;
 

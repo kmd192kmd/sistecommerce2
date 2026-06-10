@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('상품 등록')}"></head>
+
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<style>
+    #detailEditor:empty::before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+    }
+
+    #detailEditor img {
+        display: block;
+        max-width: 100%;
+        margin: 16px auto;
+        border: 1px solid #e5e7eb;
+    }
+
+    #detailEditor:focus {
+        background-color: #ffffff;
+    }
+
+    .category-item {
+        cursor: pointer;
+    }
+
+    .category-item:hover {
+        background-color: #f3f4f6;
+    }
+
+    .category-item.active {
+        background-color: #111827;
+        color: #ffffff;
+        font-weight: 700;
+    }
+
+    .category-item.active .category-arrow {
+        color: #ffffff;
+    }
+</style>
+
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+
+    <section class="max-w-5xl mx-auto bg-white border border-gray-200 px-10 py-8">
+
+        <h1 class="text-2xl font-bold mb-8">
+            상품 등록
+        </h1>
+
+        <form id="productRegisterForm"
+              method="post"
+              action="/api/product/register"
+              enctype="multipart/form-data">
+			  
+		    <!--
+		        추가된 부분
+
+		        상품을 등록하는 판매자 번호입니다.
+
+		        실제 로그인 기능과 연결되어 있다면
+		        Controller에서 model.addAttribute("sellerSeq", 로그인한 판매자 번호);
+		        형태로 내려주고 th:value="${sellerSeq}"를 사용합니다.
+		    -->
+		    <input type="hidden"
+		           name="sellerSeq"
+		           th:value="11">
+
+            <div class="grid grid-cols-[180px_1fr] gap-8">
+
+                <!-- 대표 이미지 -->
+                <div>
+                    <div id="mainImagePreview"
+                         class="w-40 h-40 bg-gray-900 text-white flex items-center justify-center overflow-hidden">
+                        <span class="text-xs text-gray-300">대표 이미지</span>
+                    </div>
+
+                    <label class="mt-3 inline-flex w-40 h-9 items-center justify-center bg-black text-white text-xs font-bold cursor-pointer hover:bg-gray-800">
+                        이미지 선택
+                        <input type="file"
+                               id="mainImageInput"
+                               name="images"
+                               accept="image/*"
+                               class="hidden">
+                    </label>
+
+                    <!-- 대표 이미지는 1장만 선택하므로 항상 0 -->
+                    <input type="hidden"
+                           name="thumbnailIndex"
+                           value="0">
+                </div>
+
+                <div>
+
+                    <!-- 기본 정보 영역 -->
+                    <div class="bg-gray-50 border border-gray-200 p-4 mb-4">
+
+                        <div class="grid grid-cols-2 gap-x-8 gap-y-4">
+
+                            <!-- 카테고리 -->
+                            <div class="relative">
+                                <label class="block text-xs font-bold text-gray-600 mb-1">
+                                    카테고리
+                                </label>
+
+                                <!-- 서버로 전송될 최종 카테고리 번호 -->
+                                <input type="hidden"
+                                       id="categorySeq"
+                                       name="categorySeq">
+
+                                <!-- 화면에 보이는 카테고리 입력칸 -->
+                                <button type="button"
+                                        id="categorySelectButton"
+                                        class="w-full h-10 border border-gray-300 bg-white px-3 text-left text-sm text-gray-500 focus:outline-none focus:border-gray-500">
+                                    카테고리 선택
+                                </button>
+
+                                <!-- 카테고리 선택 팝업 -->
+                                <div id="categoryPanel"
+                                     class="hidden absolute left-0 top-[64px] z-50 w-[620px] bg-white border border-gray-300 shadow-lg">
+
+                                    <div class="grid grid-cols-3 text-sm h-[260px]">
+
+                                        <!-- 대분류 -->
+                                        <div class="border-r border-gray-200">
+                                            <div class="px-3 py-2 font-bold bg-gray-50 border-b border-gray-200">
+                                                대분류
+                                            </div>
+
+                                            <ul id="largeCategoryList"
+                                                class="category-list h-[220px] overflow-y-auto">
+                                            </ul>
+                                        </div>
+
+                                        <!-- 중분류 -->
+                                        <div class="border-r border-gray-200">
+                                            <div class="px-3 py-2 font-bold bg-gray-50 border-b border-gray-200">
+                                                중분류
+                                            </div>
+
+                                            <ul id="middleCategoryList"
+                                                class="category-list h-[220px] overflow-y-auto">
+                                                <li class="px-3 py-2 text-gray-400">
+                                                    대분류를 선택하세요
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <!-- 소분류 -->
+                                        <div>
+                                            <div class="px-3 py-2 font-bold bg-gray-50 border-b border-gray-200">
+                                                소분류
+                                            </div>
+
+                                            <ul id="smallCategoryList"
+                                                class="category-list h-[220px] overflow-y-auto">
+                                                <li class="px-3 py-2 text-gray-400">
+                                                    중분류를 선택하세요
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">
+                                    상품명
+                                </label>
+
+                                <input type="text"
+                                       name="productName"
+                                       required
+                                       class="w-full h-10 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">
+                                    상품 가격
+                                </label>
+
+								<input type="number"
+								       name="price"
+								       min="0"
+								       required
+								       class="w-full h-10 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">
+                                    상품 수량
+                                </label>
+
+								<input type="number"
+								       id="stockInput"
+								       name="stock"
+								       min="0"
+								       required
+								       class="w-full h-10 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- 옵션 선택 영역 -->
+                    <div class="bg-gray-50 border border-gray-200 p-4 mb-4">
+
+                        <div class="grid grid-cols-4 gap-x-8 gap-y-4 text-sm">
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="색상">
+                                <span>색상</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="사이즈">
+                                <span>사이즈</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="용량/중량">
+                                <span>용량/중량</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="맛">
+                                <span>맛</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="보관방식">
+                                <span>보관방식</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="향/성분">
+                                <span>향/성분</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="전력">
+                                <span>전력</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="수량/구성">
+                                <span>수량/구성</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="크기/규격">
+                                <span>크기/규격</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="저장 용량">
+                                <span>저장 용량</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="메모리">
+                                <span>메모리</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="스위치/축">
+                                <span>스위치/축</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="연결 방식">
+                                <span>연결 방식</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="케어제품 구성">
+                                <span>케어제품 구성</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="재질">
+                                <span>재질</span>
+                            </label>
+
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" class="option-type-checkbox" value="기타 유형">
+                                <span>기타 유형</span>
+                            </label>
+
+                        </div>
+                    </div>
+
+                    <!-- 옵션 상세 영역 -->
+                    <div class="bg-gray-50 border border-gray-200 p-4">
+
+                        <div id="optionDetailList" class="space-y-6">
+
+                            <div id="optionEmptyMessage"
+                                 class="py-8 text-center text-sm text-gray-400">
+                                옵션 선택 영역에서 옵션을 선택하면 입력 영역이 생성됩니다.
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 상품 상세 설명 -->
+            <div class="mt-10">
+
+                <div class="flex items-center justify-between mb-3">
+                    <label class="block text-sm font-bold">
+                        상품 상세 설명
+                    </label>
+
+                    <label class="inline-flex h-9 items-center justify-center px-5 bg-black text-white text-xs font-bold cursor-pointer hover:bg-gray-800">
+                        이미지 첨부
+                        <input type="file"
+                               id="detailImageInput"
+                               name="detailImages"
+                               multiple
+                               accept="image/*"
+                               class="hidden">
+                    </label>
+                </div>
+
+                <!-- 실제 서버로 전송될 상세 설명 HTML -->
+                <input type="hidden"
+                       id="contentInput"
+                       name="content">
+
+                <!-- 화면에서 글과 이미지를 함께 입력하는 영역 -->
+                <div id="detailEditor"
+                     contenteditable="true"
+                     class="min-h-[420px] w-full border border-gray-300 bg-gray-50 px-4 py-4 text-sm leading-relaxed focus:outline-none focus:border-gray-500"
+                     data-placeholder="상품 상세 설명을 입력하세요.">
+                </div>
+            </div>
+
+            <!-- 버튼 -->
+            <div class="mt-6 flex justify-end gap-2">
+                <a th:href="@{/products/manage}"
+                   class="inline-flex h-10 items-center px-6 border border-gray-300 bg-white text-sm font-bold text-gray-600 hover:bg-gray-50">
+                    취소
+                </a>
+
+                <button type="submit"
+                        class="h-10 px-6 bg-black text-white text-sm font-bold hover:bg-gray-800">
+                    등록
+                </button>
+            </div>
+
+        </form>
+
+    </section>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<script th:inline="javascript">
+    const productRegisterForm = document.getElementById('productRegisterForm');
+
+    const mainImageInput = document.getElementById('mainImageInput');
+    const mainImagePreview = document.getElementById('mainImagePreview');
+
+    const detailImageInput = document.getElementById('detailImageInput');
+    const detailEditor = document.getElementById('detailEditor');
+    const contentInput = document.getElementById('contentInput');
+
+    const optionDetailList = document.getElementById('optionDetailList');
+    const optionEmptyMessage = document.getElementById('optionEmptyMessage');
+	const stockInput = document.getElementById('stockInput');
+	
+    /*
+        카테고리 목록
+
+        Controller에서 아래처럼 내려줘야 합니다.
+
+        model.addAttribute("categories", productService.getAllCategories());
+        또는
+        model.addAttribute("categories", categoryService.getAllCategories());
+
+        필요한 필드:
+        seq, categoryName, depthLevel, parentSeq
+    */
+    const categories = /*[[${categories}]]*/ [];
+
+    const categorySelectButton = document.getElementById('categorySelectButton');
+    const categoryPanel = document.getElementById('categoryPanel');
+
+    const largeCategoryList = document.getElementById('largeCategoryList');
+    const middleCategoryList = document.getElementById('middleCategoryList');
+    const smallCategoryList = document.getElementById('smallCategoryList');
+
+    const categorySeqInput = document.getElementById('categorySeq');
+
+    let selectedLargeCategory = null;
+    let selectedMiddleCategory = null;
+    let selectedSmallCategory = null;
+
+    /*
+        카테고리 버튼 클릭 시 작은 선택창 열고 닫기
+    */
+    categorySelectButton.addEventListener('click', function () {
+        categoryPanel.classList.toggle('hidden');
+    });
+
+    /*
+        카테고리 영역 바깥 클릭 시 선택창 닫기
+    */
+    document.addEventListener('click', function (event) {
+        const isInsideCategory =
+            categorySelectButton.contains(event.target) ||
+            categoryPanel.contains(event.target);
+
+        if (!isInsideCategory) {
+            categoryPanel.classList.add('hidden');
+        }
+    });
+
+    /*
+        페이지 로딩 시 대분류 표시
+
+        depthLevel
+        0 = 대분류
+        1 = 중분류
+        2 = 소분류
+    */
+    renderLargeCategories();
+
+    function renderLargeCategories() {
+        const largeList = categories.filter(function (category) {
+            return Number(category.depthLevel) === 0;
+        });
+
+        largeCategoryList.innerHTML = '';
+
+        if (largeList.length === 0) {
+            largeCategoryList.innerHTML = `
+                <li class="px-3 py-2 text-gray-400">
+                    대분류가 없습니다.
+                </li>
+            `;
+            return;
+        }
+
+        largeList.forEach(function (category) {
+            largeCategoryList.insertAdjacentHTML(
+                'beforeend',
+                makeCategoryItemHtml(category)
+            );
+        });
+    }
+
+    /*
+        카테고리 항목 HTML 생성
+    */
+    function makeCategoryItemHtml(category) {
+        return `
+            <li class="category-item px-3 py-2 flex items-center justify-between"
+                data-seq="${category.seq}">
+                <span>${escapeHtml(category.categoryName)}</span>
+                <span class="category-arrow text-gray-400">›</span>
+            </li>
+        `;
+    }
+
+    /*
+        대분류 클릭
+    */
+    largeCategoryList.addEventListener('click', function (event) {
+        const item = event.target.closest('.category-item');
+
+        if (!item) {
+            return;
+        }
+
+        const largeSeq = item.dataset.seq;
+
+        selectedLargeCategory = findCategoryBySeq(largeSeq);
+        selectedMiddleCategory = null;
+        selectedSmallCategory = null;
+
+        categorySeqInput.value = '';
+
+        updateActiveItem(largeCategoryList, item);
+        renderMiddleCategories(largeSeq);
+
+        smallCategoryList.innerHTML = `
+            <li class="px-3 py-2 text-gray-400">
+                중분류를 선택하세요
+            </li>
+        `;
+
+        updateCategoryButtonText();
+    });
+
+    /*
+        선택한 대분류에 해당하는 중분류 출력
+    */
+    function renderMiddleCategories(largeSeq) {
+        const middleList = categories.filter(function (category) {
+            return Number(category.depthLevel) === 1
+                && String(category.parentSeq) === String(largeSeq);
+        });
+
+        middleCategoryList.innerHTML = '';
+
+        if (middleList.length === 0) {
+            middleCategoryList.innerHTML = `
+                <li class="px-3 py-2 text-gray-400">
+                    중분류가 없습니다.
+                </li>
+            `;
+
+            categorySeqInput.value = largeSeq;
+            updateCategoryButtonText();
+            return;
+        }
+
+        middleList.forEach(function (category) {
+            middleCategoryList.insertAdjacentHTML(
+                'beforeend',
+                makeCategoryItemHtml(category)
+            );
+        });
+    }
+
+    /*
+        중분류 클릭
+    */
+    middleCategoryList.addEventListener('click', function (event) {
+        const item = event.target.closest('.category-item');
+
+        if (!item) {
+            return;
+        }
+
+        const middleSeq = item.dataset.seq;
+
+        selectedMiddleCategory = findCategoryBySeq(middleSeq);
+        selectedSmallCategory = null;
+
+        categorySeqInput.value = '';
+
+        updateActiveItem(middleCategoryList, item);
+        renderSmallCategories(middleSeq);
+        updateCategoryButtonText();
+    });
+
+    /*
+        선택한 중분류에 해당하는 소분류 출력
+    */
+    function renderSmallCategories(middleSeq) {
+        const smallList = categories.filter(function (category) {
+            return Number(category.depthLevel) === 2
+                && String(category.parentSeq) === String(middleSeq);
+        });
+
+        smallCategoryList.innerHTML = '';
+
+        if (smallList.length === 0) {
+            smallCategoryList.innerHTML = `
+                <li class="px-3 py-2 text-gray-400">
+                    소분류가 없습니다.
+                </li>
+            `;
+
+            categorySeqInput.value = middleSeq;
+            updateCategoryButtonText();
+            return;
+        }
+
+        smallList.forEach(function (category) {
+            smallCategoryList.insertAdjacentHTML(
+                'beforeend',
+                makeCategoryItemHtml(category)
+            );
+        });
+    }
+
+    /*
+        소분류 클릭
+    */
+    smallCategoryList.addEventListener('click', function (event) {
+        const item = event.target.closest('.category-item');
+
+        if (!item) {
+            return;
+        }
+
+        const smallSeq = item.dataset.seq;
+
+        selectedSmallCategory = findCategoryBySeq(smallSeq);
+        categorySeqInput.value = smallSeq;
+
+        updateActiveItem(smallCategoryList, item);
+        updateCategoryButtonText();
+
+        /*
+            소분류까지 선택하면 카테고리 선택창을 닫습니다.
+        */
+        categoryPanel.classList.add('hidden');
+    });
+
+    /*
+        선택된 항목 active 처리
+    */
+    function updateActiveItem(listElement, selectedItem) {
+        listElement.querySelectorAll('.category-item').forEach(function (item) {
+            item.classList.remove('active');
+        });
+
+        selectedItem.classList.add('active');
+    }
+
+    /*
+        seq로 카테고리 찾기
+    */
+    function findCategoryBySeq(seq) {
+        return categories.find(function (category) {
+            return String(category.seq) === String(seq);
+        });
+    }
+
+    /*
+        선택한 카테고리 경로를 입력칸에 표시
+    */
+    function updateCategoryButtonText() {
+        const path = [];
+
+        if (selectedLargeCategory) {
+            path.push(selectedLargeCategory.categoryName);
+        }
+
+        if (selectedMiddleCategory) {
+            path.push(selectedMiddleCategory.categoryName);
+        }
+
+        if (selectedSmallCategory) {
+            path.push(selectedSmallCategory.categoryName);
+        }
+
+        if (path.length === 0) {
+            categorySelectButton.textContent = '카테고리 선택';
+            categorySelectButton.classList.add('text-gray-500');
+            return;
+        }
+
+        categorySelectButton.textContent = path.join(' > ');
+        categorySelectButton.classList.remove('text-gray-500');
+    }
+
+    /*
+        대표 이미지 미리보기
+
+        대표 이미지는 1장만 선택합니다.
+    */
+    mainImageInput.addEventListener('change', function () {
+        const file = mainImageInput.files[0];
+
+        if (!file) {
+            mainImagePreview.innerHTML = '<span class="text-xs text-gray-300">대표 이미지</span>';
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            mainImagePreview.innerHTML = `
+                <img src="${event.target.result}"
+                     alt="대표 이미지"
+                     class="w-full h-full object-cover">
+            `;
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    /*
+        상세 설명 이미지 첨부
+
+        선택한 여러 이미지를 상세 설명 입력란 안에 삽입합니다.
+    */
+    detailImageInput.addEventListener('change', function () {
+        const files = Array.from(detailImageInput.files);
+
+        files.forEach(function (file) {
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const image = document.createElement('img');
+                image.src = event.target.result;
+                image.alt = '상품 상세 이미지';
+
+                detailEditor.appendChild(image);
+                detailEditor.appendChild(document.createElement('br'));
+            };
+
+            reader.readAsDataURL(file);
+        });
+    });
+
+    /*
+        옵션 체크박스 변경
+
+        옵션을 체크하면 해당 옵션 입력 영역을 생성하고,
+        체크를 해제하면 해당 옵션 입력 영역을 삭제합니다.
+    */
+    document.querySelectorAll('.option-type-checkbox').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            const optionType = this.value;
+
+            if (this.checked) {
+                createOptionGroup(optionType);
+            } else {
+                removeOptionGroup(optionType);
+            }
+
+            updateOptionEmptyMessage();
+			updateTotalStockFromOptions();
+        });
+    });
+	
+	/*
+	    옵션 선택 여부에 따라 상품 수량 입력 방식을 변경합니다.
+
+	    옵션이 하나도 선택되지 않은 경우:
+	    - 상품 수량을 사용자가 직접 입력합니다.
+
+	    옵션이 하나라도 선택된 경우:
+	    - 옵션 상세 영역의 재고 값들을 모두 더해서 상품 수량에 자동 입력합니다.
+	    - 상품 수량은 직접 수정하지 못하게 readonly 처리합니다.
+	*/
+	function updateTotalStockFromOptions() {
+	    const selectedOptionCount = document.querySelectorAll('.option-type-checkbox:checked').length;
+
+	    if (selectedOptionCount === 0) {
+	        stockInput.readOnly = false;
+	        stockInput.classList.remove('bg-gray-100', 'text-gray-500');
+	        return;
+	    }
+
+	    let totalStock = 0;
+
+	    document.querySelectorAll('input[name="optionStocks"]').forEach(function (input) {
+	        const value = Number(input.value);
+
+	        if (!Number.isNaN(value)) {
+	            totalStock += value;
+	        }
+	    });
+
+	    stockInput.value = totalStock;
+	    stockInput.readOnly = true;
+	    stockInput.classList.add('bg-gray-100', 'text-gray-500');
+	}
+
+    /*
+        옵션 그룹 생성
+
+        예:
+        색상 체크 → 색상 옵션 입력 영역 생성
+        사이즈 체크 → 사이즈 옵션 입력 영역 생성
+
+        처음에는 각 옵션마다 입력 줄이 1줄만 생성됩니다.
+    */
+    function createOptionGroup(optionType) {
+        const exists = document.querySelector(`.option-group[data-option-type="${optionType}"]`);
+
+        if (exists) {
+            return;
+        }
+
+        const group = document.createElement('div');
+        group.className = 'option-group border border-gray-200 bg-white p-4';
+        group.dataset.optionType = optionType;
+
+        group.innerHTML = `
+            <div class="option-row-list space-y-3">
+                ${makeOptionRowHtml(optionType)}
+            </div>
+
+            <div class="mt-4 flex items-center justify-center gap-3">
+                <button type="button"
+                        class="add-option-row-btn text-3xl leading-none font-bold text-gray-700 hover:text-black">
+                    +
+                </button>
+
+                <button type="button"
+                        class="remove-option-row-btn text-3xl leading-none font-bold text-gray-700 hover:text-black">
+                    −
+                </button>
+            </div>
+        `;
+
+        optionDetailList.appendChild(group);
+    }
+
+    /*
+        옵션 그룹 삭제
+    */
+    function removeOptionGroup(optionType) {
+        const group = document.querySelector(`.option-group[data-option-type="${optionType}"]`);
+
+        if (group) {
+            group.remove();
+        }
+    }
+
+    /*
+        옵션 입력 한 줄 HTML 생성
+    */
+    function makeOptionRowHtml(optionType) {
+        return `
+            <div class="option-detail-row">
+
+                <div class="grid grid-cols-4 gap-3 mb-2 text-xs font-bold text-gray-600">
+                    <label>${optionType}</label>
+                    <label>추가금액</label>
+                    <label>재고</label>
+                    <label>안전재고</label>
+                </div>
+
+                <div class="grid grid-cols-4 gap-3">
+
+                    <input type="hidden"
+                           name="optionTypes"
+                           value="${optionType}">
+
+                    <input type="text"
+                           name="optionNames"
+                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+
+                    <input type="number"
+                           name="optionPrices"
+                           value="0"
+                           min="0"
+                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+
+                    <input type="number"
+                           name="optionStocks"
+                           value="0"
+                           min="0"
+                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+
+                    <input type="number"
+                           name="optionSafeStocks"
+                           value="0"
+                           min="0"
+                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+                </div>
+            </div>
+        `;
+    }
+
+    /*
+        옵션 상세 영역의 + / - 버튼 처리
+    */
+    optionDetailList.addEventListener('click', function (event) {
+        const addBtn = event.target.closest('.add-option-row-btn');
+        const removeBtn = event.target.closest('.remove-option-row-btn');
+
+		if (addBtn) {
+		    const group = addBtn.closest('.option-group');
+		    const optionType = group.dataset.optionType;
+		    const rowList = group.querySelector('.option-row-list');
+
+		    rowList.insertAdjacentHTML('beforeend', makeOptionRowHtml(optionType));
+		    updateTotalStockFromOptions();
+		    return;
+		}
+
+        if (removeBtn) {
+            const group = removeBtn.closest('.option-group');
+            const rows = group.querySelectorAll('.option-detail-row');
+
+            if (rows.length <= 1) {
+                alert('옵션 입력 줄은 최소 1개 이상 필요합니다.');
+                return;
+            }
+
+            rows[rows.length - 1].remove();
+			updateTotalStockFromOptions();
+        }
+    });
+	
+	/*
+	    옵션 재고 입력값이 바뀔 때마다 상품 수량 자동 계산
+	*/
+	optionDetailList.addEventListener('input', function (event) {
+	    if (event.target.matches('input[name="optionStocks"]')) {
+	        updateTotalStockFromOptions();
+	    }
+	});
+
+    /*
+        옵션 선택이 하나도 없을 때 안내 문구 표시
+    */
+    function updateOptionEmptyMessage() {
+        const groups = optionDetailList.querySelectorAll('.option-group');
+
+        if (groups.length === 0) {
+            optionEmptyMessage.classList.remove('hidden');
+        } else {
+            optionEmptyMessage.classList.add('hidden');
+        }
+    }
+
+    /*
+        HTML 특수문자 처리
+    */
+    function escapeHtml(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+	/*
+	    상품 등록 전 처리
+
+	    수정된 부분:
+	    기존에는 form이 /api/product/register로 직접 이동하면서
+	    서버가 반환한 JSON 응답이 화면에 그대로 표시되었습니다.
+
+	    이제는 기본 submit을 막고 fetch로 등록 요청을 보냅니다.
+
+	    처리 흐름:
+	    1. 입력값 검증
+	    2. 상세 설명 HTML을 hidden input에 넣기
+	    3. FormData 생성
+	    4. /api/product/register로 비동기 요청
+	    5. 성공하면 alert 표시
+	    6. 상품 관리 페이지로 이동
+	*/
+	productRegisterForm.addEventListener('submit', async function (event) {
+
+	    /*
+	        수정된 부분:
+	        form 기본 제출을 먼저 막습니다.
+
+	        이 코드가 있어야 JSON 응답 화면으로 이동하지 않습니다.
+	    */
+	    event.preventDefault();
+
+	    if (!categorySeqInput.value) {
+	        alert('카테고리를 선택해주세요.');
+	        return;
+	    }
+
+	    if (mainImageInput.files.length === 0) {
+	        alert('대표 이미지를 등록해주세요.');
+	        return;
+	    }
+
+	    const selectedOptionCount = document.querySelectorAll('.option-type-checkbox:checked').length;
+
+	    if (selectedOptionCount === 0) {
+	        if (!stockInput.value || Number(stockInput.value) < 0) {
+	            alert('상품 수량을 입력해주세요.');
+	            return;
+	        }
+	    } else {
+	        updateTotalStockFromOptions();
+
+	        if (Number(stockInput.value) < 1) {
+	            alert('옵션 재고를 1개 이상 입력해주세요.');
+	            return;
+	        }
+	    }
+
+	    const contentHtml = detailEditor.innerHTML.trim();
+
+	    if (!contentHtml) {
+	        alert('상품 상세 설명을 입력해주세요.');
+	        return;
+	    }
+
+	    contentInput.value = contentHtml;
+
+	    /*
+	        추가된 부분:
+	        중복 클릭 방지를 위해 등록 버튼을 잠시 비활성화합니다.
+	    */
+	    const submitButton = productRegisterForm.querySelector('button[type="submit"]');
+	    submitButton.disabled = true;
+	    submitButton.textContent = '등록 중...';
+
+	    try {
+	        /*
+	            추가된 부분:
+	            현재 form 안의 모든 입력값과 파일을 FormData로 묶습니다.
+
+	            enctype="multipart/form-data"와 같은 역할을 fetch에서 처리합니다.
+	        */
+	        const formData = new FormData(productRegisterForm);
+
+	        const response = await fetch('/api/product/register', {
+	            method: 'POST',
+	            body: formData
+	        });
+
+	        /*
+	            추가된 부분:
+	            서버에서 오류가 오면 오류 메시지를 alert로 보여줍니다.
+	        */
+	        if (!response.ok) {
+	            const errorMessage = await response.text();
+	            alert(errorMessage || '상품 등록 중 오류가 발생했습니다.');
+	            return;
+	        }
+
+	        /*
+	            추가된 부분:
+	            서버가 보내준 JSON 응답을 읽습니다.
+	        */
+	        const result = await response.json();
+
+	        /*
+	            추가된 부분:
+	            밤밤티 알림처럼 사용자에게 성공 메시지를 보여줍니다.
+	        */
+	        alert(result.message || '상품 등록 요청이 관리자에게 전송되었습니다.');
+
+	        /*
+	            추가된 부분:
+	            등록 성공 후 상품 관리 페이지로 이동합니다.
+	            이동할 주소가 다르면 여기만 바꾸면 됩니다.
+	        */
+	        window.location.href = '/products/manage';
+
+	    } catch (error) {
+
+	        /*
+	            추가된 부분:
+	            네트워크 오류나 예상하지 못한 오류 처리입니다.
+	        */
+	        alert('상품 등록 중 오류가 발생했습니다.');
+
+	    } finally {
+
+	        /*
+	            추가된 부분:
+	            오류가 나서 페이지 이동을 하지 않는 경우 버튼을 다시 활성화합니다.
+	        */
+	        submitButton.disabled = false;
+	        submitButton.textContent = '등록';
+	    }
+	});
+</script>
+
+</body>
+</html>

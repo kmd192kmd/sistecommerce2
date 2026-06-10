@@ -37,4 +37,23 @@ public class Cart {
     @Column(name = "created_date", nullable = false)
     private LocalDate createdDate;
 
+    
+    /*
+	    같은 회원이 같은 옵션을 이미 장바구니에 담은 경우,
+	    새 row를 INSERT하지 않고 기존 장바구니 수량만 증가시키기 위해 사용합니다.
+	
+	    예:
+	    기존 수량 2개
+	    추가 수량 1개
+	    결과 수량 3개
+	*/
+	public void increaseQuantity(int quantity) {
+	
+	    if (this.quantity == null) {
+	        this.quantity = 0;
+	    }
+	
+	    this.quantity += quantity;
+	}
+    
 }

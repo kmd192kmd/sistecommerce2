@@ -31,6 +31,21 @@
       --text-white: #1E293B;
       --primary: #3C50E0;
     }
+    
+     .submenu-link {
+      display: block;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background-color: var(--bg-sidebar);
+      border-radius: var(--radius-sm);
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .submenu-link:hover {
+      background-color: var(--bg-hover);
+      color: var(--text-white);
+    }
 
     /* ==========================================
        글로벌 스타일

@@ -29,31 +29,34 @@
             <span class="flex-1">영수증 조회/출력</span>
         </a>
         
-        <a href="#" th:class="${activeMenu == 'coupons'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
+        <a th:href="@{/mypage/coupons}" th:class="${activeMenu == 'coupons'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">쿠폰</span>
+            <svg th:if="${activeMenu == 'coupons'}" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </a>
         
         <a href="#" th:class="${activeMenu == 'inquiries'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">문의</span>
         </a>
         
-        <a href="#" th:class="${activeMenu == 'reviews'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
+        <a th:href="@{/mypage/reviews}" th:class="${activeMenu == 'reviews'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">리뷰관리</span>
+            <svg th:if="${activeMenu == 'reviews'}" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </a>
         
         <a th:href="@{/cart}" th:class="${activeMenu == 'cart'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
-            <span class="flex-1">장바구니</span>
+            <span class="flex-1">공동구매 내역</span>
         </a>
         
-        <a href="#" th:class="${activeMenu == 'profile'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
+        <a th:href="@{/mypage/profile}" th:class="${activeMenu == 'profile'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">개인정보확인/수정</span>
+            <svg th:if="${activeMenu == 'profile'}" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </a>
         
         <a href="#" th:class="${activeMenu == 'payments'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">결제수단 관리</span>
         </a>
         
-        <a href="#" th:class="${activeMenu == 'address'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
+        <a href="/mypage/address" th:class="${activeMenu == 'address'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">배송지 관리</span>
         </a>
     </nav>

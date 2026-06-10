@@ -1,6 +1,6 @@
 <aside th:fragment="sidebar" id="sidebar" class="sidebar absolute inset-y-0 left-0 z-50 flex flex-col w-64 h-full px-4 py-6 overflow-y-auto transition-transform duration-300 ease-in-out transform -translate-x-full md:relative md:translate-x-0">
       
-      <button id="sidebarClose" class="absolute top-6 right-4 text-[#8A99AF] hover:text-white md:hidden">
+      <button id="sidebarClose" class="absolute top-6 right-4 text-label hover:text-white md:hidden">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
 
@@ -11,7 +11,7 @@
             <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path>
           </svg>
         </div>
-        <span class="text-xl font-semibold text-white tracking-wide">Admin</span>
+        <span class="text-xl font-semibold text-title tracking-wide">Admin</span>
       </div>
 
       <div class="flex flex-col gap-6">
@@ -30,9 +30,9 @@
             
             <!-- 여기서 서브메뉴 추가하시면 됩니다. -->
               <div class="hidden mt-2 ml-4 flex flex-col gap-1 overflow-hidden transition-all duration-300 submenu">
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">eCommerce</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">Analytics</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">Marketing</a>
+                 <a href="#" class="submenu-link">eCommerce</a>
+                 <a href="#" class="submenu-link">Analytics</a>
+                 <a href="#" class="submenu-link">Marketing</a>
               </div>
             </li>
           </ul>
@@ -61,14 +61,15 @@
             
             
             <!-- 여기서 서브메뉴 추가하시면 됩니다. -->
-              <div class="hidden mt-2 ml-4 flex flex-col gap-1 overflow-hidden transition-all duration-300 submenu">
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">상품 관리</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">회원 관리</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">판매처 관리</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">쿠폰 관리</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">주문 관리</a>
-                <a href="#" class="block px-4 py-2 text-sm font-medium text-white bg-[#333A48] rounded-sm hover:bg-[#40495a]">재고 관리</a>
-              </div>
+               <div class="hidden mt-2 ml-4 flex flex-col gap-1 overflow-hidden transition-all duration-300 submenu">
+                  <a href="#" class="submenu-link">상품 관리</a>
+                  <a href="#" class="submenu-link">회원 관리</a>
+                  <a href="#" class="submenu-link">판매처 관리</a>
+                  <a href="/coupon/list" class="submenu-link">쿠폰 관리</a>
+                  <a href="/hotdeal/list" class="submenu-link">핫딜 관리</a>
+                  <a href="#" class="submenu-link">주문 관리</a>
+                  <a href="#" class="submenu-link">재고 관리</a>
+                </div>
             </li>
           </ul>
         </div>

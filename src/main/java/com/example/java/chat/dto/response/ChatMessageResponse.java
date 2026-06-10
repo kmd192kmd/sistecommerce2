@@ -16,10 +16,10 @@ public class ChatMessageResponse {
     private LocalDateTime createdAt;
 
     public ChatMessageResponse(ChatMessage message) {
-        this.id = message.getId();
-        this.roomId = message.getRoomId();
+        this.id = message.getSeq();               // PK 매핑 (기존 getId -> getSeq)
+        this.roomId = message.getChatSeq();       // 방 번호 매핑 (기존 getRoomId -> getChatSeq)
         this.senderType = message.getSenderType();
-        this.senderId = message.getSenderId();
+        this.senderId = message.getSenderId();    // 발신자 번호 (AI면 null이 들어감)
         this.content = message.getContent();
         this.createdAt = message.getCreatedAt();
     }

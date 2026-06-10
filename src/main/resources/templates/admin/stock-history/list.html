@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock History List</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/admin/style.css">
+
+    <style>
+    .btn-more {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1rem;
+        background-color: var(--bg-body);
+        border: 1px dashed var(--border-color);
+        color: var(--text-muted);
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-more:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-white);
+        border-color: var(--text-muted);
+    }
+    </style>
+</head>
+
+<body class="bg-body text-main">
+
+<div class="p-6 space-y-6">
+
+    <h4 class="text-title mb-4">재고 이력 관리</h4>
+
+    <!-- ================= 검색 ================= -->
+    <div class="card">
+
+        <form method="get" th:action="@{/admin/stock-histories}" class="space-y-4">
+
+            <!-- 상품 상태 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">상품 상태</span>
+
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value=""
+                               th:checked="${search.saleStatus == ''}">
+                        전체
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="ON_SALE"
+                               th:checked="${search.saleStatus != '' and search.saleStatus == 'ON_SALE'}">
+                        판매중
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="SOLD_OUT"
+                               th:checked="${search.saleStatus != '' and search.saleStatus == 'SOLD_OUT'}">
+                        품절
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="STOPPED"
+                               th:checked="${search.saleStatus != '' and search.saleStatus == 'STOPPED'}">
+                        판매 중지
+                    </label>
+                </div>
+            </div>
+
+            <!-- 재고 타입 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">구분</span>
+
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="type" value=""
+                               th:checked="${search.type == null}">
+                        전체
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="type" value="IN"
+                               th:checked="${search.type != null and search.type.name() == 'IN'}">
+                        입고
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="type" value="OUT"
+                               th:checked="${search.type != null and search.type.name() == 'OUT'}">
+                        출고
+                    </label>
+                </div>
+            </div>
+
+            <!-- 가격 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">상품 가격</span>
+
+                <div class="flex items-center gap-2">
+                    <input type="number" name="priceFrom" class="form-input w-32">
+                    <span class="text-label">원 이상 ~</span>
+                    <input type="number" name="priceTo" class="form-input w-32">
+                    <span class="text-label">원 이하</span>
+                </div>
+            </div>
+
+            <!-- 기간 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">변동 날짜</span>
+
+                <div class="flex items-center gap-2">
+                    <input type="datetime-local" name="changedDateFrom" class="form-input">
+                    <span class="text-label">~</span>
+                    <input type="datetime-local" name="changedDateTo" class="form-input">
+                </div>
+            </div>
+
+            <!-- 검색 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">검색</span>
+
+                <div class="flex gap-2 w-full">
+                    <input type="text"
+                           name="keyword"
+                           class="form-input w-[28rem]"
+                           placeholder="상품명 검색">
+
+                    <button type="submit" class="btn btn-primary px-12 py-2 text-base">
+                        검색
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <h4 class="text-title mb-4">재고 이력 목록</h4>
+
+    <!-- ================= 테이블 ================= -->
+    <div class="card">
+        <div class="overflow-x-auto">
+
+            <table class="w-full text-sm text-center">
+
+                <thead class="text-label border-b border-[var(--border-color)]">
+                <tr>
+                    <th class="p-2">번호</th>
+                    <th class="p-2">구분</th>
+                    <th class="p-2">발생 경로</th>
+                    <th class="p-2">사유</th>
+                    <th class="p-2">상품 명</th>
+                    <th class="p-2">옵션</th>
+                    <th class="p-2">판매 상태</th>
+                    <th class="p-2">수량</th>
+                    <th class="p-2">이전 재고</th>
+                    <th class="p-2">이후 재고</th>
+                    <th class="p-2">변동 날짜</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="item : ${list}"
+                    class="border-b border-[var(--border-color)]">
+                    <td class="p-2" th:text="${item.seq}"></td>
+                    <td class="p-2 font-bold"
+					    th:text="${item.type.name() == 'IN' ? '입고' : '출고'}"
+					    th:classappend="${item.type.name() == 'IN' ? ' text-red-500' : ' text-blue-500'}">
+					</td>
+					<td class="p-2" th:text="${item.sourceType.name()}"></td>
+                    <td class="p-2" th:text="${item.reason}"></td>
+                    <td class="p-2" th:text="${item.productName}"></td>
+                    <td class="p-2" th:text="${item.optionsName}"></td>
+                    <td class="p-2 font-bold"
+					    th:text="${
+					        item.saleStatus == 'ON_SALE' ? '판매중' :
+					        item.saleStatus == 'SOLD_OUT' ? '품절' :
+					        '판매중지'
+					    }"
+					    th:classappend="${
+					        item.saleStatus == 'ON_SALE' ? ' text-green-500' :
+					        item.saleStatus == 'SOLD_OUT' ? ' text-gray-500' :
+					        ' text-red-500'
+					    }">
+					</td>
+                    <td class="p-2" th:text="${item.quantity}"></td>
+                    <td class="p-2" th:text="${item.beforeStock}"></td>
+                    <td class="p-2"
+                    	th:text="${item.afterStock}"
+                    	th:classappend="${item.type.name() == 'IN' ? ' text-red-500' : ' text-blue-500'}"></td>
+                    <td class="p-2"
+                        th:text="${#temporals.format(item.createdAt, 'yyyy.MM.dd')}">
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ================= 더보기 ================= -->
+    <div class="mt-6">
+        <button id="loadMoreBtn"
+                th:if="${hasNext}"
+                class="btn btn-more">
+            더보기
+        </button>
+    </div>
+</div>
+<script>
+
+let page = 1;
+const saleStatusMap = {
+    ON_SALE: { text: "판매중", color: "text-green-500" },
+    SOLD_OUT: { text: "품절", color: "text-gray-500" },
+    STOPPED: { text: "판매중지", color: "text-red-500" }
+};
+
+const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMore);
+}
+
+async function loadMore() {
+
+    const response =
+        await fetch(`/api/stock-histories?page=${page}`);
+
+    const slice = await response.json();
+
+    const tbody = document.querySelector("tbody");
+
+    slice.content.forEach(item => {	
+	    const typeText = item.type === 'IN' ? '입고' : '출고';
+		const status = saleStatusMap[item.saleStatus] || {
+		    text: item.saleStatus,
+		    color: ""
+		};
+	    const color = item.type === 'IN' ? 'text-red-500' : 'text-blue-500';
+	
+	    tbody.insertAdjacentHTML("beforeend", `
+	        <tr class="border-b border-[var(--border-color)]">
+	            <td class="p-2">${item.seq}</td>
+	            <td class="p-2 font-bold ${color}">
+	                ${typeText}
+	            </td>
+	            <td class="p-2">
+				    ${item.sourceType ?? '-'}
+				</td>
+	            <td class="p-2">${item.reason}</td>
+	            <td class="p-2">${item.productName}</td>
+	            <td class="p-2">${item.optionsName}</td>
+	            
+	            <td class="p-2 font-bold ${status.color}">
+				    ${status.text}
+				</td>
+	            <td class="p-2">${item.quantity}</td>
+	            <td class="p-2">${item.beforeStock}</td>
+	
+	            <td class="p-2 font-bold ${color}">
+	                ${item.afterStock}
+	            </td>
+	
+	            <td class="p-2">
+	                ${item.createdAt
+	                    ? item.createdAt.substring(0,10).replaceAll("-", ".")
+	                    : "-"}
+	            </td>
+	
+	        </tr>
+	    `);
+	});
+
+    if (!slice.hasNext) {
+        document.getElementById("loadMoreBtn").style.display = "none";
+    }
+
+    page++;
+}
+
+</script>
+
+</body>
+</html>
