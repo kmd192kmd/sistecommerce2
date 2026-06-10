@@ -6,6 +6,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import com.example.java.member.entity.LoginLog;
+import com.example.java.member.repository.MemberRepository;
+import com.example.java.member.service.LoginLogService;
 import com.example.java.member.service.SessionManagementService;
 
 import jakarta.servlet.ServletException;
@@ -18,9 +21,15 @@ import lombok.extern.slf4j.Slf4j;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final SessionManagementService sessionManagementService;
+    private final LoginLogService loginLogService;
+    private final MemberRepository memberRepository;
 
-    public OAuth2SuccessHandler(SessionManagementService sessionManagementService) {
+    public OAuth2SuccessHandler(SessionManagementService sessionManagementService,
+                                LoginLogService loginLogService,
+                                MemberRepository memberRepository) {
         this.sessionManagementService = sessionManagementService;
+        this.loginLogService = loginLogService;
+        this.memberRepository = memberRepository;
         setDefaultTargetUrl("/");
     }
 
@@ -31,8 +40,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         sessionManagementService.register(request, request.getSession(), userDetails.getUsername());
-        log.info("소셜 로그인 성공: {}", userDetails.getUsername());
 
+        memberRepository.findById(userDetails.getMemberSeq()).ifPresent(member ->
+                loginLogService.logSuccess(member, request, LoginLog.TYPE_SSO));
+
+        log.info("소셜 로그인 성공: {}", userDetails.getUsername());
         super.onAuthenticationSuccess(request, response, authentication);
     }
 }
