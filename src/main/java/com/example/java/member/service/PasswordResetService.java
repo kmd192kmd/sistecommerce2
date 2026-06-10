@@ -36,6 +36,10 @@ public class PasswordResetService {
                 .orElse(null);
         if (member == null) return;
 
+        // 기존 미사용 PW_RESET 토큰 무효화
+        emailTokenRepository.findByMemberAndPurposeAndUsedYn(member, "PW_RESET", "N")
+                .forEach(EmailToken::markUsed);
+
         // 평문 토큰 생성 (UUID)
         String rawToken = UUID.randomUUID().toString().replace("-", "");
 
