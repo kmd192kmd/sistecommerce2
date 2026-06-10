@@ -97,9 +97,8 @@ public class ProductListController {
         Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sort, page, minPrice, maxPrice, minRating, hideStockVal);
         List<ProductDto> productList = productPage.getContent();
 
-        // 추천 상품 목록 (판매량*50 + 조회수*30 + 평점*10 + 리뷰수*10 순 상위 5개 추천)
-        List<ProductDto> recommendedList = productListService.getProductList(null, null, "recommend", 0)
-                .getContent().stream().limit(5).collect(Collectors.toList());
+        // 추천 상품 목록 (캐시된 5개 추천 상품 가져오기)
+        List<ProductDto> recommendedList = productListService.getPopularProducts();
 
         // 최근 조회 상품 목록 (세션에 저장된 상품 ID 순서대로 가져오기)
         @SuppressWarnings("unchecked")
