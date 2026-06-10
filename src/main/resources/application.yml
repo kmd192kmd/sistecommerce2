@@ -37,10 +37,7 @@ spring:
       host: localhost
       port: 6379
 
-  session:
-    store-type: redis
-    redis:
-      namespace: shop:session   # 다른 도메인 Redis 키와 충돌 방지
+  # session은 @EnableRedisIndexedHttpSession(redisNamespace="shop:session")에서 처리
 
   security:
     oauth2:
