@@ -1252,3 +1252,4 @@ ALTER TABLE memberships MODIFY (
 
 alter table cart Drop column update_date;
 
+ALTER TABLE login_log MODIFY ip_address VARCHAR2(45);
