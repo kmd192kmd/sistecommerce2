@@ -60,6 +60,7 @@ dependencies {
 def generated = 'src/main/generated'
 tasks.withType(JavaCompile) {
     options.generatedSourceOutputDirectory.set(file(generated))
+    options.compilerArgs << '-parameters'
 }
 sourceSets {
     main {
