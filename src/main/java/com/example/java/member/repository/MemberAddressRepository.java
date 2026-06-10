@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface MemberAddressRepository extends JpaRepository<DeliveryAddress, Long> {
     List<DeliveryAddress> findByMember_SeqOrderByDefaultYnDesc(Long memberSeq);
+    
+    List<DeliveryAddress> findByMember_SeqAndStatusOrderByDefaultYnDescSeqDesc(Long memberSeq, String status);
 }

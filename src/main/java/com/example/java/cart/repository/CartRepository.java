@@ -17,4 +17,6 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 	    기존 row의 quantity만 증가시키기 위한 조회입니다.
 	*/
 	Optional<Cart> findByMember_SeqAndOptions_Seq(Long memberSeq, Long optionsSeq);
+	
+	void deleteByMember_Seq(Long memberSeq);
 }

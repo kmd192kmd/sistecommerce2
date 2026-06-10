@@ -7,9 +7,18 @@ import java.util.List;
 
 public interface OrdersQueryRepository {
 
-    List<CheckoutItemDto> findCheckoutItemsByTestOptionsSeq();
+    /**
+     * 로그인 회원의 장바구니 상품 목록을 주문/결제 화면용 DTO로 조회한다.
+     */
+    List<CheckoutItemDto> findCheckoutItemsByMemberCart(Long memberSeq);
 
-    List<CouponDto> findTestCoupons();
+    /**
+     * 로그인 회원이 발급받은 사용 가능한 쿠폰 목록 조회.
+     */
+    List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq);
 
-    CouponDto findTestCoupon(Long couponSeq);
+    /**
+     * 선택한 member_coupon.seq가 실제 로그인 회원의 사용 가능한 쿠폰인지 검증 후 조회.
+     */
+    CouponDto findAvailableCouponByMemberSeqAndMemberCouponSeq(Long memberSeq, Long memberCouponSeq);
 }

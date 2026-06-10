@@ -32,17 +32,12 @@ public class CheckoutRequestDto {
     private String requestMemo;
 
     /**
-     * 현재 테스트 단계에서는 coupon.seq를 직접 받는다.
+     * 회원이 실제로 발급받은 쿠폰 번호.
      *
-     * 테스트 쿠폰:
-     * - 80: 결제 테스트 10% 할인 쿠폰
-     * - 81: 결제 테스트 3000원 할인 쿠폰
-     *
-     * TODO 실제 연동 시 교체
-     * - couponSeq가 아니라 memberCouponSeq를 받는 것이 좋다.
-     * - orders.member_coupon_seq에 연결하려면 member_coupon.seq가 필요하다.
+     * 주의:
+     * coupon.seq가 아니라 member_coupon.seq를 받는다.
      */
-    private Long couponSeq;
+    private Long memberCouponSeq;
 
     /**
      * CARD / TRANSFER / VIRTUAL_ACCOUNT
@@ -50,18 +45,14 @@ public class CheckoutRequestDto {
     private String paymentMethod;
 
     /**
-     * 현재 화면에서 넘어오는 임시 주문번호.
-     *
+     * 화면에서 넘어오는 임시 주문번호.
      * 실제 주문 생성 시에는 서버에서 새 orderUid를 생성한다.
      */
     private String orderUid;
 
     /**
      * 화면에서 넘어온 금액.
-     *
-     * 주의:
-     * 이 값은 그대로 믿으면 안 된다.
-     * 주문 생성 시 서버에서 다시 계산해야 한다.
+     * 실제 주문 생성 시에는 이 값을 믿지 않고 서버에서 다시 계산한다.
      */
     private Integer amount;
 

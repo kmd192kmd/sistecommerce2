@@ -39,5 +39,12 @@ public class MemberCoupon {
 	@Column(name = "status", nullable = false)
 	private Integer status;
 	
+	public void use() {
+        this.status = 1;
+    }
+
+    public void updateStatus(Integer status) {
+        this.status = status;
+    }
 
 }

@@ -4,13 +4,17 @@ select * from PRODUCT where SEQ = 1678;
 
 select * from COUPON;
 
+select * from member_coupon where member_seq = 9;
+
 select * from DELIVERY_ADDRESS;
 
-select * from MEMBER;
+select * from MEMBER where seq = 9;
 
-select * from CART;
+select * from CART where ;
 
 select * from orders order by seq desc;
+
+select * from orders where MEMBER_SEQ = 9 order by seq desc;
 
 select * from ORDER_ITEM order by seq desc;
 

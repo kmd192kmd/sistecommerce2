@@ -52,12 +52,13 @@ public class MemberAddressService {
     }
 
     public List<DeliveryAddress> myAddress(Long memberSeq) {
-        return memberAddressRepository.findByMember_SeqOrderByDefaultYnDesc(memberSeq);
+        return memberAddressRepository.findByMember_SeqAndStatusOrderByDefaultYnDescSeqDesc(memberSeq, "Y");
     }
 
     public DeliveryAddress getAddress(Long addressSeq, Long memberSeq) {
         return memberAddressRepository.findById(addressSeq)
                 .filter(a -> a.getMember().getSeq().equals(memberSeq))
+                .filter(a -> "Y".equals(a.getStatus()))
                 .orElseThrow(() -> new IllegalArgumentException("배송지를 찾을 수 없습니다."));
     }
 
