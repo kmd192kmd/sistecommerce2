@@ -302,6 +302,9 @@ src/main/resources/application-secret.yml
 src/main/resources/wallet/
 .antigravitycli/
 
+# 로컬 환경마다 프로젝트명/폴더명이 달라 충돌 방지
+settings.gradle
+
 # Querydsl generated Q classes
 src/main/generated/
 

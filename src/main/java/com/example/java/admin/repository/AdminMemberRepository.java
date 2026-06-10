@@ -2,6 +2,8 @@ package com.example.java.admin.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,5 +21,8 @@ public interface AdminMemberRepository extends JpaRepository<Member, Long> {
 
 	List<Member> findByUsernameContainingOrNameContainingOrNicknameContaining(String username, String name, String
 			  nickname);
+
+    Page<Member> findByUsernameContainingOrNameContainingOrNicknameContaining(
+            String username, String name, String nickname, Pageable pageable);
 
 }

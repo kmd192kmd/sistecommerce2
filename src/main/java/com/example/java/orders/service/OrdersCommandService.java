@@ -72,6 +72,7 @@ public class OrdersCommandService {
         int finalPrice = priceSummary.finalPrice();
 
         String orderUid = createOrderUid();
+        String orderName = createOrderName(items);
 
         /*
             1. orders 먼저 저장한다.
@@ -103,7 +104,7 @@ public class OrdersCommandService {
                 .orderStatus(1)
                 .paymentStatus(0)
 
-                .orderDate(LocalDateTime.now())
+                .orderDate(null)      // 결제 완료 시점에 업데이트
                 .regdate(LocalDateTime.now())
 
                 .zipcode(deliveryInfo.zipcode())
@@ -124,7 +125,8 @@ public class OrdersCommandService {
         return new OrderCreateResultDto(
                 savedOrder.getSeq(),
                 savedOrder.getOrderUid(),
-                savedOrder.getFinalPrice()
+                savedOrder.getFinalPrice(),
+                orderName
         );
     }
 
@@ -261,6 +263,18 @@ public class OrdersCommandService {
 
     private String createOrderUid() {
         return "GM-" + System.currentTimeMillis();
+    }
+
+    private String createOrderName(List<CheckoutItemDto> items) {
+        if (items.isEmpty()) {
+            return "주문상품";
+        }
+
+        if (items.size() == 1) {
+            return items.get(0).name();
+        }
+
+        return items.get(0).name() + " 외 " + (items.size() - 1) + "건";
     }
 
     private boolean isBlank(String value) {

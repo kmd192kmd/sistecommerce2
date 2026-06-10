@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>재고 관리</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
+
+    <style>
+        .btn-more {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-body);
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-more:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-white);
+            border-color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body class="bg-body text-main">
+
+<div class="p-6 space-y-6">
+
+    <h4 class="text-title mb-4">재고 관리</h4>
+
+    <!-- ================= 검색 ================= -->
+    <div class="card">
+
+        <form method="get"
+              th:action="@{/admin/inventories}"
+              class="space-y-4">
+
+            <!-- 판매 상태 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">판매 상태</span>
+
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value=""
+						       th:checked="${search.saleStatus == ''}">
+						전체
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="ON_SALE"
+						       th:checked="${search.saleStatus == 'ON_SALE'}">
+						판매중
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="SOLD_OUT"
+						       th:checked="${search.saleStatus == 'SOLD_OUT'}">
+						품절
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="STOPPED"
+						       th:checked="${search.saleStatus == 'STOPPED'}">
+						판매중지
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 상품 재고 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">상품 재고</span>
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="stockType" value=""
+						       th:checked="${search.stockType == ''}">
+						전체
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="stockType" value="UNDER_SAFE"
+						       th:checked="${search.stockType == 'UNDER_SAFE'}">
+						안전재고 이하
+                    </label>
+                </div>
+            </div>
+
+            <!-- 상품 가격 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">상품 가격</span>
+
+                <div class="flex items-center gap-2">
+                    <input type="number"
+				       name="priceFrom"
+				       th:value="${search.priceFrom}"
+				       class="form-input w-32">
+                    <span class="text-label">원 이상 ~</span>
+                    <input type="number"
+				       name="priceTo"
+				       th:value="${search.priceTo}"
+				       class="form-input w-32">
+                    <span class="text-label">원 이하</span>
+                </div>
+            </div>
+            
+            <!-- 기간 검색 (등록일) -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">기간 검색</span>
+	
+	            <div class="flex items-center gap-2">
+	                <input type="datetime-local"
+				       name="createdDateFrom"
+				       th:value="${search.createdDateFrom}"
+				       class="form-input">
+	                <span class="text-label">~</span>
+	                <input type="datetime-local"
+				       name="createdDateTo"
+				       th:value="${search.createdDateTo}"
+				       class="form-input">
+	            </div>
+	        </div>
+
+            <!-- 검색 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">검색</span>
+
+                <div class="flex gap-2 w-full">
+
+                    <input type="text"
+				       name="keyword"
+				       th:value="${search.keyword}"
+				       class="form-input w-[28rem]"
+				       placeholder="상품명 검색">
+
+                    <button type="submit"
+                            class="btn btn-primary px-12 py-2 text-base">
+                        검색
+                    </button>
+
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- ================= 목록 ================= -->
+
+    <h4 class="text-title mb-4">재고 목록</h4>
+
+    <div class="card">
+
+        <div class="overflow-x-auto">
+
+            <table class="w-full text-sm text-center">
+
+                <thead class="text-label border-b border-[var(--border-color)]">
+                <tr>
+                    <th class="p-2">번호</th>
+                    <th class="p-2">판매처</th>
+                    <th class="p-2">상품명</th>
+                    <th class="p-2">옵션</th>
+                    <th class="p-2">판매 상태</th>
+                    <th class="p-2">판매가</th>
+                    <th class="p-2">현재 재고</th>
+                    <th class="p-2">안전 재고</th>
+                    <th class="p-2">등록일</th>
+                    <th class="p-2">비고</th>
+					<th class="p-2">관리</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="item : ${list}"
+                    class="border-b border-[var(--border-color)]">
+
+                    <td class="p-2"
+                        th:text="${item.optionsSeq}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${item.sellerName}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${item.productName}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${item.optionsName}">
+                    </td>
+
+                    <td class="p-2 font-bold"
+                        th:text="${
+                            item.saleStatus == 'ON_SALE' ? '판매중' :
+                            item.saleStatus == 'SOLD_OUT' ? '품절' :
+                            '판매중지'
+                        }"
+                        th:classappend="${
+                            item.saleStatus == 'ON_SALE' ? ' text-green-500' :
+                            item.saleStatus == 'SOLD_OUT' ? ' text-gray-500' :
+                            ' text-red-500'
+                        }">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${#numbers.formatInteger(item.price, 3, 'COMMA')} + '원'">
+                    </td>
+
+                    <td class="p-2 font-bold"
+                        th:text="${item.stock}"
+                        th:classappend="${item.stock <= item.safetyStock ? ' text-red-500' : ''}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${item.safetyStock}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${#temporals.format(item.createdDate, 'yyyy.MM.dd')}">
+                    </td>
+                    <td class="p-2 font-bold"
+					    th:text="${item.stock <= item.safetyStock ? '부족' : '정상'}"
+					    th:classappend="${item.stock <= item.safetyStock ? ' text-red-500' : ' text-green-500'}">
+					</td>					
+					<td class="p-2">
+					    <a th:href="@{/admin/purchase-orders/new/{optionsSeq}(optionsSeq=${item.optionsSeq})}"
+					       class="btn btn-primary text-sm px-3 py-1">
+					        <i class="fa-solid fa-cart-plus"></i> 발주 등록
+					    </a>
+					</td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ================= 더보기 ================= -->
+
+    <div class="mt-6">
+        <button id="loadMoreBtn"
+                th:if="${hasNext}"
+                class="btn btn-more">
+            더보기
+        </button>
+    </div>
+
+</div>
+
+<script>
+
+let page = 1;
+
+const saleStatusMap = {
+    ON_SALE: { text: "판매중", color: "text-green-500" },
+    SOLD_OUT: { text: "품절", color: "text-gray-500" },
+    STOPPED: { text: "판매중지", color: "text-red-500" }
+};
+
+const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMore);
+}
+
+async function loadMore() {
+
+	const params = new URLSearchParams(window.location.search);
+	params.set("page", page);
+
+	const response =
+        await fetch(`/api/inventories?${params.toString()}`);
+
+    const slice = await response.json();
+
+    const tbody = document.querySelector("tbody");
+
+    slice.content.forEach(item => {
+
+        const status = saleStatusMap[item.saleStatus] || {
+            text: item.saleStatus,
+            color: ""
+        };
+
+        const stockColor =
+            item.stock <= item.safetyStock
+                ? "text-red-500"
+                : "";
+        const isUnderSafe = item.stock <= item.safetyStock;
+
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="border-b border-[var(--border-color)]">
+
+                <td class="p-2">${item.optionsSeq}</td>
+
+                <td class="p-2">${item.sellerName}</td>
+
+                <td class="p-2">${item.productName}</td>
+
+                <td class="p-2">${item.optionsName}</td>
+
+                <td class="p-2 font-bold ${status.color}">
+                    ${status.text}
+                </td>
+
+                <td class="p-2">
+                    ${item.price.toLocaleString()}원
+                </td>
+
+                <td class="p-2 font-bold ${stockColor}">
+                    ${item.stock}
+                </td>
+                <td class="p-2">
+                    ${item.safetyStock}
+                </td>
+                <td class="p-2">
+                    ${item.createdDate
+                        ? item.createdDate.substring(0,10).replaceAll("-", ".")
+                        : "-"}
+                </td>
+                <td class="p-2 font-bold ${isUnderSafe ? 'text-red-500' : 'text-green-500'}">
+				    ${isUnderSafe ? '발주 필요' : '정상'}
+				</td>				
+				<td class="p-2">
+				    <a href="/admin/purchase-orders/new/${item.optionsSeq}"
+				       class="btn btn-primary text-sm px-3 py-1">
+				       <i class="fa-solid fa-cart-plus"></i> 발주 등록
+				    </a>
+				</td>
+
+            </tr>
+        `);
+
+    });
+
+    if (slice.last) {
+        loadMoreBtn.style.display = "none";
+    }
+
+    page++;
+}
+
+</script>
+
+</body>
+</html>

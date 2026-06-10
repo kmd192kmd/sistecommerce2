@@ -35,7 +35,11 @@
                     상품명
                 </h1>
 
-                <button type="button" class="text-gray-300 hover:text-red-500" title="찜">
+                <button type="button"
+                        id="wishBtn"
+                        th:attr="data-product-seq=*{seq}"
+                        class="text-gray-300 hover:text-red-500"
+                        title="찜">
                     <i data-lucide="heart" class="w-6 h-6"></i>
                 </button>
             </div>
@@ -353,6 +357,190 @@
         현재 로그인 회원과 리뷰 작성자가 같은지 비교하는 데 사용합니다.
     */
     const currentMemberSeq = /*[[${loginMemberSeq}]]*/ null;
+
+    /*
+        상품 찜 버튼 관련 화면 요소입니다.
+
+        상품 기준 찜이므로
+        optionsSeq가 아니라 productSeq를 사용합니다.
+    */
+    const wishBtn = document.getElementById('wishBtn');
+
+    /*
+        찜 하트 상태 변경 함수입니다.
+
+        wished = true
+        현재 로그인한 회원이 이 상품을 찜한 상태입니다.
+        하트를 빨간색으로 바꾸고 내부를 채웁니다.
+
+        wished = false
+        현재 로그인한 회원이 이 상품을 찜하지 않은 상태입니다.
+        하트를 회색 빈 하트로 표시합니다.
+    */
+    function setWishIcon(wished) {
+
+        if (!wishBtn) {
+            return;
+        }
+
+        /*
+            lucide.createIcons() 실행 후에는
+            <i data-lucide="heart"> 태그가 <svg> 태그로 변환됩니다.
+
+            그래서 하트 내부 색상을 채우려면
+            변환된 svg를 찾아서 fill 값을 변경해야 합니다.
+        */
+        const wishIcon = wishBtn.querySelector('svg');
+
+        if (wished) {
+            wishBtn.classList.remove('text-gray-300');
+            wishBtn.classList.add('text-red-500');
+
+            if (wishIcon) {
+                wishIcon.style.fill = 'currentColor';
+            }
+        } else {
+            wishBtn.classList.remove('text-red-500');
+            wishBtn.classList.add('text-gray-300');
+
+            if (wishIcon) {
+                wishIcon.style.fill = 'none';
+            }
+        }
+    }
+
+    /*
+        현재 상품의 찜 여부를 조회합니다.
+
+        상품 상세 페이지가 처음 열릴 때 실행됩니다.
+
+        서버 요청:
+        GET /api/product/wish?productSeq=상품번호
+
+        서버 응답:
+        true  = 찜한 상태
+        false = 찜하지 않은 상태
+    */
+    async function loadWishStatus() {
+
+        if (!wishBtn) {
+            return;
+        }
+
+        if (!productSeq || Number(productSeq) === 0) {
+            console.error('상품 번호를 찾을 수 없습니다.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/product/wish?productSeq=${productSeq}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                console.error('찜 상태 조회 실패:', response.status);
+                return;
+            }
+
+            const wished = await response.json();
+
+            setWishIcon(wished);
+
+        } catch (error) {
+            console.error('찜 상태 조회 오류:', error);
+        }
+    }
+
+    /*
+        찜 버튼 클릭 시 실행됩니다.
+
+        처리 순서:
+        1. 상품 번호 확인
+        2. POST /api/product/wish 요청
+        3. 서버에서 기존 찜 데이터 여부 확인
+        4. 없으면 INSERT
+        5. 있으면 status 변경
+        6. 서버 응답의 wished 값에 따라 하트 색상 변경
+    */
+    async function toggleWish() {
+
+        if (!wishBtn) {
+            return;
+        }
+
+        if (!productSeq || Number(productSeq) === 0) {
+            alert('상품 번호를 찾을 수 없습니다.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/product/wish', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    productSeq: Number(productSeq)
+                })
+            });
+
+            /*
+                로그인하지 않은 사용자가 찜 버튼을 누른 경우입니다.
+
+                ProductWishController에서 401을 반환하면
+                로그인 페이지로 이동시킵니다.
+            */
+            if (response.status === 401) {
+                alert('로그인이 필요합니다.');
+                location.href = '/member/login';
+                return;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(errorText);
+                alert(errorText || '찜 처리에 실패했습니다.');
+                return;
+            }
+
+            const result = await response.json();
+
+            /*
+                서버 응답 예시:
+                {
+                    "wished": true,
+                    "message": "찜 등록 완료"
+                }
+
+                wished 값에 따라 하트 상태를 변경합니다.
+            */
+            setWishIcon(result.wished);
+
+        } catch (error) {
+            console.error('찜 처리 오류:', error);
+            alert('찜 처리 중 오류가 발생했습니다.');
+        }
+    }
+
+    /*
+        찜 버튼 클릭 이벤트를 등록합니다.
+    */
+    if (wishBtn) {
+        wishBtn.addEventListener('click', function () {
+            toggleWish();
+        });
+    }
+
+    /*
+        페이지 로딩 시 현재 상품의 찜 여부를 조회합니다.
+    */
+    loadWishStatus();
 
     /*
         리뷰 이미지 최대 업로드 개수
@@ -676,7 +864,7 @@
         const content = escapeHtml(review.content || '');
         const createdDate = formatDate(review.createdDate);
         const imagesHtml = makeReviewImagesHtml(review.images || []);
-		const nickname = escapeHtml(review.nickname || '익명');
+        const nickname = escapeHtml(review.nickname || '익명');
 
         /*
             현재 로그인 회원과 리뷰 작성자가 같은지 확인합니다.
@@ -686,35 +874,41 @@
             테스트 중 버튼이 안 보이면 아래 값을 잠깐 true로 바꿔도 됩니다.
             const isMine = true;
         */
+
         const isMine = String(review.memberSeq) === String(currentMemberSeq);
 
         return `
-			<div class="flex items-start justify-between mb-2">
-			    <div>
-			        <div class="mb-1 text-sm font-bold text-gray-800">
-			            ${nickname}
-			        </div>
-	
-			        <div class="text-amber-500 text-sm font-bold">
-			            ${stars}
-			            <span class="ml-1 text-gray-700">${rating}</span>
-			        </div>
-			    </div>
+            <div class="border-b border-gray-100 pb-6" data-review-seq="${review.seq}">
 
-                    <div class="flex items-center gap-2">
-                        <div class="text-xs text-gray-400">
-                            ${createdDate}
+                <div class="mb-2 flex items-start justify-between gap-4">
+
+                    <!-- 왼쪽: 닉네임 + 별점 -->
+                    <div class="min-w-0">
+                        <div class="mb-1 text-sm font-bold text-gray-800">
+                            ${nickname}
                         </div>
+
+                        <div class="text-amber-500 text-sm font-bold leading-none">
+                            ${stars}
+                            <span class="ml-1 text-gray-700">${rating}</span>
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽: 날짜 + 수정/삭제 -->
+                    <div class="shrink-0 flex items-center gap-2 text-xs">
+                        <span class="text-gray-400">
+                            ${createdDate}
+                        </span>
 
                         ${isMine ? `
                             <button type="button"
-                                    class="review-edit-btn text-xs text-gray-500 hover:text-amber-600"
+                                    class="review-edit-btn text-gray-500 hover:text-amber-600"
                                     data-review-seq="${review.seq}">
                                 수정
                             </button>
 
                             <button type="button"
-                                    class="review-delete-btn text-xs text-gray-500 hover:text-red-500"
+                                    class="review-delete-btn text-gray-500 hover:text-red-500"
                                     data-review-seq="${review.seq}">
                                 삭제
                             </button>
@@ -722,7 +916,7 @@
                     </div>
                 </div>
 
-                <p class="mt-1 text-sm text-gray-700 leading-relaxed whitespace-pre-line">${content}</p>
+                <p class="mt-1 text-sm text-gray-700 leading-normal whitespace-pre-line">${content}</p>
 
                 ${imagesHtml}
 

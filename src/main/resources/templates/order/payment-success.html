@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('결제 완료')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="max-w-screen-wide mx-auto px-4 mt-16 pb-32">
+    <section class="bg-white border border-gray-200 p-10 text-center">
+        <h1 class="text-2xl font-black text-amber-700">결제가 완료되었습니다.</h1>
+
+        <p class="mt-4 text-sm text-gray-600">
+            주문번호:
+            <span class="font-bold" th:text="${orderId}">GM-0000</span>
+        </p>
+
+        <p class="mt-1 text-sm text-gray-600">
+            결제금액:
+            <span class="font-bold" th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + '원'">0원</span>
+        </p>
+
+        <a href="/"
+           class="inline-block mt-8 bg-amber-500 hover:bg-amber-600 text-white font-black px-6 py-3">
+            메인으로 이동
+        </a>
+    </section>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+</body>
+</html>

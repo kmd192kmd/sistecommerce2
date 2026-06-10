@@ -86,10 +86,49 @@ public class Member {
     @Column(name = "login_type", nullable = false)
     private String loginType;
 
+    /**
+     * 소셜 로그인 신규 회원 생성용 팩토리 메서드
+     * username: "{provider}_{providerId}" 형태 (예: google_109374837293)
+     */
+    public static Member ofSocial(String username, String nickname, String name,
+                                   String email, String loginType) {
+        return Member.builder()
+                .username(username)
+                .nickname(nickname)
+                .name(name)
+                .email(email)
+                .loginType(loginType)
+                .status(1)
+                .role("ROLE_USER")
+                .emailVerified("Y")
+                .joinedAt(java.time.LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * 소셜 재로그인 시 이름/이메일 최신 정보로 갱신
+     */
+    public void updateSocialInfo(String name, String email) {
+        this.name      = name;
+        this.email     = email;
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
+
     public void updateProfile(String nickname, String email, String phone) {
         this.nickname  = nickname;
         this.email     = email;
         this.phone     = phone;
         this.updatedAt = java.time.LocalDateTime.now();
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+        this.pwChangedAt = java.time.LocalDateTime.now();
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
+
+    public void changeStatus(Integer status) {
+        this.status = status;
+
     }
 }
