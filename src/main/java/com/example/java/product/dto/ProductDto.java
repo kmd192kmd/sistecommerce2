@@ -17,7 +17,8 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductDto {
+public class ProductDto implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     // =========================
     // 상품 기본 정보 영역
@@ -118,6 +119,17 @@ public class ProductDto {
         false : 찜 안 함
     */
     private boolean wished;
+
+    /*
+        인기 상품 순위 변동 정보
+        예: "▲1", "▼2", "-", "NEW"
+    */
+    private String rankChange;
+
+    /*
+        순위가 이전 순위보다 가장 많이 상승한 상품 여부 (HOT 배지 표시용)
+    */
+    private boolean hot;
 
 
     // =========================
@@ -274,7 +286,8 @@ public class ProductDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ProductImageDto {
+    public static class ProductImageDto implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
 
         /*
             상품 이미지 번호
@@ -329,7 +342,8 @@ public class ProductDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ProductOptionDto {
+    public static class ProductOptionDto implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
 
         // =========================
         // 옵션 기본 정보 영역
