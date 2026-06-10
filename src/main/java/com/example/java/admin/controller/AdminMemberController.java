@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import com.example.java.admin.service.AdminMemberService;
 import com.example.java.member.entity.Member;
+import com.example.java.admin.dto.AdminOrderSummaryDto;
+import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 
@@ -45,7 +47,9 @@ public class AdminMemberController {
     @GetMapping("/admin/member/{seq}")
     public String memberDetail(@PathVariable("seq") Long seq, Model model) {
         Member member = adminMemberService.getMember(seq);
+        List<AdminOrderSummaryDto> orders = adminMemberService.getMemberOrders(seq);
         model.addAttribute("member", member);
+        model.addAttribute("orders", orders);
         return "admin/member/detail";
     }
 

@@ -38,7 +38,6 @@
             <p class="text-label text-sm mt-1 theme-text-muted ml-11">회원의 모든 기본 정보 및 활동 내역을 확인합니다.</p>
           </div>
           <div class="flex gap-3">
-            <button class="px-4 py-2 bg-[var(--danger)]/10 text-[var(--danger)] border border-[var(--danger)]/30 hover:bg-[var(--danger)]/20 font-medium rounded-lg text-sm transition-all">비밀번호 초기화</button>
             
             <form th:if="${member.status == 1}" th:action="@{/admin/member/{seq}/status(seq=${member.seq})}" method="post">
               <input type="hidden" name="status" value="2">
@@ -189,6 +188,68 @@
               <p class="text-xs text-[var(--danger)] font-bold mb-1">탈퇴 요청일</p>
               <p class="theme-text-main text-sm font-medium" th:text="${#temporals.format(member.withdrawalRequestedAt, 'yyyy년 MM월 dd일 HH:mm:ss')}">-</p>
             </div>
+          </div>
+        </div>
+        
+        <!-- Order History -->
+        <div class="theme-bg-panel border theme-border rounded-2xl p-6 shadow-sm mt-6">
+          <div class="flex justify-between items-center mb-6">
+            <h4 class="theme-text-white font-bold flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+              최근 주문 내역 (최대 5건)
+            </h4>
+            <a th:href="@{/admin/order/list(keyword=${member.username})}" class="text-xs bg-[var(--primary)] text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity font-medium shadow-sm flex items-center gap-1">
+              전체 주문 관리
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </a>
+          </div>
+          
+          <div class="overflow-x-auto rounded-lg border theme-border">
+            <table class="w-full text-sm text-left whitespace-nowrap theme-text-main">
+              <thead class="text-xs uppercase border-b theme-border theme-bg-body theme-text-muted">
+                <tr>
+                  <th class="px-4 py-3 font-medium">주문번호</th>
+                  <th class="px-4 py-3 font-medium">주문상품</th>
+                  <th class="px-4 py-3 font-medium">주문일시</th>
+                  <th class="px-4 py-3 font-medium text-right">총 결제금액</th>
+                  <th class="px-4 py-3 font-medium text-center">주문 상태</th>
+                  <th class="px-4 py-3 font-medium text-center">결제 상태</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y theme-border">
+                <tr th:each="dto : ${orders}" class="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                  <td class="px-4 py-3 font-medium">
+                    <a th:href="@{/admin/order/{uid}(uid=${dto.order.orderUid})}" class="text-[var(--primary)] hover:underline font-mono" th:text="${dto.order.orderUid}">ORDER-123</a>
+                  </td>
+                  <td class="px-4 py-3 font-medium theme-text-main" th:text="${dto.representativeItemName}">상품명</td>
+                  <td class="px-4 py-3 text-xs theme-text-muted" th:text="${dto.order.orderDate != null ? #temporals.format(dto.order.orderDate, 'yyyy-MM-dd HH:mm') : '-'}">2023-01-01</td>
+                  <td class="px-4 py-3 font-bold text-right" th:text="${dto.order.finalPrice != null ? #numbers.formatInteger(dto.order.finalPrice, 0, 'COMMA') + '원' : '0원'}">10,000원</td>
+                  <td class="px-4 py-3 text-center">
+                    <span th:if="${dto.order.orderStatus == 0}" class="badge">주문생성</span>
+                    <span th:if="${dto.order.orderStatus == 1}" class="badge">결제대기</span>
+                    <span th:if="${dto.order.orderStatus == 2}" class="badge badge-success">결제완료</span>
+                    <span th:if="${dto.order.orderStatus == 3}" class="badge" style="background:rgba(59,130,246,0.1); color:#3b82f6;">상품준비중</span>
+                    <span th:if="${dto.order.orderStatus == 5}" class="badge" style="background:rgba(99,102,241,0.1); color:#6366f1;">배송중</span>
+                    <span th:if="${dto.order.orderStatus == 6}" class="badge" style="background:rgba(16,185,129,0.1); color:#10b981;">배송완료</span>
+                    <span th:if="${dto.order.orderStatus == 9}" class="badge badge-danger">주문취소</span>
+                    <span th:if="${dto.order.orderStatus != 0 and dto.order.orderStatus != 1 and dto.order.orderStatus != 2 and dto.order.orderStatus != 3 and dto.order.orderStatus != 5 and dto.order.orderStatus != 6 and dto.order.orderStatus != 9}" class="badge" th:text="${dto.order.orderStatus}"></span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span th:if="${dto.order.paymentStatus == 0}" class="badge">결제대기</span>
+                    <span th:if="${dto.order.paymentStatus == 1}" class="badge">입금대기</span>
+                    <span th:if="${dto.order.paymentStatus == 2}" class="badge badge-success">결제완료</span>
+                    <span th:if="${dto.order.paymentStatus == 3}" class="badge badge-danger">결제실패</span>
+                    <span th:if="${dto.order.paymentStatus == 6}" class="badge badge-danger">결제취소</span>
+                    <span th:if="${dto.order.paymentStatus != 0 and dto.order.paymentStatus != 1 and dto.order.paymentStatus != 2 and dto.order.paymentStatus != 3 and dto.order.paymentStatus != 6}" class="badge" th:text="${dto.order.paymentStatus}"></span>
+                  </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(orders)}">
+                  <td colspan="6" class="px-4 py-8 text-center theme-text-muted">
+                    주문 내역이 없습니다.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
         
