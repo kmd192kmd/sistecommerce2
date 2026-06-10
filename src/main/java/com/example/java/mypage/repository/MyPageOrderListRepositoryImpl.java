@@ -7,6 +7,7 @@ import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
 import static com.example.java.product.entity.QSeller.seller;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,12 +38,27 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<MyPageOrderListDto> findOrdersByMemberSeq(Long memberSeq, String keyword) {
+    public List<MyPageOrderListDto> findOrdersByMemberSeq(Long memberSeq, String keyword, String period) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(orders.memberSeq.eq(memberSeq));
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             builder.and(product.productName.like("%" + keyword.trim() + "%"));
+        }
+
+        if (period == null || period.trim().isEmpty() || "6months".equalsIgnoreCase(period)) {
+            LocalDateTime sixMonthsAgo = LocalDateTime.now().minusMonths(6);
+            builder.and(orders.orderDate.goe(sixMonthsAgo));
+        } else {
+            try {
+                int year = Integer.parseInt(period);
+                LocalDateTime startOfYear = LocalDateTime.of(year, 1, 1, 0, 0, 0);
+                LocalDateTime endOfYear = LocalDateTime.of(year, 12, 31, 23, 59, 59);
+                builder.and(orders.orderDate.between(startOfYear, endOfYear));
+            } catch (NumberFormatException e) {
+                LocalDateTime sixMonthsAgo = LocalDateTime.now().minusMonths(6);
+                builder.and(orders.orderDate.goe(sixMonthsAgo));
+            }
         }
 
         List<Long> matchedOrderSeqs = queryFactory

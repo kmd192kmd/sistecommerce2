@@ -45,12 +45,13 @@
     .status-DELIVERED { background-color: #dcfce7; color: #16a34a; }
 
     .modal-overlay {
-        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
-        z-index: 50; justify-content: center; align-items: center;
-        opacity: 0; transition: opacity 0.3s ease;
+        z-index: 50; display: flex; justify-content: center; align-items: center;
+        opacity: 0; visibility: hidden; pointer-events: none;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
-    .modal-overlay.active { display: flex; opacity: 1; }
+    .modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
     .modal-content {
         background: white; padding: 2rem; border-radius: 24px;
         width: 90%; max-width: 400px; text-align: center;
@@ -76,6 +77,7 @@
 
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
                 <form th:action="@{/mypage/orders}" method="get" class="flex items-center gap-3">
+                    <input type="hidden" name="period" th:value="${period}">
                     <div class="relative flex-1">
                         <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -87,10 +89,12 @@
                 </form>
 
                 <div class="flex flex-wrap gap-2 text-xs font-semibold mt-4">
-                    <button type="button" class="px-4 py-2 bg-slate-800 text-white rounded-lg">최근 6개월</button>
-                    <button type="button" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">2026</button>
-                    <button type="button" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">2025</button>
-                    <button type="button" class="px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">2024</button>
+                    <a th:href="@{/mypage/orders(keyword=${keyword}, period='6months')}"
+                       th:class="${period == '6months' || period == null || period == ''} ? 'px-4 py-2 bg-slate-800 text-white rounded-lg transition-all' : 'px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors'">최근 6개월</a>
+                    <a th:each="year : ${#numbers.sequence(#dates.year(#dates.createNow()), 2024, -1)}"
+                       th:href="@{/mypage/orders(keyword=${keyword}, period=${year})}"
+                       th:text="${year}"
+                       th:class="${period == #strings.toString(year)} ? 'px-4 py-2 bg-slate-800 text-white rounded-lg transition-all' : 'px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors'">2024</a>
                 </div>
             </div>
 
@@ -99,7 +103,7 @@
                     <div class="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
                         <div class="text-sm flex items-center gap-3">
                             <span class="text-slate-500 font-medium">주문일자</span>
-                            <span class="font-bold text-slate-800" th:text="${o.orderDate}">2026.06.07 15:30</span>
+                            <span class="font-bold text-slate-800" th:text="${o.orderDate}">-</span>
                         </div>
                         <a href="#" class="text-xs font-bold text-amber-600 hover:text-amber-700">주문 상세보기</a>
                     </div>
@@ -113,7 +117,7 @@
                                 <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'DELIVERED'}">
                                     <span class="status-badge status-DELIVERED">배송완료</span>
                                     <span class="text-xs font-semibold text-slate-500" th:if="${d.completedAt != null and !d.completedAt.isEmpty()}"
-                                          th:text="${'도착일 ' + d.completedAt}">도착일 2026.06.08 12:00</span>
+                                          th:text="${'도착일 ' + d.completedAt}">-</span>
                                 </div>
                             </div>
 
@@ -188,17 +192,47 @@
 
 <div id="trackModal" class="modal-overlay">
     <div class="modal-content">
-        <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-            </svg>
+        <h3 class="text-xl font-bold text-slate-900 mb-6">배송 상태 조회</h3>
+
+        <!-- 배송상태 흐름도 (배송대기 -> 중간허브도착 -> 배송완료) -->
+        <div class="mb-8 px-2">
+            <div class="flex items-center justify-between relative">
+                <!-- Connecting Line Background -->
+                <div class="absolute left-0 right-0 top-5 -translate-y-1/2 h-1 bg-slate-100 -z-10"></div>
+                <!-- Connecting Line Progress -->
+                <div id="stepProgress" class="absolute left-0 top-5 -translate-y-1/2 h-1 bg-blue-500 transition-all duration-500 -z-10" style="width: 0%;"></div>
+
+                <!-- Step 1: 배송대기 -->
+                <div id="step1" class="flex flex-col items-center flex-1">
+                    <div class="step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    </div>
+                    <span class="step-label text-xs font-bold text-slate-400 mt-2 transition-all">배송대기</span>
+                </div>
+
+                <!-- Step 2: 중간허브도착 -->
+                <div id="step2" class="flex flex-col items-center flex-1">
+                    <div class="step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    <span class="step-label text-xs font-bold text-slate-400 mt-2 transition-all">중간허브도착</span>
+                </div>
+
+                <!-- Step 3: 배송완료 -->
+                <div id="step3" class="flex flex-col items-center flex-1">
+                    <div class="step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <span class="step-label text-xs font-bold text-slate-400 mt-2 transition-all">배송완료</span>
+                </div>
+            </div>
         </div>
-        <h3 class="text-xl font-bold text-slate-900 mb-2">운송장 번호 조회</h3>
-        <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" class="font-bold text-blue-600"></span></p>
+
+        <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" class="font-bold text-blue-600">READY</span></p>
 
         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
             <p class="text-xs font-bold text-slate-400 mb-1">운송장 번호</p>
-            <p id="modalTrackingNumber" class="text-lg font-black tracking-widest text-slate-800">123-456-789</p>
+            <p id="modalTrackingNumber" class="text-lg font-black tracking-widest text-slate-800">-</p>
         </div>
 
         <button onclick="closeModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
@@ -211,7 +245,53 @@
 <script>
     function showDeliveryTrack(trackingNumber, status) {
         document.getElementById('modalTrackingNumber').innerText = trackingNumber || '발급대기';
-        document.getElementById('modalStatusText').innerText = status || 'READY';
+        
+        const currentStatus = status || 'READY';
+        document.getElementById('modalStatusText').innerText = currentStatus;
+
+        // 엘리먼트 가져오기
+        const step1Circle = document.querySelector('#step1 .step-circle');
+        const step1Label = document.querySelector('#step1 .step-label');
+        const step2Circle = document.querySelector('#step2 .step-circle');
+        const step2Label = document.querySelector('#step2 .step-label');
+        const step3Circle = document.querySelector('#step3 .step-circle');
+        const step3Label = document.querySelector('#step3 .step-label');
+        const progress = document.getElementById('stepProgress');
+
+        // 상태 초기화 함수
+        const resetClasses = (circle, label) => {
+            circle.className = "step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300";
+            label.className = "step-label text-xs font-bold text-slate-400 mt-2 transition-all";
+        };
+        resetClasses(step1Circle, step1Label);
+        resetClasses(step2Circle, step2Label);
+        resetClasses(step3Circle, step3Label);
+        progress.style.width = "0%";
+
+        // 활성화 설정 함수
+        const activate = (circle, label) => {
+            circle.className = "step-circle w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-2 border-blue-500 text-white font-bold transition-all duration-300 shadow-md shadow-blue-100";
+            label.className = "step-label text-xs font-bold text-blue-600 mt-2 transition-all";
+        };
+
+        // 상태별 분기 적용
+        if (currentStatus === 'READY') {
+            activate(step1Circle, step1Label);
+            progress.style.width = "0%";
+        } else if (currentStatus === 'SHIPPING' || currentStatus === 'DELAYED') {
+            activate(step1Circle, step1Label);
+            activate(step2Circle, step2Label);
+            progress.style.width = "50%";
+        } else if (currentStatus === 'DELIVERED') {
+            activate(step1Circle, step1Label);
+            activate(step2Circle, step2Label);
+            activate(step3Circle, step3Label);
+            progress.style.width = "100%";
+        } else {
+            activate(step1Circle, step1Label);
+            progress.style.width = "0%";
+        }
+
         document.getElementById('trackModal').classList.add('active');
     }
 

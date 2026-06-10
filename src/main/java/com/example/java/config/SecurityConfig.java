@@ -48,10 +48,10 @@ public class SecurityConfig {
                 .anyRequest().permitAll()
             )
             .formLogin(form -> form
-                .loginPage("/member/login")          // 커스텀 로그인 페이지
-                .loginProcessingUrl("/member/login")  // POST 처리 URL
-                .defaultSuccessUrl("/", true)         // 로그인 성공 시
-                .failureUrl("/member/login?error")    // 로그인 실패 시
+                .loginPage("/member/login")         // 커스텀 로그인 페이지
+                .loginProcessingUrl("/member/login") // POST 처리 URL
+                .defaultSuccessUrl("/", false)        // 로그인 성공 시
+                .failureUrl("/member/login?error")   // 로그인 실패 시
                 .permitAll()
             )
             .oauth2Login(oauth2 -> oauth2

@@ -35,15 +35,26 @@ public class MyPageOrderListController {
     @GetMapping("/orders")
     public String getOrders(
             @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "period", required = false) String period,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Model model) {
 
         Long memberSeq = userDetails.getMemberSeq();
 
         try {
-            List<MyPageOrderListDto> orders = myPageOrderListService.getOrders(memberSeq, keyword);
+            if (period == null || period.trim().isEmpty()) {
+                period = "6months";
+            } else if (!"6months".equalsIgnoreCase(period)) {
+                try {
+                    Integer.parseInt(period);
+                } catch (NumberFormatException e) {
+                    period = "6months";
+                }
+            }
+            List<MyPageOrderListDto> orders = myPageOrderListService.getOrders(memberSeq, keyword, period);
             model.addAttribute("orders", orders);
             model.addAttribute("keyword", keyword);
+            model.addAttribute("period", period);
             
         } catch (Exception e) {
             log.error("주문 목록 조회 중 에러 발생: ", e);

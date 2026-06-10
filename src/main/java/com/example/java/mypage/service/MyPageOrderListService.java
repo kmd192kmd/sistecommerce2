@@ -17,7 +17,7 @@ public class MyPageOrderListService {
 
     private final MyPageOrderListRepository myPageOrderListRepository;
 
-    public List<MyPageOrderListDto> getOrders(Long memberSeq, String keyword) {
-        return myPageOrderListRepository.findOrdersByMemberSeq(memberSeq, keyword);
+    public List<MyPageOrderListDto> getOrders(Long memberSeq, String keyword, String period) {
+        return myPageOrderListRepository.findOrdersByMemberSeq(memberSeq, keyword, period);
     }
 }
