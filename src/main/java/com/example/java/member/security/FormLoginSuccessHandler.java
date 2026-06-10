@@ -15,11 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final SessionManagementService sessionManagementService;
 
-    public OAuth2SuccessHandler(SessionManagementService sessionManagementService) {
+    public FormLoginSuccessHandler(SessionManagementService sessionManagementService) {
         this.sessionManagementService = sessionManagementService;
         setDefaultTargetUrl("/");
     }
@@ -31,7 +31,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         sessionManagementService.register(request, request.getSession(), userDetails.getUsername());
-        log.info("소셜 로그인 성공: {}", userDetails.getUsername());
+        log.debug("일반 로그인 성공: {}", userDetails.getUsername());
 
         super.onAuthenticationSuccess(request, response, authentication);
     }

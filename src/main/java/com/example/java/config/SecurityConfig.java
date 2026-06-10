@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import com.example.java.member.security.CustomOAuth2UserService;
+import com.example.java.member.security.FormLoginSuccessHandler;
 import com.example.java.member.security.OAuth2FailureHandler;
 import com.example.java.member.security.OAuth2SuccessHandler;
 
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final FormLoginSuccessHandler formLoginSuccessHandler;
     private final OAuth2SuccessHandler oauth2SuccessHandler;
     private final OAuth2FailureHandler oauth2FailureHandler;
 
@@ -48,10 +50,10 @@ public class SecurityConfig {
                 .anyRequest().permitAll()
             )
             .formLogin(form -> form
-                .loginPage("/member/login")          // 커스텀 로그인 페이지
-                .loginProcessingUrl("/member/login")  // POST 처리 URL
-                .defaultSuccessUrl("/", true)         // 로그인 성공 시
-                .failureUrl("/member/login?error")    // 로그인 실패 시
+                .loginPage("/member/login")
+                .loginProcessingUrl("/member/login")
+                .successHandler(formLoginSuccessHandler)
+                .failureUrl("/member/login?error")
                 .permitAll()
             )
             .oauth2Login(oauth2 -> oauth2
