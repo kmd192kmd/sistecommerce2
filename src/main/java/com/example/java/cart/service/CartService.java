@@ -125,4 +125,48 @@ public class CartService {
         // TODO 나중에 로그 추가
 
     }
+
+    /**
+     * 수량 변경.
+     * 본인 장바구니인지 확인 후 수량을 덮어씁니다.
+     * 재고 초과 시 예외를 던집니다.
+     */
+    @Transactional
+    public void updateQuantity(Long cartSeq, Long memberSeq, int quantity) {
+
+        if (quantity < 1) {
+            throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
+        }
+
+        Cart cart = cartRepository.findById(cartSeq)
+                .orElseThrow(() -> new IllegalArgumentException("장바구니 항목을 찾을 수 없습니다."));
+
+        if (!cart.getMember().getSeq().equals(memberSeq)) {
+            throw new IllegalArgumentException("본인 장바구니만 수정할 수 있습니다.");
+        }
+
+        int stock = cart.getOptions().getStock();
+        if (quantity > stock) {
+            throw new IllegalArgumentException("재고(" + stock + "개)를 초과할 수 없습니다.");
+        }
+
+        cart.updateQuantity(quantity);
+    }
+
+    /**
+     * 항목 삭제.
+     * 본인 장바구니인지 확인 후 삭제합니다.
+     */
+    @Transactional
+    public void removeItem(Long cartSeq, Long memberSeq) {
+
+        Cart cart = cartRepository.findById(cartSeq)
+                .orElseThrow(() -> new IllegalArgumentException("장바구니 항목을 찾을 수 없습니다."));
+
+        if (!cart.getMember().getSeq().equals(memberSeq)) {
+            throw new IllegalArgumentException("본인 장바구니만 삭제할 수 있습니다.");
+        }
+
+        cartRepository.delete(cart);
+    }
 }

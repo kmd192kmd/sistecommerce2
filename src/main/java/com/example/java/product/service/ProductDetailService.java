@@ -44,6 +44,14 @@ public class ProductDetailService {
         대분류 / 중분류 / 소분류 카테고리 목록을 가져오기 위해 사용합니다.
     */
     private final CategoryService categoryService;
+    
+    /*
+	    ProductWishService
+	
+	    상품 상세 화면에서
+	    현재 로그인한 회원이 해당 상품을 찜했는지 확인하기 위해 사용합니다.
+	*/
+	private final ProductWishService productWishService;
 
     /*
         1. 상품 등록
@@ -136,6 +144,8 @@ public class ProductDetailService {
 //        }
         
         if (memberSeq != null) {
+            dto.setWished(productWishService.isWished(memberSeq, seq));
+        } else {
             dto.setWished(false);
         }
 

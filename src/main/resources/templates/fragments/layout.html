@@ -47,6 +47,31 @@
             sse.onerror = function () {
                 sse.close();
             };
+
+            // ── 비로그인 장바구니(localStorage) → 서버 병합 ──────────
+            (async function mergeGuestCart() {
+                const raw = localStorage.getItem('guestCart');
+                if (!raw) return;
+
+                let guestCart;
+                try { guestCart = JSON.parse(raw); } catch (e) { localStorage.removeItem('guestCart'); return; }
+                if (!guestCart || guestCart.length === 0) { localStorage.removeItem('guestCart'); return; }
+
+                for (const item of guestCart) {
+                    try {
+                        await fetch('/api/cart', {
+                            method : 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body   : JSON.stringify({ optionsSeq: item.optionsSeq, quantity: item.quantity })
+                        });
+                    } catch (e) {
+                        // 개별 실패는 무시하고 계속 진행
+                    }
+                }
+
+                localStorage.removeItem('guestCart');
+            })();
         }
     </script>
 </th:block>

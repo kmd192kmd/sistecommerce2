@@ -53,6 +53,15 @@ public class ProductWishController {
         }
 
         /*
+            화면에서 상품 번호가 넘어오지 않은 경우
+        */
+        if (requestDto == null || requestDto.getProductSeq() == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("상품 번호가 필요합니다.");
+        }
+
+        /*
             현재 로그인한 회원 번호
 
             여기서 getMemberSeq() 부분이 빨간 줄이면
@@ -73,7 +82,7 @@ public class ProductWishController {
 
         return ResponseEntity.ok(result);
     }
-
+    
     /**
      * 현재 상품 찜 여부 확인 API
      *

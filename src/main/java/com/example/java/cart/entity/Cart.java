@@ -48,12 +48,17 @@ public class Cart {
 	    결과 수량 3개
 	*/
 	public void increaseQuantity(int quantity) {
-	
+
 	    if (this.quantity == null) {
 	        this.quantity = 0;
 	    }
-	
+
 	    this.quantity += quantity;
 	}
-    
+
+	/** 수량을 지정값으로 덮어씁니다. */
+	public void updateQuantity(int quantity) {
+	    this.quantity = quantity;
+	}
+
 }

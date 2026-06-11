@@ -133,7 +133,7 @@
             <!-- ===================== 가입 상태 카드 ===================== -->
 
             <!-- [ active ] 활성 멤버십 -->
-            <div th:if="${membership != null and membership.status == 'active'}">
+            <div th:if="${membership != null and membership.status.equalsIgnoreCase('active')}">
                 <div class="membership-card p-8 text-white relative z-10">
                     <div class="flex justify-between items-start mb-6">
                         <div>
@@ -184,7 +184,7 @@
             </div>
 
             <!-- [ canceled ] 취소 예정 -->
-            <div th:if="${membership != null and membership.status == 'canceled'}">
+            <div th:if="${membership != null and membership.status.equalsIgnoreCase('canceled')}">
                 <div class="membership-card p-8 text-white relative z-10">
                     <div class="flex justify-between items-start mb-6">
                         <div>
@@ -214,7 +214,7 @@
             </div>
 
             <!-- [ expired / none ] 미가입 또는 만료 -->
-            <div th:if="${membership == null or membership.status == 'expired' or membership.status == 'none'}">
+            <div th:if="${membership == null or membership.status.equalsIgnoreCase('expired') or membership.status.equalsIgnoreCase('none')}">
 
                 <!-- 혜택 소개 카드 -->
                 <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">

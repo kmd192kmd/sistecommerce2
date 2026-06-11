@@ -197,17 +197,9 @@
 					        th:text="${item.processDate != null ? #temporals.format(item.processDate, 'yyyy.MM.dd') : '-'}">
 					    </td>
 					    <!-- 반려사유 -->
-					    <td class="p-2">
-					        <button type="button"
-					                th:if="${item.requestStatus == 'REJECTED'}"
-					                class="btn btn-danger text-xs reject-reason-btn"
-					                th:data-reason="${item.rejectReason}">
-					            보기
-					        </button>
-					        <span th:unless="${item.requestStatus == 'REJECTED'}">
-					            -
-					        </span>
-					    </td>
+					    <td class="p-2"
+						    th:text="${item.requestStatus == 'REJECTED' ? item.rejectReason : '-'}">
+						</td>
 					    <!-- 상세 -->
 					    <td class="p-2">
 					        <a th:href="@{/products/{seq}(seq=${item.productSeq})}"

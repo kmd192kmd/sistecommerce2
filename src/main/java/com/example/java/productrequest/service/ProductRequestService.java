@@ -30,6 +30,7 @@ public class ProductRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("관리자가 존재하지 않습니다."));
 
         request.approve(admin);
+        request.getProduct().approve();
     }
     
     @Transactional
@@ -60,6 +61,7 @@ public class ProductRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("관리자가 존재하지 않습니다."));
         
         request.reject(admin, rejectReason);
+        request.getProduct().reject();
     }
     
     @Transactional

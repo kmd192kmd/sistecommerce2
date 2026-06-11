@@ -102,7 +102,9 @@
 
                     <option th:each="opt : *{optionList}"
                             th:value="${opt.seq}"
-                            th:text="${opt.optionName}">
+                            th:text="${opt.optionName}"
+                            th:data-additional-price="${opt.additionalPrice}"
+                            th:data-stock="${opt.stock}">
                         옵션
                     </option>
                 </select>
@@ -343,7 +345,10 @@
 
         리뷰 조회, 리뷰 수정, 리뷰 삭제 요청 URL에 사용됩니다.
     */
-    const productSeq = /*[[${product.seq}]]*/ 0;
+    const productSeq         = /*[[${product.seq}]]*/ 0;
+    const productName        = /*[[${product.productName}]]*/ '';
+    const productPrice       = /*[[${product.price}]]*/ 0;
+    const productThumbnailUrl = /*[[${product.thumbnailUrl}]]*/ '';
 
     /*
         현재 로그인 회원 번호
@@ -1487,12 +1492,12 @@
         1. 옵션 선택 여부 확인
         2. 수량 확인
         3. POST /api/cart 요청
-        4. 로그인하지 않은 경우 로그인 페이지로 이동
+        4. 로그인하지 않은 경우 → localStorage에 저장 (비로그인 장바구니)
         5. 성공 시 알림 표시
     */
     function addToCart() {
         const optionsSeq = document.getElementById('optionsSeq').value;
-        const quantity = document.getElementById('quantity').value;
+        const quantity   = document.getElementById('quantity').value;
 
         if (!optionsSeq) {
             alert('옵션을 선택해주세요.');
@@ -1506,13 +1511,11 @@
 
         fetch('/api/cart', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify({
                 optionsSeq: Number(optionsSeq),
-                quantity: Number(quantity)
+                quantity:   Number(quantity)
             })
         })
         .then(async function (res) {
@@ -1520,8 +1523,33 @@
             const message = await res.text();
 
             if (res.status === 401) {
-                alert(message || '로그인이 필요합니다.');
-                location.href = '/member/login';
+                // 비로그인 → localStorage에 저장
+                const selectEl  = document.getElementById('optionsSeq');
+                const optionEl  = selectEl.options[selectEl.selectedIndex];
+                const addPrice  = parseInt(optionEl.dataset.additionalPrice || '0', 10);
+                const stock     = parseInt(optionEl.dataset.stock || '0', 10);
+                const optName   = optionEl.text;
+                const qty       = Number(quantity);
+
+                const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                const existing  = guestCart.find(i => i.optionsSeq === Number(optionsSeq));
+
+                if (existing) {
+                    existing.quantity = Math.min(existing.quantity + qty, stock);
+                } else {
+                    guestCart.push({
+                        optionsSeq:      Number(optionsSeq),
+                        quantity:        qty,
+                        productName:     productName,
+                        price:           productPrice,
+                        thumbnailUrl:    productThumbnailUrl,
+                        optionName:      optName,
+                        additionalPrice: addPrice,
+                        stock:           stock
+                    });
+                }
+                localStorage.setItem('guestCart', JSON.stringify(guestCart));
+                alert('장바구니에 담겼습니다.\n로그인 후 자동으로 반영됩니다.');
                 return;
             }
 

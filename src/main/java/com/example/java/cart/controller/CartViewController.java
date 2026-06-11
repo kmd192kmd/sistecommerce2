@@ -22,20 +22,17 @@ public class CartViewController {
     @GetMapping(value = "")
     public String cart(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
 
-    	/*
-	        로그인하지 않은 사용자가 장바구니 페이지에 접근하면
-	        로그인 페이지로 이동시킵니다.
-	    */
-	    if (userDetails == null) {
-	        return "redirect:/member/login";
-	    }
-    	
+        // 비로그인: localStorage 장바구니를 JS로 렌더링하는 게스트 모드
+        if (userDetails == null) {
+            model.addAttribute("cartList", List.of());
+            model.addAttribute("guestMode", true);
+            return "cart/cart";
+        }
+
         Long memberSeq = userDetails.getMemberSeq();
-
         List<CartDto> cartList = cartService.list(memberSeq);
-
         model.addAttribute("cartList", cartList);
-
+        model.addAttribute("guestMode", false);
         return "cart/cart";
     }
 

@@ -55,19 +55,6 @@
               action="/api/product/register"
               enctype="multipart/form-data">
 			  
-		    <!--
-		        추가된 부분
-
-		        상품을 등록하는 판매자 번호입니다.
-
-		        실제 로그인 기능과 연결되어 있다면
-		        Controller에서 model.addAttribute("sellerSeq", 로그인한 판매자 번호);
-		        형태로 내려주고 th:value="${sellerSeq}"를 사용합니다.
-		    -->
-		    <input type="hidden"
-		           name="sellerSeq"
-		           th:value="11">
-
             <div class="grid grid-cols-[180px_1fr] gap-8">
 
                 <!-- 대표 이미지 -->

@@ -31,8 +31,8 @@ public class PasswordResetController {
     /** ② 메일 발송 */
     @PostMapping("/find-password")
     public String sendResetEmail(
-            @RequestParam String username,
-            @RequestParam String email,
+            @RequestParam("username") String username,
+            @RequestParam("email") String email,
             RedirectAttributes redirectAttributes) {
 
         try {
@@ -49,7 +49,7 @@ public class PasswordResetController {
     /** ③ 새 비밀번호 입력 폼 (토큰 검증) */
     @GetMapping("/reset-password")
     public String resetPasswordPage(
-            @RequestParam String token,
+            @RequestParam("token") String token,
             Model model) {
 
         try {
@@ -66,8 +66,8 @@ public class PasswordResetController {
     /** ④ 비밀번호 변경 */
     @PostMapping("/reset-password")
     public String resetPassword(
-            @RequestParam String token,
-            @RequestParam String newPassword,
+            @RequestParam("token") String token,
+            @RequestParam("newPassword") String newPassword,
             RedirectAttributes redirectAttributes) {
 
         try {
