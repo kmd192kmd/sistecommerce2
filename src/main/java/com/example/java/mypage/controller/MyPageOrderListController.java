@@ -114,4 +114,33 @@ public class MyPageOrderListController {
             ));
         }
     }
+
+    @PostMapping("/orders/{orderSeq}/return")
+    public ResponseEntity<Map<String, Object>> returnOrderItems(
+            @PathVariable("orderSeq") Long orderSeq,
+            @RequestBody OrderItemCancelRequestDto requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        try {
+            Long memberSeq = userDetails.getMemberSeq();
+
+            paymentService.requestReturnItems(
+                    orderSeq,
+                    memberSeq,
+                    requestDto.getOrderItemSeqList(),
+                    requestDto.getCancelReason()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "반품 신청이 접수되었습니다."
+            ));
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
 }

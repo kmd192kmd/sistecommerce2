@@ -3,6 +3,7 @@ package com.example.java.orders.service;
 import com.example.java.cart.repository.CartRepository;
 import com.example.java.delivery.entity.Delivery;
 import com.example.java.delivery.repository.DeliveryRepository;
+import com.example.java.delivery.service.DeliveryService;
 import com.example.java.member.entity.MemberCoupon;
 import com.example.java.member.repository.MemberCouponRepository;
 import com.example.java.orders.entity.OrderItem;
@@ -17,6 +18,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.java.product.entity.Options;
 import com.example.java.product.repository.OptionsRepository;
+import com.example.java.product.entity.Seller;
+import com.example.java.product.repository.SellerRepository;
 import com.example.java.stockhistory.entity.StockHistory;
 import com.example.java.stockhistory.enums.StockHistorySourceType;
 import com.example.java.stockhistory.enums.StockHistoryType;
@@ -61,6 +64,8 @@ public class PaymentService {
     private final RefundRepository refundRepository;
     private final ObjectMapper objectMapper;
     private final OptionsRepository optionsRepository;
+    private final SellerRepository sellerRepository;
+    private final DeliveryService deliveryService;
     private final StockHistoryRepository stockHistoryRepository;
 
     @Value("${toss.secret-key}")
@@ -282,13 +287,6 @@ public class PaymentService {
             throw new IllegalStateException("결제완료 또는 부분환불 상태의 주문만 취소할 수 있습니다.");
         }
 
-        /*
-            배송대기 상태에서만 취소 가능.
-            현재 delivery가 order_item과 직접 연결되어 있지 않으므로,
-            해당 주문의 모든 delivery row가 READY일 때만 허용한다.
-         */
-        validateDeliveryReady(order.getSeq());
-
         Payment payment = paymentRepository.findTopByOrderSeqAndStatusOrderBySeqDesc(order.getSeq(), 2)
                 .orElseThrow(() -> new IllegalStateException("결제완료 정보를 찾을 수 없습니다. orderSeq=" + order.getSeq()));
 
@@ -322,6 +320,37 @@ public class PaymentService {
 
             if (refundQuantity >= quantity) {
                 throw new IllegalStateException("이미 전량 환불된 상품이 포함되어 있습니다. orderItemSeq=" + item.getSeq());
+            }
+        }
+
+        /*
+            배송대기 상태에서만 취소 가능.
+            취소하려는 상품들의 택배사(DeliveryCompany)명을 기준으로, 
+            해당 주문의 연계된 배송 건 중 동일한 택배사를 가진 배송 상태가 READY인지 검증한다.
+         */
+        List<String> cancelItemDeliveryCompanies = cancelItems.stream()
+                .map(item -> {
+                    Options opt = optionsRepository.findById(item.getOptionsSeq()).orElse(null);
+                    if (opt != null && opt.getProduct() != null && opt.getProduct().getSellerSeq() != null) {
+                        Seller sel = sellerRepository.findById(opt.getProduct().getSellerSeq()).orElse(null);
+                        if (sel != null && sel.getDeliveryCompany() != null) {
+                            return sel.getDeliveryCompany().getName();
+                        }
+                    }
+                    return "배송 준비중";
+                })
+                .distinct()
+                .toList();
+
+        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(order.getSeq());
+        if (deliveries != null && !deliveries.isEmpty()) {
+            for (Delivery d : deliveries) {
+                String dCompanyName = (d.getDeliveryCompany() != null) ? d.getDeliveryCompany().getName() : "배송 준비중";
+                if (cancelItemDeliveryCompanies.contains(dCompanyName)) {
+                    if (!"READY".equals(d.getStatus())) {
+                        throw new IllegalStateException("배송이 시작되어서 주문취소가 불가능합니다.");
+                    }
+                }
             }
         }
 
@@ -410,7 +439,7 @@ public class PaymentService {
             /*
                 배송 row가 이미 있다면 실패 처리.
              */
-            cancelDeliveries(order.getSeq());
+            deliveryService.cancelAllDeliveriesForOrder(order.getSeq());
 
         } else {
             /*
@@ -420,6 +449,11 @@ public class PaymentService {
              */
             order.setOrderStatus(7);
             order.setPaymentStatus(4);
+
+            /*
+                취소된 특정 택배사 묶음의 배송 레코드를 FAILED 상태로 변경
+             */
+            deliveryService.cancelDeliveriesForOrderAndCompanies(order.getSeq(), cancelItemDeliveryCompanies);
         }
 
         payment.setUpdateDate(now);
@@ -571,19 +605,6 @@ public class PaymentService {
                 .ifPresent(memberCoupon -> memberCoupon.updateStatus(0));
     }
 
-    private void cancelDeliveries(Long orderSeq) {
-        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(orderSeq);
-
-        if (deliveries == null || deliveries.isEmpty()) {
-            return;
-        }
-
-        for (Delivery delivery : deliveries) {
-            delivery.setStatus("FAILED");
-        }
-
-        deliveryRepository.saveAll(deliveries);
-    }
 
     private void deleteOrderedCartItems(Orders order) {
         List<Long> orderedOptionsSeqList = orderItemRepository.findByOrderSeq(order.getSeq())
@@ -891,5 +912,58 @@ public class PaymentService {
                 .build();
 
         stockHistoryRepository.save(stockHistory);
+    }
+
+    /**
+     * 선택한 주문상품들을 반품 요청 상태(7)로 변경한다.
+     */
+    @Transactional
+    public void requestReturnItems(Long orderSeq,
+                                  Long memberSeq,
+                                  List<Long> orderItemSeqList,
+                                  String reason) {
+        if (orderSeq == null) {
+            throw new IllegalArgumentException("주문번호가 없습니다.");
+        }
+        if (memberSeq == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+        if (orderItemSeqList == null || orderItemSeqList.isEmpty()) {
+            throw new IllegalArgumentException("반품할 상품을 선택해야 합니다.");
+        }
+
+        Orders order = ordersRepository.findById(orderSeq)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderSeq=" + orderSeq));
+
+        if (!order.getMemberSeq().equals(memberSeq)) {
+            throw new IllegalArgumentException("본인의 주문만 반품 신청할 수 있습니다.");
+        }
+
+        List<OrderItem> allOrderItems = orderItemRepository.findByOrderSeq(order.getSeq());
+        Set<Long> targetSeqs = new LinkedHashSet<>(orderItemSeqList);
+
+        List<OrderItem> targetItems = allOrderItems.stream()
+                .filter(item -> targetSeqs.contains(item.getSeq()))
+                .toList();
+
+        if (targetItems.size() != targetSeqs.size()) {
+            throw new IllegalArgumentException("선택한 상품 중 해당 주문에 포함되지 않은 상품이 있습니다.");
+        }
+
+        for (OrderItem item : targetItems) {
+            if (item.getItemStatus() != null) {
+                if (item.getItemStatus() == 6) {
+                    throw new IllegalStateException("이미 취소된 상품이 포함되어 있습니다. 상품명: " + item.getProductName());
+                }
+                if (item.getItemStatus() >= 7) {
+                    throw new IllegalStateException("이미 반품이 신청되었거나 완료된 상품입니다. 상품명: " + item.getProductName());
+                }
+            }
+        }
+
+        for (OrderItem item : targetItems) {
+            item.setItemStatus(7);
+        }
+        orderItemRepository.saveAll(targetItems);
     }
 }

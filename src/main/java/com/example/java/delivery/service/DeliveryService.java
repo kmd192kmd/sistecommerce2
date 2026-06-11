@@ -235,4 +235,40 @@ public class DeliveryService {
         }
         return dispatchDate.atTime(6, 0);
     }
+
+    /**
+     * 특정 주문의 모든 배송을 취소 상태(FAILED)로 변경한다.
+     */
+    @Transactional
+    public void cancelAllDeliveriesForOrder(Long orderSeq) {
+        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(orderSeq);
+        if (deliveries == null || deliveries.isEmpty()) {
+            return;
+        }
+        for (Delivery d : deliveries) {
+            d.setStatus("FAILED");
+        }
+        deliveryRepository.saveAll(deliveries);
+    }
+
+    /**
+     * 특정 주문 내에서 지정된 택배사(들)에 속한 배송 레코드만 취소 상태(FAILED)로 변경한다.
+     */
+    @Transactional
+    public void cancelDeliveriesForOrderAndCompanies(Long orderSeq, List<String> companyNames) {
+        if (companyNames == null || companyNames.isEmpty()) {
+            return;
+        }
+        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(orderSeq);
+        if (deliveries == null || deliveries.isEmpty()) {
+            return;
+        }
+        for (Delivery d : deliveries) {
+            String companyName = (d.getDeliveryCompany() != null) ? d.getDeliveryCompany().getName() : "배송 준비중";
+            if (companyNames.contains(companyName)) {
+                d.setStatus("FAILED");
+            }
+        }
+        deliveryRepository.saveAll(deliveries);
+    }
 }
