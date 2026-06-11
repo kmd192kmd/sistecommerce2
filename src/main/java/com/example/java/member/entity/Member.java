@@ -131,4 +131,18 @@ public class Member {
         this.status = status;
 
     }
+
+    /** 탈퇴 신청: status 1→4(탈퇴보류중), 신청일시 기록 */
+    public void markWithdrawalRequested() {
+        this.status = com.example.java.member.constant.MemberStatus.WITHDRAWAL_PENDING;
+        this.withdrawalRequestedAt = java.time.LocalDateTime.now();
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
+
+    /** 탈퇴 복구: status 4→1(활성), 신청일시 해제 */
+    public void restoreActive() {
+        this.status = com.example.java.member.constant.MemberStatus.ACTIVE;
+        this.withdrawalRequestedAt = null;
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
 }
