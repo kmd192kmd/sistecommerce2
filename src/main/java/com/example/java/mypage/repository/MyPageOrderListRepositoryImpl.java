@@ -79,11 +79,13 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
         List<Tuple> itemRows = queryFactory
                 .select(
                         orderItem.orderSeq,
+                        orderItem.seq,
                         product.seq,
                         orderItem.productName,
                         product.thumbnailUrl,
                         orderItem.finalPrice,
                         orderItem.quantity,
+                        orderItem.itemStatus,
                         seller.deliveryCompany.name
                 )
                 .from(orderItem)
@@ -139,11 +141,13 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
             String imageUrl = valueOrDefault(row.get(product.thumbnailUrl), "/images/default-product.png");
 
             MyPageOrderItemDto itemDto = MyPageOrderItemDto.builder()
+            		.orderItemSeq(row.get(orderItem.seq))
                     .productSeq(row.get(product.seq))
                     .name(row.get(orderItem.productName))
                     .image(imageUrl)
                     .price(row.get(orderItem.finalPrice))
                     .qty(row.get(orderItem.quantity))
+                    .itemStatus(row.get(orderItem.itemStatus))
                     .build();
 
             groupedItems

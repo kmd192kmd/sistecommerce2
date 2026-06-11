@@ -17,4 +17,6 @@ public class MyPageOrderItemDto {
     private String image;
     private Integer price;
     private Integer qty;
+    private Long orderItemSeq;
+    private Integer itemStatus;
 }
