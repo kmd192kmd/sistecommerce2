@@ -49,7 +49,21 @@
 
 ---
 
-## 5. 장바구니
+## 5. 플랫폼별 중복 로그인 차단 (SSE)
+
+- 로그인 시 `User-Agent`로 접속 플랫폼 감지 — `ANDROID` / `IOS` / `PC` 3종 구분 (`PlatformDetector`)
+- **동일 플랫폼에서 재로그인 시 기존 세션 강제 종료**
+  1. Redis에서 해당 회원의 모든 세션 조회 (`FindByIndexNameSessionRepository`)
+  2. 동일 플랫폼 기존 세션에 SSE `force-logout` 이벤트 전송 → 브라우저에서 알림 후 자동 로그아웃
+  3. 해당 세션 Redis에서 삭제
+  4. 현재 세션에 플랫폼 attribute 저장
+- `SessionManagementService` — 위 플로우 전담, `FormLoginSuccessHandler` / `OAuth2SuccessHandler`에서 호출
+- `SseEmitterService` — `sessionId → SseEmitter` 맵(`ConcurrentHashMap`)으로 연결 관리, 연결 종료 시 자동 제거
+- `GET /sse/connect` — 로그인 후 페이지 로드 시 브라우저가 SSE 구독, 세션 ID 기준으로 emitter 등록
+
+---
+
+## 6. 장바구니
 
 ### 비로그인 로컬 카트
 - 로그인 없이 상품 상세에서 옵션 선택 후 `localStorage`에 카트 저장
@@ -101,3 +115,4 @@
 - **비로그인 UX** — 로그인 강제 없이 장바구니 사용 가능, 로그인 직후 자동 병합으로 이탈 없는 구매 플로우 구성
 - **결제 안전성** — ACTIVE/CANCELED 상태 재가입 차단, 스케줄러 장애 격리(건별 try-catch)로 한 건 실패가 전체 갱신을 막지 않음
 - **서비스 분리** — `MyGroupBuyService`(조회 전용)를 `GroupBuyService`(참여·마감 처리)에서 분리해 단일책임 원칙 준수
+- **플랫폼별 세션 격리** — PC/Android/iOS를 독립 세션으로 관리, 동일 플랫폼 재로그인 시 SSE로 기존 세션에 즉시 알림 후 강제 종료 (서버 폴링 없이 실시간 처리)
