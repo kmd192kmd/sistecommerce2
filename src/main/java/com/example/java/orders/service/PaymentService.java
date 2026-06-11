@@ -14,6 +14,7 @@ import com.example.java.orders.repository.OrderItemRepository;
 import com.example.java.orders.repository.OrdersRepository;
 import com.example.java.orders.repository.PaymentRepository;
 import com.example.java.orders.repository.RefundRepository;
+import com.example.java.orders.event.OrderPaidEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.java.product.entity.Options;
@@ -30,6 +31,7 @@ import java.util.LinkedHashMap;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +69,7 @@ public class PaymentService {
     private final SellerRepository sellerRepository;
     private final DeliveryService deliveryService;
     private final StockHistoryRepository stockHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -130,7 +133,17 @@ public class PaymentService {
             throw new IllegalStateException("주문상품 정보가 없습니다. orderSeq=" + order.getSeq());
         }
 
-        decreaseStockForOrderItems(orderItems, order.getSeq());
+        /*
+            공구 주문(order_item.participation_seq != null)은 재고를 발주 입고로 충당하므로
+            결제 시점에 일반 재고(options.stock)를 깎지 않는다. 일반 주문 상품만 차감 대상.
+         */
+        List<OrderItem> stockTargets = orderItems.stream()
+                .filter(item -> item.getParticipationSeq() == null)
+                .toList();
+
+        if (!stockTargets.isEmpty()) {
+            decreaseStockForOrderItems(stockTargets, order.getSeq());
+        }
 
         JsonNode tossResponse = requestTossConfirm(paymentKey, orderId, amount);
 
@@ -180,6 +193,20 @@ public class PaymentService {
         order.setRemainPrice(amount);
 
         ordersRepository.save(order);
+
+        /*
+            공구 주문이면 '결제됨' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,
+            groupbuy의 리스너가 이를 받아 participation을 PARTICIPATING으로 확정한다.
+            @EventListener는 동기 — 이 트랜잭션 안에서 실행되므로 결제와 확정이 원자적으로 묶인다(NFR-003).
+         */
+        List<Long> participationSeqs = orderItems.stream()
+                .map(OrderItem::getParticipationSeq)
+                .filter(seq -> seq != null)
+                .toList();
+
+        if (!participationSeqs.isEmpty()) {
+            eventPublisher.publishEvent(new OrderPaidEvent(participationSeqs));
+        }
 
         /*
             결제 완료 후 사용한 회원 쿠폰을 사용완료 처리한다.

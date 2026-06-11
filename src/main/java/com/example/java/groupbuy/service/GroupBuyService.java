@@ -511,6 +511,30 @@ public class GroupBuyService {
      * 팀 합의: 제일 싼 옵션을 기준가로 두고 additional_price(0 이상)로 옵션별 가격차를 표현한다.
      * 결제·환불에서 공통으로 쓴다(참여/승격결제/취소/무산환불 모두 이 가격 기준).
      */
+    /**
+     * 결제 완료 후 공구 참여 확정 (결제 성공 이벤트를 받은 리스너가 호출).
+     *
+     * 참여 신청 때 옵션을 이미 점유(occupied_count +1)하고 participation은 PAYMENT_PENDING이었다.
+     * 결제가 끝났으므로 PARTICIPATING으로 확정한다 — 점유 수는 변하지 않는다(결제=확정, NFR-003).
+     * 옵션 행을 잠가 취소/만료 스케줄러와 직렬화하고, 상태 재확인으로 멱등을 보장한다
+     * (만료(EXPIRED)·중복 콜백 등으로 이미 PAYMENT_PENDING이 아니면 아무것도 안 함).
+     */
+    @Transactional
+    public void confirmAfterPayment(Long participationSeq) {
+        Participation participation = participationRepository.findById(participationSeq)
+                .orElseThrow(() -> new IllegalStateException("참여를 찾을 수 없습니다. seq=" + participationSeq));
+
+        // 옵션 행 락 — 취소/만료와 같은 행을 건드리므로 직렬화 (반환값은 락 목적이라 쓰지 않음)
+        groupBuyOptionsRepository.findBySeqForUpdate(participation.getGroupBuyOptions().getSeq())
+                .orElseThrow(() -> new IllegalStateException("옵션을 찾을 수 없습니다."));
+
+        entityManager.refresh(participation);
+        if (participation.getStatus() != ParticipationStatus.PAYMENT_PENDING) {
+            return; // 이미 확정/취소/만료됨 — 멱등(중복 결제 콜백 방어)
+        }
+        participation.confirmPayment(); // PAYMENT_PENDING → PARTICIPATING (변경감지로 UPDATE)
+    }
+
     private int optionFinalPrice(GroupBuy groupBuy, GroupBuyOptions option) {
         Integer additional = option.getOptions() != null ? option.getOptions().getAdditionalPrice() : null;
         return groupBuy.getFinalPrice() + (additional != null ? additional : 0);
