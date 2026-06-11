@@ -132,6 +132,11 @@ public class Member {
 
     }
 
+    /** 로그인 성공 시 마지막 접속일시 갱신(휴면 판정 기준) */
+    public void recordLogin() {
+        this.lastLoginAt = java.time.LocalDateTime.now();
+    }
+
     /** 탈퇴 신청: status 1→4(탈퇴보류중), 신청일시 기록 */
     public void markWithdrawalRequested() {
         this.status = com.example.java.member.constant.MemberStatus.WITHDRAWAL_PENDING;

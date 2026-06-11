@@ -28,14 +28,14 @@ public class MyPageApiController {
     }
 
     @GetMapping("/{seq}")
-    public ResponseEntity<DeliveryAddress> getAddress(@PathVariable Long seq,
+    public ResponseEntity<DeliveryAddress> getAddress(@PathVariable("seq") Long seq,
                                                       @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         DeliveryAddress address = memberAddressService.getAddress(seq, customUserDetails.getMemberSeq());
         return ResponseEntity.ok(address);
     }
 
     @PutMapping("/{seq}")
-    public ResponseEntity<?> updateAddress(@PathVariable Long seq,
+    public ResponseEntity<?> updateAddress(@PathVariable("seq") Long seq,
                                            @RequestBody DeliveryAddressDto deliveryAddressDto,
                                            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         deliveryAddressDto.setMemberSeq(customUserDetails.getMemberSeq());
@@ -44,14 +44,14 @@ public class MyPageApiController {
     }
 
     @PatchMapping("/{seq}/default")
-    public ResponseEntity<?> setDefault(@PathVariable Long seq,
+    public ResponseEntity<?> setDefault(@PathVariable("seq") Long seq,
                                         @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         memberAddressService.setDefault(seq, customUserDetails.getMemberSeq());
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{seq}")
-    public ResponseEntity<?> deleteAddress(@PathVariable Long seq,
+    public ResponseEntity<?> deleteAddress(@PathVariable("seq") Long seq,
                                            @AuthenticationPrincipal CustomUserDetails customUserDetails) {
         memberAddressService.deleteAddress(seq, customUserDetails.getMemberSeq());
         return ResponseEntity.ok().build();

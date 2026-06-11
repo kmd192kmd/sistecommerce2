@@ -3,6 +3,7 @@ package com.example.java.member.service;
 import com.example.java.member.entity.LoginLog;
 import com.example.java.member.entity.Member;
 import com.example.java.member.repository.LoginLogRepository;
+import com.example.java.member.repository.MemberRepository;
 import com.example.java.member.util.PlatformDetector;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 로그인 이력 기록 서비스.
@@ -23,6 +25,15 @@ import org.springframework.stereotype.Service;
 public class LoginLogService {
 
     private final LoginLogRepository loginLogRepository;
+    private final MemberRepository memberRepository;
+
+    /**
+     * 로그인 성공 시 마지막 접속일시(last_login_at) 갱신. 휴면 판정 기준이 된다.
+     */
+    @Transactional
+    public void recordLastLogin(Long memberSeq) {
+        memberRepository.findById(memberSeq).ifPresent(Member::recordLogin);
+    }
 
     /**
      * 로그인 성공 로그 저장.

@@ -33,9 +33,10 @@
 
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">비밀번호</label>
-                    <input type="password" name="password"
+                    <input type="password" id="password" name="password"
                         class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
                         placeholder="비밀번호를 입력하세요" />
+                    <p id="capslock-msg" class="hidden text-xs text-red-600 mt-1">⚠ Caps Lock이 켜져 있습니다.</p>
                 </div>
 
                 <div class="flex items-center">
@@ -69,6 +70,23 @@
 
     <div th:replace="~{fragments/footer :: footer}"></div>
     <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+    <script>
+        // Caps Lock 감지: 비밀번호 입력 중 켜져 있으면 경고 표시
+        (function () {
+            const pw = document.getElementById('password');
+            const msg = document.getElementById('capslock-msg');
+            if (!pw || !msg) return;
+
+            function toggleCaps(e) {
+                const on = e.getModifierState && e.getModifierState('CapsLock');
+                msg.classList.toggle('hidden', !on);
+            }
+            pw.addEventListener('keydown', toggleCaps);
+            pw.addEventListener('keyup', toggleCaps);
+            pw.addEventListener('blur', function () { msg.classList.add('hidden'); });
+        })();
+    </script>
 </body>
 
 </html>

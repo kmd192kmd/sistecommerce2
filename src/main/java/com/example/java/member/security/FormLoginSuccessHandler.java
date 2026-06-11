@@ -47,6 +47,9 @@ public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandl
         // 휴면(status=2) 계정이면 로그인(본인인증) 성공 시점에 자동 복원. 휴면이 아니면 no-op.
         dormantService.restore(userDetails.getMemberSeq());
 
+        // 마지막 접속일시 갱신(휴면 판정 기준)
+        loginLogService.recordLastLogin(userDetails.getMemberSeq());
+
         sessionManagementService.register(request, request.getSession(), userDetails.getUsername());
 
         memberRepository.findById(userDetails.getMemberSeq()).ifPresent(member ->

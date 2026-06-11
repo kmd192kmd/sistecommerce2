@@ -41,10 +41,10 @@ public class MyReviewController {
      */
     @PostMapping("/{reviewSeq}/edit")
     public String editReview(
-            @PathVariable Long reviewSeq,
-            @RequestParam Long productSeq,
-            @RequestParam Integer rating,
-            @RequestParam String content,
+            @PathVariable("reviewSeq") Long reviewSeq,
+            @RequestParam("productSeq") Long productSeq,
+            @RequestParam("rating") Integer rating,
+            @RequestParam("content") String content,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             RedirectAttributes redirectAttributes) {
 
@@ -66,8 +66,8 @@ public class MyReviewController {
      */
     @PostMapping("/{reviewSeq}/delete")
     public String deleteReview(
-            @PathVariable Long reviewSeq,
-            @RequestParam Long productSeq,
+            @PathVariable("reviewSeq") Long reviewSeq,
+            @RequestParam("productSeq") Long productSeq,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             RedirectAttributes redirectAttributes) {
 

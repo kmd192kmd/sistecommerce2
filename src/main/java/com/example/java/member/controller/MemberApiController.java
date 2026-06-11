@@ -32,6 +32,12 @@ public class MemberApiController {
 		boolean exists = memberValidationService.existsByNickname(nickname);
 		return Map.of("available", !exists);
 	}
-	
+
+	@GetMapping("/check-email")
+	public Map<String, Boolean> checkEmail(@RequestParam(name = "email") String email) {
+
+		boolean exists = memberValidationService.existsByEmail(email);
+		return Map.of("available", !exists);
+	}
 
 }

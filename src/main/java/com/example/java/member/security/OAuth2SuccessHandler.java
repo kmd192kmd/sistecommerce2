@@ -41,6 +41,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         sessionManagementService.register(request, request.getSession(), userDetails.getUsername());
 
+        // 마지막 접속일시 갱신(휴면 판정 기준)
+        loginLogService.recordLastLogin(userDetails.getMemberSeq());
+
         memberRepository.findById(userDetails.getMemberSeq()).ifPresent(member ->
                 loginLogService.logSuccess(member, request, LoginLog.TYPE_SSO));
 

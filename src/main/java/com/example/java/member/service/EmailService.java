@@ -103,4 +103,40 @@ public class EmailService {
             log.error("휴면 사전 안내 메일 발송 실패: to={}", toEmail, e);
         }
     }
+
+    /**
+     * 회원가입 이메일 인증번호 메일.
+     * 발송 실패 시 예외를 던진다(호출 측에서 발송 실패를 사용자에게 알리도록).
+     */
+    public void sendVerificationCodeEmail(String toEmail, String code) {
+        String subject = "[Gold Market] 회원가입 이메일 인증번호";
+        String content = """
+                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                  <h2 style="color: #1e293b; margin-bottom: 8px;">이메일 인증번호</h2>
+                  <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">
+                    아래 인증번호를 회원가입 화면에 입력해 주세요.<br>
+                    인증번호는 <strong>5분간</strong> 유효합니다.
+                  </p>
+                  <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f59e0b;
+                              background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+                              text-align: center; padding: 16px 0;">%s</div>
+                  <p style="color: #94a3b8; font-size: 12px; margin-top: 24px;">
+                    본인이 요청하지 않은 경우 이 메일을 무시하세요.
+                  </p>
+                </div>
+                """.formatted(code);
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(content, true);
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.error("인증번호 메일 발송 실패: to={}", toEmail, e);
+            throw new RuntimeException("인증 메일 발송에 실패했습니다.");
+        }
+    }
 }
