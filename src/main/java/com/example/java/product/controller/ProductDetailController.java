@@ -57,8 +57,6 @@ public class ProductDetailController {
             memberSeq = customUserDetails.getMemberSeq();
         }
 
-        System.out.println("loginMemberSeq = " + memberSeq);
-
         ProductDto product = productDetailService.getProductDetail(seq, memberSeq);
 
         // 최근 조회 상품 세션 저장

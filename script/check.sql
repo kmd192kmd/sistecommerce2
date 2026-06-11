@@ -22,6 +22,8 @@ select * from seller;
 
 select * from PAYMENT;
 
+select * from refund;
+
 
 1656    1678    ->     3342         3355
 

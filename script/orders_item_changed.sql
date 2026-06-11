@@ -40,3 +40,10 @@ ALTER TABLE payment MODIFY external_payment_id VARCHAR2(200);
 ALTER TABLE payment MODIFY pg_tid VARCHAR2(200);
 ALTER TABLE payment MODIFY receipt_url VARCHAR2(1000);
 ALTER TABLE payment MODIFY fail_reason VARCHAR2(1000);
+
+ALTER TABLE refund MODIFY return_request NULL;
+
+ALTER TABLE refund MODIFY returns_seq NULL;
+
+
+commit;

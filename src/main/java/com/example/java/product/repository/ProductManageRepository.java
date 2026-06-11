@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductManageRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
 
     /*
@@ -321,6 +322,12 @@ public class ProductManageRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("productSeqs", productSeqs);
 
-        return jdbcTemplate.update(sql, params);
+        int result = jdbcTemplate.update(sql, params);
+        if (result > 0 && productSeqs != null) {
+            for (Long seq : productSeqs) {
+                eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(seq));
+            }
+        }
+        return result;
     }
 }
