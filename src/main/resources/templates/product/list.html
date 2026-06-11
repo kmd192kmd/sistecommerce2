@@ -361,7 +361,8 @@
             </ul>
         </div>
 
-        <div th:if="${not #lists.isEmpty(recentViewedList)}" class="bg-white p-4 border border-gray-200 shadow-sm sticky top-24">
+        <div id="recent-viewed-container" class="bg-white p-4 border border-gray-200 shadow-sm sticky top-24"
+             th:classappend="${#lists.isEmpty(recentViewedList)} ? 'hidden' : ''">
             <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">🕒 최근 조회 상품</h3>
             <ul class="space-y-4">
                 <li th:each="rv : ${recentViewedList}">
@@ -602,6 +603,40 @@
     // 7. 페이지 최초 진입 시 슬라이더 초기 설정 실행
     document.addEventListener('DOMContentLoaded', function() {
         initPriceSlider();
+    });
+
+    // 8. 브라우저 뒤로가기(캐시 로드) 시 최근 조회 상품 세션 상태만 부분 갱신
+    function refreshRecentViewed() {
+        fetch('/products/recent-viewed')
+            .then(response => {
+                if (!response.ok) throw new Error('Response error');
+                return response.text();
+            })
+            .then(html => {
+                const oldContainer = document.getElementById('recent-viewed-container');
+                if (oldContainer) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContainer = doc.getElementById('recent-viewed-container');
+                    if (newContainer) {
+                        oldContainer.outerHTML = newContainer.outerHTML;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Failed to refresh recent viewed products:', error);
+            });
+    }
+
+    window.addEventListener('pageshow', function(event) {
+        const perfEntries = window.performance && window.performance.getEntriesByType 
+            ? window.performance.getEntriesByType('navigation') 
+            : [];
+        const isBackNavigation = perfEntries.length > 0 && perfEntries[0].type === 'back_forward';
+        
+        if (event.persisted || isBackNavigation) {
+            refreshRecentViewed();
+        }
     });
 </script>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>

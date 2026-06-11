@@ -115,6 +115,7 @@ public class RetailRecommendationService {
             return productRepository.findProductsByPaging(0, 4);
         }
 
+        log.info("✨ Google Cloud Retail API 맞춤 추천 성공! (조회된 상품 수: {})", recommendedProducts.size());
         return recommendedProducts;
     }
 }

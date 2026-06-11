@@ -150,6 +150,26 @@ public class ProductListController {
         return "product/list";
     }
 
+    // 최근 조회 상품 목록 조각(Fragment) 조회
+    @GetMapping("/recent-viewed")
+    public String getRecentViewed(HttpSession session, Model model) {
+        @SuppressWarnings("unchecked")
+        List<Long> recentViewedSeqs = (List<Long>) session.getAttribute("recentViewedSeqs");
+        List<ProductDto> recentViewedList = new java.util.ArrayList<>();
+        if (recentViewedSeqs != null && !recentViewedSeqs.isEmpty()) {
+            for (Long rSeq : recentViewedSeqs) {
+                try {
+                    ProductDto p = productDetailService.getProductWithoutViewCount(rSeq);
+                    recentViewedList.add(p);
+                } catch (Exception e) {
+                    // 무시
+                }
+            }
+        }
+        model.addAttribute("recentViewedList", recentViewedList);
+        return "product/list :: #recent-viewed-container";
+    }
+
     // 최근 검색어 개별 삭제
     @GetMapping("/recent-search/delete")
     @ResponseBody

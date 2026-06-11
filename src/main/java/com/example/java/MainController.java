@@ -25,7 +25,12 @@ public class MainController {
     @GetMapping("/")
     public String index(@AuthenticationPrincipal CustomUserDetails auth, Model model) {
         model.addAttribute("groupBuys", SampleProducts.groupBuys());
-        model.addAttribute("hotdeals", SampleProducts.hotdeals());
+        
+        // 실제 진행중인 핫딜 상품 목록 조회 (상위 4개)
+        List<ProductDto> hotdeals = productListService.getProductList(
+                null, null, "recommend", 0, null, null, null, false, true
+        ).getContent().stream().limit(4).collect(Collectors.toList());
+        model.addAttribute("hotdeals", hotdeals);
         
         // 실시간 인기 베스트 상품: 캐시된 추천 상품 목록 가져오기 (상위 4개)
         List<ProductDto> populars = productListService.getPopularProducts().stream()
