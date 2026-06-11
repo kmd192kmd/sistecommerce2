@@ -14,6 +14,15 @@ import com.example.java.product.entity.Product;
 import com.example.java.product.repository.ProductListRepository;
 
 import lombok.RequiredArgsConstructor;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Criteria;
+import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.Query;
+import com.example.java.product.document.ProductDocument;
 
 /*
     ProductListService
@@ -28,6 +37,7 @@ public class ProductListService {
     private final ProductListRepository productListRepository;
     private final CategoryService categoryService;
     private final org.springframework.cache.CacheManager cacheManager;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     public Page<ProductDto> getProductList(
             Long categorySeq,
@@ -50,25 +60,85 @@ public class ProductListService {
 
         Pageable pageable = PageRequest.of(page, 20, getSortOption(sortBy));
 
-        Integer finalMinPrice = minPrice != null ? minPrice : 0;
-        Integer finalMaxPrice = maxPrice != null ? maxPrice : 999999999;
-        Double finalMinRating = minRating != null ? minRating : 0.0;
-        String finalKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
-        String saleStatus = hideOutOfStock ? "ON_SALE" : null;
+        // 1. 추천(recommend) 정렬은 기존 RDBMS 방식 그대로 사용 (캐싱용이므로 성능 영향 없음)
+        if ("recommend".equalsIgnoreCase(sortBy)) {
+            Integer finalMinPrice = minPrice != null ? minPrice : 0;
+            Integer finalMaxPrice = maxPrice != null ? maxPrice : 999999999;
+            Double finalMinRating = minRating != null ? minRating : 0.0;
+            String finalKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
+            String saleStatus = hideOutOfStock ? "ON_SALE" : null;
+            List<Long> categorySeqs = categoryService.getDescendantCategorySeqs(categorySeq);
+
+            Page<Product> productPage = productListRepository.findWithFilters(
+                    categorySeqs,
+                    finalKeyword,
+                    finalMinPrice,
+                    finalMaxPrice,
+                    finalMinRating,
+                    saleStatus,
+                    pageable
+            );
+            return productPage.map(Product::toDto);
+        }
+
+        // 2. 그 외 일반 정렬/검색은 Elasticsearch 활용
+        Criteria criteria = new Criteria("status").is("NORMAL")
+                .and("hideYn").is("N")
+                .and("saleStatus").not().is("STOPPED");
 
         List<Long> categorySeqs = categoryService.getDescendantCategorySeqs(categorySeq);
+        if (categorySeqs != null && !categorySeqs.isEmpty()) {
+            criteria = criteria.and("categorySeq").in(categorySeqs);
+        }
 
-        Page<Product> productPage = productListRepository.findWithFilters(
-                categorySeqs,
-                finalKeyword,
-                finalMinPrice,
-                finalMaxPrice,
-                finalMinRating,
-                saleStatus,
-                pageable
-        );
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            criteria = criteria.and("productName").contains(keyword.trim());
+        }
 
-        return productPage.map(Product::toDto);
+        if (minPrice != null && minPrice > 0) {
+            criteria = criteria.and("price").greaterThanEqual(minPrice);
+        }
+
+        if (maxPrice != null && maxPrice < 999999999) {
+            criteria = criteria.and("price").lessThanEqual(maxPrice);
+        }
+
+        if (minRating != null && minRating > 0.0) {
+            criteria = criteria.and("avgRating").greaterThanEqual(minRating);
+        }
+
+        if (hideOutOfStock) {
+            criteria = criteria.and("saleStatus").is("ON_SALE");
+        }
+
+        Query query = new CriteriaQuery(criteria);
+        query.setPageable(pageable);
+
+        SearchHits<ProductDocument> searchHits = elasticsearchOperations.search(query, ProductDocument.class);
+
+        List<ProductDto> list = searchHits.getSearchHits().stream()
+                .map(SearchHit::getContent)
+                .map(doc -> ProductDto.builder()
+                        .seq(doc.getId())
+                        .sellerSeq(doc.getSellerSeq())
+                        .categorySeq(doc.getCategorySeq())
+                        .productName(doc.getProductName())
+                        .price(doc.getPrice())
+                        .saleStatus(doc.getSaleStatus())
+                        .approvalStatus(doc.getApprovalStatus())
+                        .hideYn(doc.getHideYn())
+                        .viewCount(doc.getViewCount())
+                        .avgRating(doc.getAvgRating())
+                        .reviewCount(doc.getReviewCount())
+                        .salesCount(doc.getSalesCount())
+                        .createdDate(doc.getCreatedDate())
+                        .status(doc.getStatus())
+                        .thumbnailUrl(doc.getThumbnailUrl())
+                        .image(doc.getThumbnailUrl())
+                        .build())
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(list, pageable, searchHits.getTotalHits());
     }
 
     private Sort getSortOption(String sortBy) {

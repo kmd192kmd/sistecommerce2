@@ -48,6 +48,7 @@ public class ProductRepository {
         NamedParameterJdbcTemplate은 :productSeq처럼 이름으로 값을 넣을 수 있습니다.
     */
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     /*
         EntityManager
@@ -66,13 +67,15 @@ public class ProductRepository {
         product.getSeq()가 있으면 기존 데이터 수정입니다.
     */
     public Product save(Product product) {
-
+        Product saved;
         if (product.getSeq() == null) {
             entityManager.persist(product);
-            return product;
+            saved = product;
+        } else {
+            saved = entityManager.merge(product);
         }
-
-        return entityManager.merge(product);
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(saved.getSeq()));
+        return saved;
     }
 
 
@@ -493,7 +496,11 @@ public class ProductRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("productSeq", productSeq);
 
-        return jdbcTemplate.update(sql, params);
+        int result = jdbcTemplate.update(sql, params);
+        if (result > 0) {
+            eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
+        }
+        return result;
     }
 
 
@@ -725,5 +732,6 @@ public class ProductRepository {
 	            .addValue("productSeq", productSeq);
 	
 	    jdbcTemplate.update(sql, params);
+	    eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
 	}
 }

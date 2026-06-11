@@ -25,6 +25,28 @@ services:
       - redis_data:/data
     restart: on-failure
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: shop-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    restart: on-failure
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: shop-kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    restart: on-failure
+
 volumes:
   jenkins_data:
   redis_data:
+  es_data:

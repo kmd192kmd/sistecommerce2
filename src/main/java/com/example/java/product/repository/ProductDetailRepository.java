@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductDetailRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -36,13 +37,15 @@ public class ProductDetailRepository {
         상품 저장 / 수정
     */
     public Product save(Product product) {
-
+        Product saved;
         if (product.getSeq() == null) {
             entityManager.persist(product);
-            return product;
+            saved = product;
+        } else {
+            saved = entityManager.merge(product);
         }
-
-        return entityManager.merge(product);
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(saved.getSeq()));
+        return saved;
     }
 
     /*
@@ -215,7 +218,11 @@ public class ProductDetailRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("productSeq", productSeq);
 
-        return jdbcTemplate.update(sql, params);
+        int result = jdbcTemplate.update(sql, params);
+        if (result > 0) {
+            eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
+        }
+        return result;
     }
 
     /*
@@ -246,6 +253,7 @@ public class ProductDetailRepository {
                 .addValue("productSeq", productSeq);
 
         jdbcTemplate.update(sql, params);
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
     }
 
     private ProductDto mapProductDetail(ResultSet rs, int rowNum) throws SQLException {
