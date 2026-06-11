@@ -42,11 +42,14 @@ class ProductListServiceTest {
     @Mock
     private org.springframework.data.elasticsearch.core.ElasticsearchOperations elasticsearchOperations;
 
+    @Mock
+    private com.example.java.admin.repository.HotDealProductRepository hotDealProductRepository;
+
     private ProductListService productListService;
 
     @BeforeEach
     void setUp() {
-        productListService = Mockito.spy(new ProductListService(productListRepository, categoryService, cacheManager, elasticsearchOperations));
+        productListService = Mockito.spy(new ProductListService(productListRepository, categoryService, cacheManager, elasticsearchOperations, hotDealProductRepository));
     }
 
     @Test
@@ -77,7 +80,7 @@ class ProductListServiceTest {
         newList.add(createProductDto(102L, "상품2"));
 
         Page<ProductDto> page = new PageImpl<>(newList);
-        doReturn(page).when(productListService).getProductList(null, null, "recommend", 0);
+        doReturn(page).when(productListService).getProductList(null, null, "recommend", 0, null, null, null, false, false);
 
         // When
         List<ProductDto> result = productListService.refreshPopularProducts();
@@ -128,7 +131,7 @@ class ProductListServiceTest {
         newList.add(createProductDto(101L, "상품1"));
 
         Page<ProductDto> page = new PageImpl<>(newList);
-        doReturn(page).when(productListService).getProductList(null, null, "recommend", 0);
+        doReturn(page).when(productListService).getProductList(null, null, "recommend", 0, null, null, null, false, false);
 
         // When
         List<ProductDto> result = productListService.refreshPopularProducts();

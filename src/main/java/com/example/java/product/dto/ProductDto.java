@@ -131,6 +131,13 @@ public class ProductDto implements java.io.Serializable {
     */
     private boolean hot;
 
+    /*
+        핫딜 진행중 여부
+    */
+    private boolean hotDeal;
+    private Integer originalPrice;
+    private Integer discountRate;
+
 
     // =========================
     // 연관 데이터 목록 영역
@@ -196,20 +203,16 @@ public class ProductDto implements java.io.Serializable {
 
     /*
         원가 반환
-
-        현재는 할인 기능이 없어서 price 그대로 반환합니다.
     */
     public Integer getOriginalPrice() {
-        return this.price;
+        return this.originalPrice != null ? this.originalPrice : this.price;
     }
 
     /*
         할인율 반환
-
-        현재는 할인 기능이 없어서 0 반환합니다.
     */
     public Integer getDiscountRate() {
-        return 0;
+        return this.discountRate != null ? this.discountRate : 0;
     }
 
     /*

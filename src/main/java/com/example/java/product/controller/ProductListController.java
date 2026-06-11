@@ -46,6 +46,7 @@ public class ProductListController {
             @RequestParam(value = "price", required = false) String price,
             @RequestParam(value = "rating", required = false) String rating,
             @RequestParam(value = "hideOutOfStock", required = false) Boolean hideOutOfStock,
+            @RequestParam(value = "showHotDealsOnly", required = false) Boolean showHotDealsOnly,
             HttpServletRequest request,
             HttpSession session,
             Model model) {
@@ -94,7 +95,8 @@ public class ProductListController {
             }
         }
         boolean hideStockVal = hideOutOfStock != null && hideOutOfStock;
-        Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sort, page, minPrice, maxPrice, minRating, hideStockVal);
+        boolean hotDealsOnly = showHotDealsOnly != null && showHotDealsOnly;
+        Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sort, page, minPrice, maxPrice, minRating, hideStockVal, hotDealsOnly);
         List<ProductDto> productList = productPage.getContent();
 
         // 추천 상품 목록 (캐시된 5개 추천 상품 가져오기)
@@ -133,6 +135,7 @@ public class ProductListController {
         model.addAttribute("price", price); // 파라미터 보존
         model.addAttribute("rating", rating); // 파라미터 보존
         model.addAttribute("hideOutOfStock", hideStockVal); // 품절 숨김 보존
+        model.addAttribute("showHotDealsOnly", hotDealsOnly); // 핫딜 여부 보존
         model.addAttribute("productList", productList);
         model.addAttribute("recommendedList", recommendedList);
         model.addAttribute("recentViewedList", recentViewedList);
