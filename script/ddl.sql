@@ -1253,3 +1253,20 @@ ALTER TABLE memberships MODIFY (
 alter table cart Drop column update_date;
 
 ALTER TABLE login_log MODIFY ip_address VARCHAR2(45);
+
+ALTER TABLE member_withdrawal
+  RENAME COLUMN withdrwal_requested_at TO withdrawal_requested_at;
+
+
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '서비스를 잘 이용하지 않음');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '상품/서비스에 만족하지 못함');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '개인정보 유출이 우려됨');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '다른 서비스를 이용하려고 함');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '기타');
+
+COMMIT;
