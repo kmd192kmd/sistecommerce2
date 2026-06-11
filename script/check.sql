@@ -1,5 +1,7 @@
 select * from options where seq = 1;
 
+
+
 select * from PRODUCT where SEQ = 1;
 
 select * from COUPON;
@@ -10,7 +12,7 @@ select * from DELIVERY_ADDRESS;
 
 select * from MEMBER where seq = 9;
 
-select * from CART;
+select * from CART_log order by seq desc;
 
 select * from orders order by seq desc;
 

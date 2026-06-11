@@ -269,40 +269,43 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label for="zipcode"
-                                   class="block text-xs font-bold text-gray-500 mb-1">
-                                우편번호 *
-                            </label>
+						<div>
+						    <label for="zipcode"
+						           class="block text-xs font-bold text-gray-500 mb-1">
+						        우편번호 *
+						    </label>
 
-                            <div class="flex gap-2">
-                                <input type="text"
-                                       id="zipcode"
-                                       name="zipcode"
-                                       class="new-delivery-field w-40 border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
-                                       th:required="${#lists.isEmpty(deliveryAddresses)}"
-                                       placeholder="우편번호"
-                                       maxlength="5">
+						    <div class="flex gap-2">
+						        <input type="text"
+						               id="zipcode"
+						               name="zipcode"
+						               class="new-delivery-field w-40 border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+						               th:required="${#lists.isEmpty(deliveryAddresses)}"
+						               placeholder="우편번호"
+						               maxlength="5"
+						               readonly>
 
-                                <button type="button"
-                                        class="px-4 py-2.5 bg-slate-900 text-amber-400 text-sm font-bold hover:bg-slate-800">
-                                    주소 검색
-                                </button>
-                            </div>
-                        </div>
+						        <button type="button"
+						                onclick="openCheckoutPostcode()"
+						                class="px-4 py-2.5 bg-slate-900 text-amber-400 text-sm font-bold hover:bg-slate-800">
+						            주소 검색
+						        </button>
+						    </div>
+						</div>
 
-                        <div>
-                            <label for="address"
-                                   class="block text-xs font-bold text-gray-500 mb-1">
-                                주소 *
-                            </label>
-                            <input type="text"
-                                   id="address"
-                                   name="address"
-                                   class="new-delivery-field w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
-                                   th:required="${#lists.isEmpty(deliveryAddresses)}"
-                                   placeholder="예: 서울특별시 강남구 테헤란로 123">
-                        </div>
+						<div>
+						    <label for="address"
+						           class="block text-xs font-bold text-gray-500 mb-1">
+						        주소 *
+						    </label>
+						    <input type="text"
+						           id="address"
+						           name="address"
+						           class="new-delivery-field w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+						           th:required="${#lists.isEmpty(deliveryAddresses)}"
+						           placeholder="주소 검색 버튼을 눌러 주소를 선택해 주세요"
+						           readonly>
+						</div>
 
                         <div>
                             <label for="addressDetail"
@@ -542,6 +545,7 @@
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script src="https://js.tosspayments.com/v2/standard"></script>
 
 <script th:inline="javascript">
@@ -551,68 +555,117 @@
     const loginMemberSeq = /*[[${loginMemberSeq}]]*/ "guest";
 
     const tossCustomerKey = "member-" + loginMemberSeq;
+	
+	function openCheckoutPostcode() {
+	    if (typeof daum === "undefined" || !daum.Postcode) {
+	        alert("주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+	        return;
+	    }
 
-    async function requestTossPayment() {
-        const form = document.getElementById("checkoutForm");
+	    new daum.Postcode({
+	        oncomplete: function(data) {
+	            const zipcodeInput = document.getElementById("zipcode");
+	            const addressInput = document.getElementById("address");
+	            const addressDetailInput = document.getElementById("addressDetail");
 
-        if (!form.reportValidity()) {
-            return;
-        }
+	            const selectedAddress = data.roadAddress || data.jibunAddress || "";
 
-        const paymentButton = document.getElementById("paymentButton");
-        paymentButton.disabled = true;
-        paymentButton.classList.add("opacity-60", "cursor-not-allowed");
+	            if (zipcodeInput) {
+	                zipcodeInput.value = data.zonecode || "";
+	            }
 
-        try {
-            const formData = new FormData(form);
+	            if (addressInput) {
+	                addressInput.value = selectedAddress;
+	            }
 
-            const memberCouponSeq = document.getElementById("memberCouponSeq")?.value || "";
-            formData.set("memberCouponSeq", memberCouponSeq);
+	            if (addressDetailInput) {
+	                addressDetailInput.focus();
+	            }
+	        }
+	    }).open();
+	}
+	
+	async function requestTossPayment() {
+	    const form = document.getElementById("checkoutForm");
 
-            const deliveryType = document.getElementById("deliveryType")?.value || "";
-            formData.set("deliveryType", deliveryType);
+	    if (!form.reportValidity()) {
+	        return;
+	    }
 
-            const response = await fetch("/order/checkout", {
-                method: "POST",
-                body: formData
-            });
+	    const deliveryType = document.getElementById("deliveryType")?.value || "";
 
-            if (!response.ok) {
-                const message = await response.text();
-                alert("주문 생성에 실패했습니다.\n" + message);
-                return;
-            }
+	    if (deliveryType === "NEW") {
+	        const zipcode = document.getElementById("zipcode")?.value.trim() || "";
+	        const address = document.getElementById("address")?.value.trim() || "";
+	        const addressDetail = document.getElementById("addressDetail")?.value.trim() || "";
 
-            const order = await response.json();
+	        if (!zipcode || !address) {
+	            alert("주소 검색을 통해 배송지를 입력해 주세요.");
+	            return;
+	        }
 
-            const selectedPaymentMethod =
-                document.querySelector("input[name='paymentMethod']:checked")?.value || "CARD";
+	        if (!addressDetail) {
+	            alert("상세주소를 입력해 주세요.");
+	            document.getElementById("addressDetail")?.focus();
+	            return;
+	        }
+	    }
 
-            const tossPayments = TossPayments(tossClientKey);
-            const payment = tossPayments.payment({
-                customerKey: tossCustomerKey
-            });
+	    const paymentButton = document.getElementById("paymentButton");
+	    paymentButton.disabled = true;
+	    paymentButton.classList.add("opacity-60", "cursor-not-allowed");
 
-            await payment.requestPayment({
-                method: selectedPaymentMethod,
-                amount: {
-                    currency: "KRW",
-                    value: Number(order.finalPrice)
-                },
-                orderId: order.orderUid,
-                orderName: order.orderName,
-                successUrl: tossSuccessUrl,
-                failUrl: tossFailUrl
-            });
+	    try {
+	        const formData = new FormData(form);
 
-        } catch (error) {
-            console.error(error);
-            alert("결제 요청 중 오류가 발생했습니다. 브라우저 콘솔의 오류 메시지를 확인하세요.");
-        } finally {
-            paymentButton.disabled = false;
-            paymentButton.classList.remove("opacity-60", "cursor-not-allowed");
-        }
-    }
+	        const memberCouponSeq = document.getElementById("memberCouponSeq")?.value || "";
+	        formData.set("memberCouponSeq", memberCouponSeq);
+
+	        formData.set("deliveryType", deliveryType);
+
+	        const selectedPaymentMethod =
+	            document.querySelector("input[name='paymentMethod']:checked")?.value || "CARD";
+
+	        formData.set("paymentMethod", selectedPaymentMethod);
+
+	        const response = await fetch("/order/checkout", {
+	            method: "POST",
+	            body: formData
+	        });
+
+	        if (!response.ok) {
+	            const message = await response.text();
+	            alert("주문 생성에 실패했습니다.\n" + message);
+	            return;
+	        }
+
+	        const order = await response.json();
+
+	        const tossPayments = TossPayments(tossClientKey);
+	        const payment = tossPayments.payment({
+	            customerKey: tossCustomerKey
+	        });
+
+	        await payment.requestPayment({
+	            method: selectedPaymentMethod,
+	            amount: {
+	                currency: "KRW",
+	                value: Number(order.finalPrice)
+	            },
+	            orderId: order.orderUid,
+	            orderName: order.orderName,
+	            successUrl: tossSuccessUrl,
+	            failUrl: tossFailUrl
+	        });
+
+	    } catch (error) {
+	        console.error(error);
+	        alert("결제 요청 중 오류가 발생했습니다. 브라우저 콘솔의 오류 메시지를 확인하세요.");
+	    } finally {
+	        paymentButton.disabled = false;
+	        paymentButton.classList.remove("opacity-60", "cursor-not-allowed");
+	    }
+	}
 
     function applyCouponWithoutReload() {
         const couponSelect = document.getElementById("memberCouponSeq");
