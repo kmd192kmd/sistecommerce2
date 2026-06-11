@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.java.groupbuy.dto.GroupBuyDetailResponse;
 import com.example.java.groupbuy.dto.GroupBuySummaryResponse;
-import com.example.java.groupbuy.dto.ParticipateResult;
+import com.example.java.groupbuy.dto.ParticipateResponse;
 import com.example.java.groupbuy.service.GroupBuyService;
 import com.example.java.member.security.CustomUserDetails;
 
@@ -52,11 +52,11 @@ public class GroupBuyApiController {
      * 조회(GET)와 달리 서버 상태(점유·참여 기록·대기열)를 바꾸므로 POST를 쓴다.
      * 참여는 "누가" 하는지가 필수라, 로그인한 회원 정보를 함께 받는다.
      *
-     * 선택 옵션이 매진이면 서비스가 대기열 등록으로 분기한다. 그래서 응답 본문에
-     * 결과(PARTICIPATED/QUEUED)를 실어 보내, 화면이 "참여 완료" / "대기열 등록됨"을 구분하게 한다.
+     * 정원이 남으면 자리를 예약(점유)하고 '결제 대기' 주문을 만들어 orderUid/amount를 함께 내려준다
+     * → 프론트가 그 값으로 토스 결제창을 띄운다(2단계). 매진이면 대기열 등록(QUEUED, 결제 정보 없음).
      */
     @PostMapping("/{seq}/participate")
-    public ResponseEntity<ParticipateResult> participate(
+    public ResponseEntity<ParticipateResponse> participate(
             // @PathVariable: URL 경로의 {seq} 자리값을 꺼냄 (/group-buys/[7]/participate → seq=7)
             @PathVariable(name = "seq") Long seq,
             // @RequestParam: 쿼리스트링 ?optionSeq=3 의 값을 꺼냄 → 회원이 고른 옵션
@@ -69,10 +69,10 @@ public class GroupBuyApiController {
             // (SecurityConfig가 현재 개발용 permitAll이라 비로그인도 들어올 수 있어 여기서 직접 방어)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // 검증·점유·결제·참여기록·대기열은 서비스(트랜잭션)에 위임. 컨트롤러는 입력만 꺼내 넘긴다.
-        ParticipateResult result = groupBuyService.participate(seq, optionSeq, user.getMemberSeq());
-        // 결과를 JSON 본문으로 반환 → "PARTICIPATED" 또는 "QUEUED"
-        return ResponseEntity.ok(result);
+        // 검증·점유·자리예약·주문생성·대기열은 서비스(트랜잭션)에 위임. 컨트롤러는 입력만 꺼내 넘긴다.
+        ParticipateResponse response = groupBuyService.participate(seq, optionSeq, user.getMemberSeq());
+        // 결과를 JSON으로 반환 → QUEUED(대기열) 또는 PARTICIPATED(+orderUid/amount로 토스 결제창)
+        return ResponseEntity.ok(response);
     }
 
     /**
