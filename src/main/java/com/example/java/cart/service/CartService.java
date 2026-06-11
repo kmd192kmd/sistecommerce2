@@ -86,6 +86,27 @@ public class CartService {
         Options options = optionsRepository.getReferenceById(cartDto.getOptionsSeq());
 
         /*
+            구매 / 장바구니 불가 상품 검사
+
+            product 테이블 기준:
+            - sale_status = SOLD_OUT : 품절
+            - sale_status = STOPPED  : 판매중지
+            - hide_yn = Y            : 숨김 상품
+            - status = DELETED       : 삭제 상품
+
+            기존 장바구니 로직은 건드리지 않고,
+            장바구니 저장 전에 상품 상태만 검사합니다.
+        */
+        Product product = options.getProduct();
+
+        if ("SOLD_OUT".equals(product.getSaleStatus())
+                || "STOPPED".equals(product.getSaleStatus())
+                || "Y".equals(product.getHideYn())
+                || "DELETED".equals(product.getStatus())) {
+            throw new IllegalArgumentException("구매할 수 없는 상품입니다.");
+        }
+
+        /*
 	        같은 회원이 같은 옵션을 이미 장바구니에 담은 경우에는
 	        새로 INSERT하지 않고 기존 장바구니 수량만 증가시킵니다.
 	    */

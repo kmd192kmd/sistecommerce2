@@ -131,44 +131,43 @@ public class ProductDetailRepository {
     }
 
     /*
-        상품 옵션 목록 조회
-    */
-    public List<ProductOptionDto> findProductOptions(Long productSeq) {
-
-        String sql = """
-                SELECT
-                    seq,
-                    product_seq,
-                    color,
-                    options_size,
-                    volume_weight,
-                    taste,
-                    storage_type,
-                    scent_ingredient,
-                    voltage,
-                    quantity_set,
-                    size_spec,
-                    storage_capacity,
-                    memory,
-                    switch_axis,
-                    connection_type,
-                    wearable_spec,
-                    material_type,
-                    options_type,
-                    stock,
-                    safety_stock,
-                    additional_price
-                FROM options
-                WHERE product_seq = :productSeq
-                  AND stock > 0
-                ORDER BY seq ASC
-                """;
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("productSeq", productSeq);
-
-        return jdbcTemplate.query(sql, params, this::mapProductOption);
-    }
+	    상품 옵션 목록 조회
+	*/
+	public List<ProductOptionDto> findProductOptions(Long productSeq) {
+	
+	    String sql = """
+	            SELECT
+	                seq,
+	                product_seq,
+	                color,
+	                options_size,
+	                volume_weight,
+	                taste,
+	                storage_type,
+	                scent_ingredient,
+	                voltage,
+	                quantity_set,
+	                size_spec,
+	                storage_capacity,
+	                memory,
+	                switch_axis,
+	                connection_type,
+	                wearable_spec,
+	                material_type,
+	                options_type,
+	                stock,
+	                safety_stock,
+	                additional_price
+	            FROM options
+	            WHERE product_seq = :productSeq
+	            ORDER BY seq ASC
+	            """;
+	
+	    MapSqlParameterSource params = new MapSqlParameterSource()
+	            .addValue("productSeq", productSeq);
+	
+	    return jdbcTemplate.query(sql, params, this::mapProductOption);
+	}
 
     /*
 	    찜 여부 확인

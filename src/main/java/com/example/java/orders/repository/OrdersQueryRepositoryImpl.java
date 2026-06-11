@@ -65,7 +65,20 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 .join(options.product, product)
                 .where(
                         cart.member.seq.eq(memberSeq),
-                        cart.seq.in(cartSeqList)
+                        cart.seq.in(cartSeqList),
+
+                        /*
+                            구매 불가 상품 제외
+
+                            product 테이블 기준:
+                            - sale_status = SOLD_OUT : 품절
+                            - sale_status = STOPPED  : 판매중지
+                            - hide_yn = Y            : 숨김 상품
+                            - status = DELETED       : 삭제 상품
+                        */
+                        product.saleStatus.notIn("SOLD_OUT", "STOPPED"),
+                        product.hideYn.eq("N"),
+                        product.status.ne("DELETED")
                 )
                 .orderBy(cart.seq.asc())
                 .fetch();
