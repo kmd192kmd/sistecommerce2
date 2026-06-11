@@ -23,6 +23,7 @@ import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
 import com.example.java.product.document.ProductDocument;
+import com.example.java.admin.repository.HotDealProductRepository;
 
 /*
     ProductListService
@@ -38,6 +39,17 @@ public class ProductListService {
     private final CategoryService categoryService;
     private final org.springframework.cache.CacheManager cacheManager;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final HotDealProductRepository hotDealProductRepository;
+
+    private static class HotDealDetail {
+        final Integer discountRate;
+        final Integer discountPrice;
+
+        HotDealDetail(Integer discountRate, Integer discountPrice) {
+            this.discountRate = discountRate;
+            this.discountPrice = discountPrice;
+        }
+    }
 
     public Page<ProductDto> getProductList(
             Long categorySeq,
@@ -45,7 +57,7 @@ public class ProductListService {
             String sortBy,
             int page) {
 
-        return getProductList(categorySeq, keyword, sortBy, page, null, null, null, false);
+        return getProductList(categorySeq, keyword, sortBy, page, null, null, null, false, false);
     }
 
     public Page<ProductDto> getProductList(
@@ -56,9 +68,50 @@ public class ProductListService {
             Integer minPrice,
             Integer maxPrice,
             Double minRating,
-            boolean hideOutOfStock) {
+            boolean hideOutOfStock,
+            boolean showHotDealsOnly) {
 
         Pageable pageable = PageRequest.of(page, 20, getSortOption(sortBy));
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        List<Long> activeHotDealProductSeqs = hotDealProductRepository.findActiveHotDealProductSeqs(now);
+        List<Object[]> activeHotDealDetails = hotDealProductRepository.findActiveHotDealDetails(now);
+
+        // Map productSeq -> HotDealDetail
+        java.util.Map<Long, HotDealDetail> hotDealMap = new java.util.HashMap<>();
+        for (Object[] detail : activeHotDealDetails) {
+            Long productSeq = (Long) detail[0];
+            Integer discountRate = (Integer) detail[1];
+            Integer discountPrice = (Integer) detail[2];
+            hotDealMap.put(productSeq, new HotDealDetail(discountRate, discountPrice));
+        }
+
+        // Helper mapping function for ProductDto
+        java.util.function.Consumer<ProductDto> applyHotDeal = dto -> {
+            if (hotDealMap.containsKey(dto.getSeq())) {
+                HotDealDetail detail = hotDealMap.get(dto.getSeq());
+                dto.setHotDeal(true);
+                int originalPrice = dto.getPrice();
+                dto.setOriginalPrice(originalPrice);
+                
+                int discount = 0;
+                int finalDiscountRate = 0;
+                if (detail.discountPrice != null && detail.discountPrice > 0) {
+                    discount = detail.discountPrice;
+                    finalDiscountRate = originalPrice > 0 ? (detail.discountPrice * 100) / originalPrice : 0;
+                } else if (detail.discountRate != null && detail.discountRate > 0) {
+                    discount = originalPrice * detail.discountRate / 100;
+                    finalDiscountRate = detail.discountRate;
+                }
+                
+                dto.setDiscountRate(finalDiscountRate);
+                dto.setPrice(Math.max(0, originalPrice - discount));
+            } else {
+                dto.setHotDeal(false);
+                dto.setOriginalPrice(dto.getPrice());
+                dto.setDiscountRate(0);
+            }
+        };
 
         // 1. 추천(recommend) 정렬은 기존 RDBMS 방식 그대로 사용 (캐싱용이므로 성능 영향 없음)
         if ("recommend".equalsIgnoreCase(sortBy)) {
@@ -76,15 +129,27 @@ public class ProductListService {
                     finalMaxPrice,
                     finalMinRating,
                     saleStatus,
-                    pageable
+                    pageable,
+                    activeHotDealProductSeqs,
+                    showHotDealsOnly
             );
-            return productPage.map(Product::toDto);
+            Page<ProductDto> dtoPage = productPage.map(Product::toDto);
+            dtoPage.forEach(applyHotDeal);
+            return dtoPage;
         }
 
         // 2. 그 외 일반 정렬/검색은 Elasticsearch 활용
         Criteria criteria = new Criteria("status").is("NORMAL")
                 .and("hideYn").is("N")
                 .and("saleStatus").not().is("STOPPED");
+
+        if (showHotDealsOnly) {
+            if (activeHotDealProductSeqs == null || activeHotDealProductSeqs.isEmpty()) {
+                return new PageImpl<>(java.util.Collections.emptyList(), pageable, 0);
+            } else {
+                criteria = criteria.and("id").in(activeHotDealProductSeqs);
+            }
+        }
 
         List<Long> categorySeqs = categoryService.getDescendantCategorySeqs(categorySeq);
         if (categorySeqs != null && !categorySeqs.isEmpty()) {
@@ -138,6 +203,8 @@ public class ProductListService {
                         .build())
                 .collect(Collectors.toList());
 
+        list.forEach(applyHotDeal);
+
         return new PageImpl<>(list, pageable, searchHits.getTotalHits());
     }
 
@@ -159,7 +226,7 @@ public class ProductListService {
 
     @org.springframework.cache.annotation.Cacheable(value = "popularProducts", key = "'list'")
     public List<ProductDto> getPopularProducts() {
-        return getProductList(null, null, "recommend", 0)
+        return getProductList(null, null, "recommend", 0, null, null, null, false, false)
                 .getContent().stream().limit(5).collect(java.util.stream.Collectors.toList());
     }
 
@@ -176,7 +243,7 @@ public class ProductListService {
         }
 
         // 2. 신규 추천 상품 조회 (5개)
-        java.util.List<ProductDto> newProducts = getProductList(null, null, "recommend", 0)
+        java.util.List<ProductDto> newProducts = getProductList(null, null, "recommend", 0, null, null, null, false, false)
                 .getContent().stream().limit(5).collect(java.util.stream.Collectors.toList());
 
         // 3. 이전 순위 맵 구성 (ProductSeq -> Rank(1부터 시작))

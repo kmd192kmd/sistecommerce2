@@ -27,6 +27,7 @@ public class CustomUserDetails implements UserDetails, OidcUser {
     private final String username;
     private final String password;
     private final String role;
+    private final Integer status;
     private final Map<String, Object> attributes;
     private final OidcIdToken idToken;
     private final OidcUserInfo userInfo;
@@ -37,6 +38,7 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         this.username   = member.getUsername();
         this.password   = member.getPassword();
         this.role       = member.getRole();
+        this.status     = member.getStatus();
         this.attributes = Collections.emptyMap();
         this.idToken    = null;
         this.userInfo   = null;
@@ -49,6 +51,7 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         this.username   = member.getUsername();
         this.password   = member.getPassword();
         this.role       = member.getRole();
+        this.status     = member.getStatus();
         this.attributes = attributes;
         this.idToken    = idToken;
         this.userInfo   = userInfo;
@@ -98,8 +101,13 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         return true;
     }
 
+    /**
+     * 탈퇴완료(status=5) 계정은 로그인 차단(DisabledException).
+     * 탈퇴보류중(4)은 복구를 위해 로그인 허용. 휴면(2)/정지(3)는 추후 별도 처리.
+     */
     @Override
     public boolean isEnabled() {
-        return true;
+        return status == null
+                || status != com.example.java.member.constant.MemberStatus.WITHDRAWN;
     }
 }
