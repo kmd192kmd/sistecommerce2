@@ -53,6 +53,11 @@
         <a href="/mypage/address" th:class="${activeMenu == 'address'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">배송지 관리</span>
         </a>
+
+        <a th:href="@{/mypage/withdrawal}" th:class="${activeMenu == 'withdrawal'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-400 hover:bg-gray-50 hover:text-gray-700 rounded-xl transition-all'">
+            <span class="flex-1">회원탈퇴</span>
+            <svg th:if="${activeMenu == 'withdrawal'}" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </a>
     </nav>
 </aside>
 </html>

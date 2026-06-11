@@ -1,6 +1,7 @@
 package com.example.java.member.service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,5 +102,34 @@ public class WithdrawalService {
         memberWithdrawalRepository.delete(withdrawal);
 
         log.info("탈퇴 복구 - memberSeq: {}", memberSeq);
+    }
+
+    /** 탈퇴 화면 표시용 조회: 현재 상태 + (보류중이면) 유예 만료일 + 사유 목록 */
+    @Transactional(readOnly = true)
+    public WithdrawalView view(Long memberSeq) {
+        Member member = memberRepository.findById(memberSeq)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        List<WithdrawalReason> reasons = withdrawalReasonRepository.findAllByOrderBySeqAsc();
+
+        LocalDate scheduledDeleteAt = null;
+        if (member.getStatus() != null && member.getStatus() == MemberStatus.WITHDRAWAL_PENDING) {
+            scheduledDeleteAt = memberWithdrawalRepository
+                    .findFirstByMember_SeqAndWithdrawalYnOrderBySeqDesc(memberSeq, MemberWithdrawal.YN_N)
+                    .map(MemberWithdrawal::getScheduledDeleteAt)
+                    .orElse(null);
+        }
+
+        return new WithdrawalView(member.getStatus(), scheduledDeleteAt, reasons);
+    }
+
+    /** 탈퇴 화면 모델 */
+    public record WithdrawalView(Integer status, LocalDate scheduledDeleteAt, List<WithdrawalReason> reasons) {
+        public boolean isPending() {
+            return status != null && status == MemberStatus.WITHDRAWAL_PENDING;
+        }
+        public boolean isActive() {
+            return status != null && status == MemberStatus.ACTIVE;
+        }
     }
 }
