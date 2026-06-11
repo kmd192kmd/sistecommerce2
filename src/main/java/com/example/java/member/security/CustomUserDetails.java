@@ -22,6 +22,7 @@ import lombok.Getter;
  */
 @Getter
 public class CustomUserDetails implements UserDetails, OidcUser {
+    private static final long serialVersionUID = 1L;
 
     private final Long memberSeq;
     private final String username;
