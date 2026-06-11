@@ -10,6 +10,8 @@ import com.example.java.cart.repository.CartLogRepository;
 import com.example.java.member.entity.Member;
 import com.example.java.product.entity.Options;
 
+import com.example.java.retail.service.RetailUserEventService;
+
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class CartLogService {
 
     private final CartLogRepository cartLogRepository;
+    private final RetailUserEventService retailUserEventService;
 
     /** 담기 로그 (로그인 회원 장바구니 추가 / 비로그인 병합 모두 동일하게 기록) */
     @Transactional
@@ -53,5 +56,19 @@ public class CartLogService {
                 .status(status)
                 .actionDate(LocalDateTime.now())
                 .build());
+                
+        // 구글 Retail AI 실시간 행동 로그 전송
+        if (member != null && options != null && options.getProduct() != null) {
+            String eventType = "detail-page-view";
+            if (CartLog.STATUS_ADD.equals(status)) eventType = "add-to-cart";
+            else if (CartLog.STATUS_PURCHASE.equals(status)) eventType = "purchase-complete";
+            else if (CartLog.STATUS_REMOVE.equals(status)) eventType = "remove-from-cart";
+
+            retailUserEventService.sendUserEvent(
+                    member.getSeq(), 
+                    options.getProduct().getSeq(), 
+                    eventType
+            );
+        }
     }
 }

@@ -311,3 +311,7 @@ src/main/generated/
 # React/Vite frontend (의존성은 ignore, 소스·설정·lock은 커밋)
 /frontend/node_modules/
 /frontend/dist/
+
+
+# 구글 클라우드 인증 키 파일 제외
+src/main/resources/keys/*.json

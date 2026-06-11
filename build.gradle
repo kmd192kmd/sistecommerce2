@@ -36,6 +36,9 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
 	implementation 'com.oracle.database.security:oraclepki'
+	implementation platform('com.google.cloud:libraries-bom:26.34.0')
+	implementation 'com.google.cloud:google-cloud-retail'
+	
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.5'
