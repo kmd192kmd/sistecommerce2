@@ -39,11 +39,14 @@ class ProductListServiceTest {
     @Mock
     private ValueWrapper valueWrapper;
 
+    @Mock
+    private org.springframework.data.elasticsearch.core.ElasticsearchOperations elasticsearchOperations;
+
     private ProductListService productListService;
 
     @BeforeEach
     void setUp() {
-        productListService = Mockito.spy(new ProductListService(productListRepository, categoryService, cacheManager));
+        productListService = Mockito.spy(new ProductListService(productListRepository, categoryService, cacheManager, elasticsearchOperations));
     }
 
     @Test

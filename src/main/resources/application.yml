@@ -2,10 +2,13 @@ spring:
   application:
     name: shop
   batch:
-      job:
-        enabled: false
+    job:
+      enabled: false
   profiles:
-    include: secret
+    active: dev
+    group:
+      dev:
+        - secret
 
   datasource:
     driver-class-name: oracle.jdbc.OracleDriver
@@ -21,23 +24,13 @@ spring:
       ddl-auto: none
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-    show-sql: true
     properties:
       hibernate:
-        format_sql: true
-        highlight_sql: true
         jdbc:
           time_zone: Asia/Seoul
 
   jackson:
     time-zone: Asia/Seoul
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
-  # session은 @EnableRedisIndexedHttpSession(redisNamespace="shop:session")에서 처리
 
   security:
     oauth2:
@@ -61,15 +54,6 @@ spring:
             enable: true
             required: true
 
-logging:
-  level:
-    org:
-      hibernate:
-        sql: debug
-        orm:
-          jdbc:
-            bind: trace
-          
 cloudinary:
   cloud-name: 
   api-key: 
