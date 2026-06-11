@@ -69,9 +69,22 @@
 
                         <div class="text-right shrink-0">
                             <p class="text-xs text-gray-400">상품금액</p>
+
+                            <p th:if="${item.hotdealDiscountTotal() > 0}"
+                               class="text-xs text-gray-400 line-through"
+                               th:text="${#numbers.formatInteger(item.originalTotalPrice(), 0, 'COMMA')} + '원'">
+                                0원
+                            </p>
+
                             <p class="text-lg font-black"
                                th:text="${#numbers.formatInteger(item.totalPrice(), 0, 'COMMA')} + '원'">
                                 0원
+                            </p>
+
+                            <p th:if="${item.hotdealDiscountTotal() > 0}"
+                               class="text-xs text-red-500 font-bold"
+                               th:text="'핫딜 -' + ${#numbers.formatInteger(item.hotdealDiscountTotal(), 0, 'COMMA')} + '원'">
+                                핫딜 할인
                             </p>
                         </div>
                     </article>
@@ -499,6 +512,10 @@
                     <input type="hidden" name="orderUid" th:value="${order.orderUid}">
                     <input type="hidden" id="amount" name="amount" th:value="${priceSummary.finalPrice}">
 
+                    <th:block th:each="cartSeq : ${selectedCartSeqList}">
+                        <input type="hidden" name="cartSeq" th:value="${cartSeq}">
+                    </th:block>
+
                     <input type="hidden" id="baseProductTotalPrice" th:value="${priceSummary.productTotalPrice}">
                     <input type="hidden" id="baseDeliveryFee" th:value="${priceSummary.deliveryFee}">
                     <input type="hidden" id="baseHotdealDiscount" th:value="${priceSummary.hotdealDiscount}">
@@ -605,6 +622,16 @@
         const deliveryFee = Number(document.getElementById("baseDeliveryFee").value || 0);
         const hotdealDiscount = Number(document.getElementById("baseHotdealDiscount").value || 0);
 
+        /*
+            쿠폰 할인은 상품 원가가 아니라
+            핫딜 적용 후 상품금액 기준으로 계산한다.
+         */
+        let afterHotdealProductPrice = productTotalPrice - hotdealDiscount;
+
+        if (afterHotdealProductPrice < 0) {
+            afterHotdealProductPrice = 0;
+        }
+
         const discountType = selectedOption.dataset.discountType;
         const discountPrice = Number(selectedOption.dataset.discountPrice || 0);
         const discountRate = Number(selectedOption.dataset.discountRate || 0);
@@ -612,18 +639,18 @@
         let couponDiscount = 0;
 
         if (discountType === "0") {
-            couponDiscount = Math.floor(productTotalPrice * discountRate / 100);
+            couponDiscount = Math.floor(afterHotdealProductPrice * discountRate / 100);
         }
 
         if (discountType === "1") {
             couponDiscount = discountPrice;
         }
 
-        if (couponDiscount > productTotalPrice) {
-            couponDiscount = productTotalPrice;
+        if (couponDiscount > afterHotdealProductPrice) {
+            couponDiscount = afterHotdealProductPrice;
         }
 
-        let finalPrice = productTotalPrice + deliveryFee - couponDiscount - hotdealDiscount;
+        let finalPrice = afterHotdealProductPrice + deliveryFee - couponDiscount;
 
         if (finalPrice < 0) {
             finalPrice = 0;

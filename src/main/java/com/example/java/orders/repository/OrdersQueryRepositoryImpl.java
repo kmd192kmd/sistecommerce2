@@ -1,5 +1,6 @@
 package com.example.java.orders.repository;
 
+import static com.example.java.admin.hotdeal.Entity.QHotDealProduct.hotDealProduct;
 import static com.example.java.cart.entity.QCart.cart;
 import static com.example.java.member.entity.QCoupon.coupon;
 import static com.example.java.member.entity.QMemberCoupon.memberCoupon;
@@ -7,6 +8,7 @@ import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
@@ -25,7 +27,9 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
     private final JPAQueryFactory queryFactory;
 
     /**
-     * 로그인 회원의 장바구니 상품을 주문/결제 화면용 DTO로 조회한다.
+     * 로그인 회원의 장바구니 중 선택한 cartSeq 목록만 주문/결제 화면용 DTO로 조회한다.
+     *
+     * 여기서 핫딜 테이블도 같이 조회해서 상품별 핫딜 할인금액을 계산한다.
      */
     @Override
     public List<CheckoutItemDto> findCheckoutItemsByMemberCart(Long memberSeq, List<Long> cartSeqList) {
@@ -33,16 +37,23 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
             return List.of();
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
         List<Tuple> rows = queryFactory
                 .select(
                         cart.seq,
                         cart.quantity,
+
                         options.seq,
                         product.seq,
                         product.productName,
                         product.price,
                         product.thumbnailUrl,
                         options.additionalPrice,
+
+                        hotDealProduct.hotDeal.discountRate,
+                        hotDealProduct.hotDeal.discountPrice,
+
                         options.color,
                         options.optionsSize,
                         options.volumeWeight,
@@ -63,6 +74,17 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 .from(cart)
                 .join(cart.options, options)
                 .join(options.product, product)
+
+                /*
+                    핫딜이 없는 상품도 결제 대상에 포함되어야 하므로 leftJoin 사용.
+                    현재 시간이 핫딜 기간 안이고, status = 1인 핫딜만 적용한다.
+                 */
+                .leftJoin(hotDealProduct).on(
+                        hotDealProduct.options.seq.eq(options.seq),
+                        hotDealProduct.hotDeal.status.eq(1),
+                        hotDealProduct.hotDeal.startDate.loe(now),
+                        hotDealProduct.hotDeal.endDate.goe(now)
+                )
                 .where(
                         cart.member.seq.eq(memberSeq),
                         cart.seq.in(cartSeqList)
@@ -76,7 +98,19 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                     Integer additionalPrice = row.get(options.additionalPrice);
                     Integer quantity = row.get(cart.quantity);
 
-                    int finalUnitPrice = nullToZero(productPrice) + nullToZero(additionalPrice);
+                    int originalUnitPrice = nullToZero(productPrice) + nullToZero(additionalPrice);
+
+                    Integer hotdealRate = row.get(hotDealProduct.hotDeal.discountRate);
+                    Integer hotdealPrice = row.get(hotDealProduct.hotDeal.discountPrice);
+
+                    int hotdealUnitDiscount =
+                            calculateHotdealUnitDiscount(originalUnitPrice, hotdealRate, hotdealPrice);
+
+                    int finalUnitPrice = originalUnitPrice - hotdealUnitDiscount;
+
+                    if (finalUnitPrice < 0) {
+                        finalUnitPrice = 0;
+                    }
 
                     String optionText = buildOptionText(
                             row.get(options.color),
@@ -109,6 +143,8 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                             row.get(product.productName),
                             imageUrl,
                             optionText,
+                            originalUnitPrice,
+                            hotdealUnitDiscount,
                             finalUnitPrice,
                             quantity == null ? 1 : quantity
                     );
@@ -205,6 +241,32 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 discountRate,
                 makeDiscountText(discountType, discountPrice, discountRate)
         );
+    }
+
+    private int calculateHotdealUnitDiscount(int originalUnitPrice,
+                                             Integer discountRate,
+                                             Integer discountPrice) {
+        if (originalUnitPrice <= 0) {
+            return 0;
+        }
+
+        int discount = 0;
+
+        /*
+            discount_price가 있으면 정액 할인 우선 적용.
+            discount_price가 없고 discount_rate가 있으면 정률 할인 적용.
+         */
+        if (discountPrice != null && discountPrice > 0) {
+            discount = discountPrice;
+        } else if (discountRate != null && discountRate > 0) {
+            discount = originalUnitPrice * discountRate / 100;
+        }
+
+        if (discount < 0) {
+            return 0;
+        }
+
+        return Math.min(originalUnitPrice, discount);
     }
 
     private int nullToZero(Integer value) {

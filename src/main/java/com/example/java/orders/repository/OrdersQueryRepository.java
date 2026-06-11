@@ -12,7 +12,13 @@ public interface OrdersQueryRepository {
      */
     List<CheckoutItemDto> findCheckoutItemsByMemberCart(Long memberSeq, List<Long> cartSeqList);
 
+    /**
+     * 로그인 회원이 발급받은 사용 가능한 쿠폰 목록 조회.
+     */
     List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq);
 
+    /**
+     * 선택한 member_coupon.seq가 실제 로그인 회원의 사용 가능한 쿠폰인지 검증 후 조회.
+     */
     CouponDto findAvailableCouponByMemberSeqAndMemberCouponSeq(Long memberSeq, Long memberCouponSeq);
 }

@@ -37,6 +37,9 @@ public class OrdersViewService {
         return ordersQueryRepository.findAvailableCouponsByMemberSeq(memberSeq);
     }
 
+    /**
+     * 로그인 회원이 DB에 저장한 배송지 목록.
+     */
     public List<DeliveryAddressDto> getDeliveryAddresses(Long memberSeq) {
         return memberAddressService.myAddress(memberSeq)
                 .stream()
@@ -44,15 +47,40 @@ public class OrdersViewService {
                 .toList();
     }
 
-    public PriceSummaryDto getPriceSummary(Long memberSeq, Long memberCouponSeq, List<Long> cartSeqList) {
+    public PriceSummaryDto getPriceSummary(Long memberSeq,
+                                           Long memberCouponSeq,
+                                           List<Long> cartSeqList) {
+
         List<CheckoutItemDto> items = getCheckoutItems(memberSeq, cartSeqList);
 
+        /*
+            상품 원가 총합.
+            핫딜 적용 전 금액이다.
+         */
         int productTotalPrice = items.stream()
-                .mapToInt(CheckoutItemDto::totalPrice)
+                .mapToInt(CheckoutItemDto::originalTotalPrice)
                 .sum();
 
-        int deliveryFee = productTotalPrice >= 30000 ? 0 : 3000;
-        int hotdealDiscount = 0;
+        /*
+            핫딜 할인 총액.
+         */
+        int hotdealDiscount = items.stream()
+                .mapToInt(CheckoutItemDto::hotdealDiscountTotal)
+                .sum();
+
+        /*
+            핫딜 적용 후 상품금액.
+         */
+        int afterHotdealProductPrice = productTotalPrice - hotdealDiscount;
+
+        if (afterHotdealProductPrice < 0) {
+            afterHotdealProductPrice = 0;
+        }
+
+        /*
+            배송비도 핫딜 적용 후 금액 기준으로 판단.
+         */
+        int deliveryFee = afterHotdealProductPrice >= 30000 ? 0 : 3000;
 
         CouponDto selectedCoupon =
                 ordersQueryRepository.findAvailableCouponByMemberSeqAndMemberCouponSeq(
@@ -60,9 +88,12 @@ public class OrdersViewService {
                         memberCouponSeq
                 );
 
-        int couponDiscount = calculateCouponDiscount(productTotalPrice, selectedCoupon);
+        /*
+            쿠폰 할인은 핫딜 적용 후 상품금액 기준으로 계산.
+         */
+        int couponDiscount = calculateCouponDiscount(afterHotdealProductPrice, selectedCoupon);
 
-        int finalPrice = productTotalPrice + deliveryFee - couponDiscount - hotdealDiscount;
+        int finalPrice = afterHotdealProductPrice + deliveryFee - couponDiscount;
 
         if (finalPrice < 0) {
             finalPrice = 0;

@@ -29,25 +29,9 @@ public class OrdersCommandService {
     private final OrderItemRepository orderItemRepository;
     private final MemberAddressService memberAddressService;
 
-    /**
-     * 좌표 입력 기능 연동 전 임시 좌표.
-     *
-     * TODO 실제 연동 시 교체
-     * - 주소 검색 API 또는 배송지 테이블의 좌표값을 사용해야 한다.
-     */
     private static final Double DEFAULT_LATITUDE = 37.5665000;
     private static final Double DEFAULT_LONGITUDE = 126.9780000;
 
-    /**
-     * 결제하기 버튼 클릭 시 주문 데이터를 생성한다.
-     *
-     * 현재 구조:
-     * - 로그인 회원의 장바구니 상품을 기준으로 주문 생성
-     * - 로그인 회원이 발급받은 member_coupon 기준으로 쿠폰 적용
-     * - 기존 배송지 선택 시 delivery_address 테이블에서 다시 조회 후 orders에 주소 저장
-     * - orders 먼저 INSERT
-     * - 생성된 orders.seq를 order_item.order_seq에 넣어서 order_item 여러 개 INSERT
-     */
     @Transactional
     public OrderCreateResultDto createOrderFromCheckout(CheckoutRequestDto requestDto,
                                                         Long memberSeq) {
@@ -55,25 +39,26 @@ public class OrdersCommandService {
         validateCheckoutRequest(requestDto, memberSeq);
 
         /*
-            하드코딩 상품이 아니라 로그인 회원의 장바구니 상품을 조회한다.
+            체크한 장바구니 상품만 조회한다.
          */
-        List<CheckoutItemDto> items = ordersViewService.getCheckoutItems(memberSeq, requestDto.getCartSeq());
+        List<CheckoutItemDto> items =
+                ordersViewService.getCheckoutItems(memberSeq, requestDto.getCartSeq());
 
         if (items.isEmpty()) {
-            throw new IllegalStateException("장바구니에 결제할 상품이 없습니다.");
+            throw new IllegalStateException("선택한 장바구니 상품이 없습니다.");
         }
 
         /*
+            서버에서 핫딜, 쿠폰, 배송비를 다시 계산한다.
             화면에서 넘어온 amount는 신뢰하지 않는다.
-            서버에서 장바구니 상품 + 회원 쿠폰 기준으로 다시 계산한다.
          */
         PriceSummaryDto priceSummary =
-        		ordersViewService.getPriceSummary(memberSeq, requestDto.getMemberCouponSeq(), requestDto.getCartSeq());
+                ordersViewService.getPriceSummary(
+                        memberSeq,
+                        requestDto.getMemberCouponSeq(),
+                        requestDto.getCartSeq()
+                );
 
-        /*
-            배송지 정보는 서버에서 다시 조회한다.
-            기존 배송지 선택 시 deliveryAddressSeq가 로그인 회원의 배송지인지 검증한다.
-         */
         DeliveryInfo deliveryInfo = resolveDeliveryInfo(requestDto, memberSeq);
 
         int productTotalPrice = priceSummary.productTotalPrice();
@@ -84,17 +69,9 @@ public class OrdersCommandService {
         String orderUid = createOrderUid();
         String orderName = createOrderName(items);
 
-        /*
-            1. orders 먼저 저장한다.
-         */
         Orders order = Orders.builder()
                 .memberSeq(memberSeq)
-
-                /*
-                    coupon.seq가 아니라 member_coupon.seq를 저장한다.
-                 */
                 .memberCouponSeq(requestDto.getMemberCouponSeq())
-
                 .orderUid(orderUid)
                 .productTotalPrice(productTotalPrice)
                 .couponDiscount(totalCouponDiscount)
@@ -102,38 +79,19 @@ public class OrdersCommandService {
                 .finalPrice(finalPrice)
                 .totalRefundPrice(0)
                 .remainPrice(finalPrice)
-
-                /*
-                    order_status = 1: 결제대기
-                    payment_status = 0: 결제대기
-                 */
                 .orderStatus(1)
                 .paymentStatus(0)
-
-                /*
-                    order_date는 결제 완료 시점에 PaymentService에서 업데이트한다.
-                 */
                 .orderDate(null)
                 .regdate(LocalDateTime.now())
-
-                /*
-                    선택한 배송지 정보를 orders에 저장한다.
-                    현재 orders 테이블에는 수령인/연락처 컬럼이 없으므로
-                    zipcode, address, address_detail만 저장한다.
-                 */
                 .zipcode(deliveryInfo.zipcode())
                 .address(deliveryInfo.address())
                 .addressDetail(deliveryInfo.addressDetail())
-
                 .currLatitude(DEFAULT_LATITUDE)
                 .currLongitude(DEFAULT_LONGITUDE)
                 .build();
 
         Orders savedOrder = ordersRepository.save(order);
 
-        /*
-            2. 저장된 orders.seq를 order_item.order_seq에 넣어서 주문상품들을 저장한다.
-         */
         createOrderItems(savedOrder.getSeq(), items, totalCouponDiscount);
 
         return new OrderCreateResultDto(
@@ -145,61 +103,56 @@ public class OrdersCommandService {
     }
 
     private void validateCheckoutRequest(CheckoutRequestDto requestDto,
-            Long memberSeq) {
+                                         Long memberSeq) {
 
-    	if (memberSeq == null) {
-    		throw new IllegalArgumentException("로그인 회원 번호가 없습니다.");
-    	}
+        if (memberSeq == null) {
+            throw new IllegalArgumentException("로그인 회원 번호가 없습니다.");
+        }
 
-    	if (requestDto.getCartSeq() == null || requestDto.getCartSeq().isEmpty()) {
-    		throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
-    	}
+        if (requestDto.getCartSeq() == null || requestDto.getCartSeq().isEmpty()) {
+            throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
+        }
 
-    	if (requestDto.getAgreeRequired() == null || !requestDto.getAgreeRequired()) {
-    		throw new IllegalArgumentException("주문 동의가 필요합니다.");
-    	}
+        if (requestDto.getAgreeRequired() == null || !requestDto.getAgreeRequired()) {
+            throw new IllegalArgumentException("주문 동의가 필요합니다.");
+        }
 
-    	if (requestDto.getPaymentMethod() == null || requestDto.getPaymentMethod().isBlank()) {
-    		throw new IllegalArgumentException("결제수단을 선택해야 합니다.");
-    	}
+        if (requestDto.getPaymentMethod() == null || requestDto.getPaymentMethod().isBlank()) {
+            throw new IllegalArgumentException("결제수단을 선택해야 합니다.");
+        }
 
-    	if (requestDto.getDeliveryType() == null || requestDto.getDeliveryType().isBlank()) {
-    		throw new IllegalArgumentException("배송지 선택 방식이 없습니다.");
-    	}
+        if (requestDto.getDeliveryType() == null || requestDto.getDeliveryType().isBlank()) {
+            throw new IllegalArgumentException("배송지 선택 방식이 없습니다.");
+        }
 
-    	if ("EXISTING".equals(requestDto.getDeliveryType())) {
-    		if (requestDto.getDeliveryAddressSeq() == null) {
-    			throw new IllegalArgumentException("기존 배송지를 선택해야 합니다.");
-    		}
-    	}
+        if ("EXISTING".equals(requestDto.getDeliveryType())) {
+            if (requestDto.getDeliveryAddressSeq() == null) {
+                throw new IllegalArgumentException("기존 배송지를 선택해야 합니다.");
+            }
+        }
 
-    	if ("NEW".equals(requestDto.getDeliveryType())) {
-    		if (isBlank(requestDto.getRecipientName())) {
-    			throw new IllegalArgumentException("받는 사람을 입력해야 합니다.");
-    		}
+        if ("NEW".equals(requestDto.getDeliveryType())) {
+            if (isBlank(requestDto.getRecipientName())) {
+                throw new IllegalArgumentException("받는 사람을 입력해야 합니다.");
+            }
 
-    		if (isBlank(requestDto.getRecipientPhone())) {
-    			throw new IllegalArgumentException("연락처를 입력해야 합니다.");
-    		}
+            if (isBlank(requestDto.getRecipientPhone())) {
+                throw new IllegalArgumentException("연락처를 입력해야 합니다.");
+            }
 
-    		if (isBlank(requestDto.getZipcode())) {
-    			throw new IllegalArgumentException("우편번호를 입력해야 합니다.");
-    		}
-    		
-    		if (isBlank(requestDto.getAddress())) {
-    			throw new IllegalArgumentException("주소를 입력해야 합니다.");
-    		}
-    	}
+            if (isBlank(requestDto.getZipcode())) {
+                throw new IllegalArgumentException("우편번호를 입력해야 합니다.");
+            }
+
+            if (isBlank(requestDto.getAddress())) {
+                throw new IllegalArgumentException("주소를 입력해야 합니다.");
+            }
+        }
     }
-    
+
     private DeliveryInfo resolveDeliveryInfo(CheckoutRequestDto requestDto,
                                              Long memberSeq) {
 
-        /*
-            새 배송지 직접 입력.
-            현재는 입력한 주소를 orders에만 저장한다.
-            새 배송지도 회원 배송지 테이블에 저장하려면 여기에서 MemberAddressService 저장 메서드를 추가 호출하면 된다.
-         */
         if ("NEW".equals(requestDto.getDeliveryType())) {
             return new DeliveryInfo(
                     requestDto.getZipcode(),
@@ -208,11 +161,6 @@ public class OrdersCommandService {
             );
         }
 
-        /*
-            기존 배송지 선택.
-            memberAddressService.getAddress(addressSeq, memberSeq)는
-            해당 배송지가 로그인 회원의 배송지인지 검증해야 한다.
-         */
         if ("EXISTING".equals(requestDto.getDeliveryType())) {
             DeliveryAddress selectedAddress =
                     memberAddressService.getAddress(requestDto.getDeliveryAddressSeq(), memberSeq);
@@ -231,7 +179,10 @@ public class OrdersCommandService {
                                   List<CheckoutItemDto> items,
                                   int totalCouponDiscount) {
 
-        int totalProductPrice = items.stream()
+        /*
+            쿠폰은 핫딜 적용 후 상품금액 기준으로 배분한다.
+         */
+        int totalAfterHotdealPrice = items.stream()
                 .mapToInt(CheckoutItemDto::totalPrice)
                 .sum();
 
@@ -242,29 +193,31 @@ public class OrdersCommandService {
         for (int i = 0; i < items.size(); i++) {
             CheckoutItemDto item = items.get(i);
 
-            int lineOriginalTotal = item.totalPrice();
+            int lineOriginalTotal = item.originalTotalPrice();
+            int lineHotdealDiscount = item.hotdealDiscountTotal();
+            int lineAfterHotdealTotal = item.totalPrice();
 
             int itemCouponDiscount;
 
-            /*
-                쿠폰 할인금액을 상품금액 비율대로 각 order_item에 배분한다.
-                마지막 상품에는 남은 할인금액을 넣어서 절삭 오차를 방지한다.
-             */
             if (i == items.size() - 1) {
                 itemCouponDiscount = remainingCouponDiscount;
             } else {
-                itemCouponDiscount = totalProductPrice == 0
+                itemCouponDiscount = totalAfterHotdealPrice == 0
                         ? 0
-                        : lineOriginalTotal * totalCouponDiscount / totalProductPrice;
+                        : lineAfterHotdealTotal * totalCouponDiscount / totalAfterHotdealPrice;
 
                 remainingCouponDiscount -= itemCouponDiscount;
             }
 
-            if (itemCouponDiscount > lineOriginalTotal) {
-                itemCouponDiscount = lineOriginalTotal;
+            if (itemCouponDiscount > lineAfterHotdealTotal) {
+                itemCouponDiscount = lineAfterHotdealTotal;
             }
 
-            int lineFinalTotal = lineOriginalTotal - itemCouponDiscount;
+            int lineFinalTotal = lineAfterHotdealTotal - itemCouponDiscount;
+
+            if (lineFinalTotal < 0) {
+                lineFinalTotal = 0;
+            }
 
             int finalUnitPrice = item.quantity() == 0
                     ? 0
@@ -276,12 +229,34 @@ public class OrdersCommandService {
                     .optionsSeq(item.optionsSeq())
                     .productName(item.name())
                     .quantity(item.quantity())
-                    .originalPrice(item.price())
-                    .hotdealDiscount(0)
+
+                    /*
+                        상품 1개 원가.
+                     */
+                    .originalPrice(item.originalPrice())
+
+                    /*
+                        이 주문상품 라인의 핫딜 할인 총액.
+                     */
+                    .hotdealDiscount(lineHotdealDiscount)
+
+                    /*
+                        이 주문상품 라인의 쿠폰 할인 총액.
+                     */
                     .couponDiscount(itemCouponDiscount)
+
                     .participationDiscount(0)
+
+                    /*
+                        핫딜 + 쿠폰 적용 후 1개당 최종 가격.
+                     */
                     .finalPrice(finalUnitPrice)
+
+                    /*
+                        핫딜 + 쿠폰 적용 후 라인 최종 금액.
+                     */
                     .subTotalPrice(lineFinalTotal)
+
                     .refundQuantity(0)
                     .refundPrice(0)
                     .itemStatus(0)

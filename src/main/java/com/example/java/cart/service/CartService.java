@@ -2,7 +2,6 @@ package com.example.java.cart.service;
 
 import com.example.java.cart.dto.CartDto;
 import com.example.java.cart.entity.Cart;
-import com.example.java.cart.repository.CartLogRepository;
 import com.example.java.cart.repository.CartRepository;
 import com.example.java.member.entity.Member;
 import com.example.java.member.repository.MemberRepository;
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class CartService {
     private final CartRepository cartRepository;
-    private final CartLogRepository cartLogRepository;
+    private final CartLogService  cartLogService;
     private final MemberRepository memberRepository;
     private final OptionsRepository optionsRepository;
 
@@ -109,10 +108,10 @@ public class CartService {
 	        }
 	
 	        existingCart.increaseQuantity(cartDto.getQuantity());
-	
+	        cartLogService.logAdd(member, options);
 	        return;
 	    }
-        
+
         Cart cart = Cart.builder()
                 .member(member)
                 .options(options)
@@ -121,8 +120,7 @@ public class CartService {
                 .build();
 
         cartRepository.save(cart);
-
-        // TODO 나중에 로그 추가
+        cartLogService.logAdd(member, options);
 
     }
 
@@ -167,6 +165,10 @@ public class CartService {
             throw new IllegalArgumentException("본인 장바구니만 삭제할 수 있습니다.");
         }
 
+        Member member  = cart.getMember();
+        Options options = cart.getOptions();
+
         cartRepository.delete(cart);
+        cartLogService.logRemove(member, options);
     }
 }
