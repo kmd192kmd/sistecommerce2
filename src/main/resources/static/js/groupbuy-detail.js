@@ -8033,8 +8033,8 @@ function C({ id: e, data: t }) {
 		}, 1e3);
 		return () => clearInterval(e);
 	}, []);
-	let u = i <= 0;
-	async function d() {
+	let u = i <= 0, d = t.options.find((e) => String(e.optionsSeq) === String(n)) || null, f = d ? d.finalPrice : t.finalPrice;
+	async function p() {
 		if (!n) {
 			l("옵션을 선택해주세요.");
 			return;
@@ -8085,7 +8085,7 @@ function C({ id: e, data: t }) {
 					}),
 					/* @__PURE__ */ (0, x.jsx)("span", {
 						className: "text-3xl font-black",
-						children: ee(t.finalPrice)
+						children: ee(f)
 					}),
 					/* @__PURE__ */ (0, x.jsx)("span", {
 						className: "text-lg font-bold",
@@ -8139,7 +8139,7 @@ function C({ id: e, data: t }) {
 		}),
 		/* @__PURE__ */ (0, x.jsx)("button", {
 			type: "button",
-			onClick: d,
+			onClick: p,
 			disabled: u || o,
 			className: "mt-4 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed",
 			children: u ? "마감되었습니다" : o ? "처리 중…" : "바로구매 (공구 참여)"

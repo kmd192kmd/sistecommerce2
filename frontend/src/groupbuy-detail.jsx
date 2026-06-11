@@ -39,6 +39,11 @@ function PurchasePanel({ id, data }) {
 
   const closed = remain <= 0; // 마감됐는지
 
+  // 선택된 옵션 객체 (없으면 null). select의 value는 문자열이라 String으로 맞춰 비교.
+  const selected = data.options.find((o) => String(o.optionsSeq) === String(selectedOption)) || null;
+  // 화면에 보여줄 가격: 옵션을 고르면 그 옵션의 공구가(기준가+추가금), 아직 안 고르면 공구 기준가.
+  const displayPrice = selected ? selected.finalPrice : data.finalPrice;
+
   // 참여(바로구매) 버튼 클릭 → 서버에 POST
   async function handleParticipate() {
     if (!selectedOption) {
@@ -91,7 +96,7 @@ function PurchasePanel({ id, data }) {
         </p>
         <p className="flex items-baseline gap-2">
           <span className="text-red-500 font-black text-2xl">{data.discountRate}%</span>
-          <span className="text-3xl font-black">{won(data.finalPrice)}</span>
+          <span className="text-3xl font-black">{won(displayPrice)}</span>
           <span className="text-lg font-bold">원</span>
         </p>
       </div>

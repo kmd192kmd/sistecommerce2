@@ -73,4 +73,7 @@ SET occupied_count = (
 )
 WHERE gbo.group_buy_seq = 4;
 
+-- 공구 4번 옵션 중 일부에 추가금 부여 (확인용). gbo 6,7 → 그 옵션들에 +10000, +20000
+UPDATE options SET additional_price = 10000 WHERE seq = (SELECT options_seq FROM group_buy_options WHERE seq = 6);
+UPDATE options SET additional_price = 20000 WHERE seq = (SELECT options_seq FROM group_buy_options WHERE seq = 7);
 COMMIT;
