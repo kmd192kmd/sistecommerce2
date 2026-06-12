@@ -72,6 +72,14 @@ public class OrdersCommandService {
         String orderUid = createOrderUid();
         String orderName = createOrderName(items);
 
+        String recipientName = requestDto.getRecipientName() != null ? requestDto.getRecipientName().trim() : "";
+        String recipientPhone = requestDto.getRecipientPhone() != null ? requestDto.getRecipientPhone().trim() : "";
+        String requestMemo = requestDto.getRequestMemo() != null ? requestDto.getRequestMemo().trim() : "";
+        String fieldData = recipientName + "|" + recipientPhone + "|" + requestMemo;
+        if (fieldData.length() > 255) {
+            fieldData = fieldData.substring(0, 255);
+        }
+
         Orders order = Orders.builder()
                 .memberSeq(memberSeq)
                 .memberCouponSeq(requestDto.getMemberCouponSeq())
@@ -91,6 +99,7 @@ public class OrdersCommandService {
                 .addressDetail(deliveryInfo.addressDetail())
                 .currLatitude(DEFAULT_LATITUDE)
                 .currLongitude(DEFAULT_LONGITUDE)
+                .field(fieldData)
                 .build();
 
         Orders savedOrder = ordersRepository.save(order);
