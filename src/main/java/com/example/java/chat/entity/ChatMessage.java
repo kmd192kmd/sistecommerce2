@@ -1,5 +1,6 @@
 package com.example.java.chat.entity;
 
+import com.example.java.chat.enums.SenderType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -9,7 +10,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "CHAT_LOG") 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Setter
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class ChatMessage {
@@ -18,10 +20,11 @@ public class ChatMessage {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "CHAT_LOG_SEQ_GEN")
     @SequenceGenerator(name = "CHAT_LOG_SEQ_GEN", sequenceName = "CHAT_LOG_SEQ", allocationSize = 1)
     @Column(name = "SEQ")
-    private Long seq; // 기존 id에서 seq로 변경됨 -> 여기서 getSeq()가 생성됨
+    private Long seq;
 
+    // 객체 매핑(Chat chat)을 하지 않고 단순 방 번호(Long)만 저장하는 구조
     @Column(name = "CHAT_SEQ", nullable = false)
-    private Long chatSeq; // 기존 roomId에서 chatSeq로 변경됨 -> 여기서 getChatSeq()가 생성됨
+    private Long chatSeq;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "SENDER_TYPE", nullable = false)

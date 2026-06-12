@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.java.mypage.dto.MyPageOrderListDto;
+import com.example.java.mypage.dto.MyPageCancelReturnDto;
+import com.example.java.mypage.dto.MyPageOrderDetailDto;
 import com.example.java.mypage.repository.MyPageOrderListRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -19,5 +21,13 @@ public class MyPageOrderListService {
 
     public List<MyPageOrderListDto> getOrders(Long memberSeq, String keyword, String period) {
         return myPageOrderListRepository.findOrdersByMemberSeq(memberSeq, keyword, period);
+    }
+
+    public List<MyPageCancelReturnDto> getCancelReturns(Long memberSeq) {
+        return myPageOrderListRepository.findCancelReturnsByMemberSeq(memberSeq);
+    }
+
+    public MyPageOrderDetailDto getOrderDetail(Long orderSeq) {
+        return myPageOrderListRepository.findOrderDetailByOrderSeq(orderSeq);
     }
 }

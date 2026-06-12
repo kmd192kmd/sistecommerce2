@@ -20,6 +20,10 @@ import org.springframework.stereotype.Repository;
 import com.example.java.mypage.dto.MyPageDeliveryDto;
 import com.example.java.mypage.dto.MyPageOrderItemDto;
 import com.example.java.mypage.dto.MyPageOrderListDto;
+import com.example.java.mypage.dto.MyPageCancelReturnDto;
+import com.example.java.mypage.dto.MyPageOrderDetailDto;
+import com.example.java.orders.entity.OrderItem;
+import com.example.java.orders.entity.Orders;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -250,5 +254,267 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
     }
 
     private record DeliveryInfo(String status, String trackingNumber, String completedAt) {
+    }
+
+    @Override
+    public List<MyPageCancelReturnDto> findCancelReturnsByMemberSeq(Long memberSeq) {
+        // 1. 취소/반품 상태인 OrderItem & Orders & Product 조회 (itemStatus: 6, 7, 8, 9)
+        List<Tuple> rows = queryFactory
+                .select(
+                        orderItem,
+                        orders,
+                        product
+                )
+                .from(orderItem)
+                .join(orders).on(orderItem.orderSeq.eq(orders.seq))
+                .join(options).on(orderItem.optionsSeq.eq(options.seq))
+                .join(product).on(options.product.seq.eq(product.seq))
+                .where(orders.memberSeq.eq(memberSeq)
+                        .and(orderItem.itemStatus.in(6, 7, 8, 9)))
+                .orderBy(orderItem.seq.desc())
+                .fetch();
+
+        if (rows.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> orderItemSeqs = rows.stream()
+                .map(r -> r.get(orderItem).getSeq())
+                .toList();
+
+        // 2. Refund 정보 조회
+        List<com.example.java.orders.entity.Refund> refunds = queryFactory
+                .selectFrom(com.example.java.orders.entity.QRefund.refund)
+                .where(com.example.java.orders.entity.QRefund.refund.orderItemSeq.in(orderItemSeqs))
+                .fetch();
+        Map<Long, com.example.java.orders.entity.Refund> refundMap = new HashMap<>();
+        for (com.example.java.orders.entity.Refund ref : refunds) {
+            refundMap.put(ref.getOrderItemSeq(), ref);
+        }
+
+        // 3. ReturnRequest & Returns 정보 조회
+        List<com.example.java.orders.entity.ReturnRequest> returnRequests = queryFactory
+                .selectFrom(com.example.java.orders.entity.QReturnRequest.returnRequest)
+                .leftJoin(com.example.java.orders.entity.QReturnRequest.returnRequest.refundReason).fetchJoin()
+                .where(com.example.java.orders.entity.QReturnRequest.returnRequest.orderItemSeq.in(orderItemSeqs))
+                .fetch();
+
+        Map<Long, com.example.java.orders.entity.ReturnRequest> returnReqMap = new HashMap<>();
+        for (com.example.java.orders.entity.ReturnRequest req : returnRequests) {
+            returnReqMap.put(req.getOrderItemSeq(), req);
+        }
+
+        List<Long> returnReqSeqs = returnRequests.stream().map(com.example.java.orders.entity.ReturnRequest::getSeq).toList();
+        Map<Long, com.example.java.orders.entity.Returns> returnsMap = new HashMap<>();
+        if (!returnReqSeqs.isEmpty()) {
+            List<com.example.java.orders.entity.Returns> returnsList = queryFactory
+                    .selectFrom(com.example.java.orders.entity.QReturns.returns)
+                    .leftJoin(com.example.java.orders.entity.QReturns.returns.deliveryCompany).fetchJoin()
+                    .where(com.example.java.orders.entity.QReturns.returns.returnRequest.seq.in(returnReqSeqs))
+                    .fetch();
+            for (com.example.java.orders.entity.Returns ret : returnsList) {
+                if (ret.getReturnRequest() != null) {
+                    returnsMap.put(ret.getReturnRequest().getSeq(), ret);
+                }
+            }
+        }
+
+        // 4. Dto 조립
+        List<MyPageCancelReturnDto> dtoList = new ArrayList<>();
+        for (Tuple row : rows) {
+            OrderItem item = row.get(orderItem);
+            Orders order = row.get(orders);
+            com.example.java.product.entity.Product prod = row.get(product);
+
+            if (item == null || order == null) continue;
+
+            String type = (item.getItemStatus() == 6) ? "CANCEL" : "RETURN";
+            String statusText = "";
+            if (item.getItemStatus() == 6) statusText = "주문취소";
+            else if (item.getItemStatus() == 7) statusText = "반품요청";
+            else if (item.getItemStatus() == 8) statusText = "반품진행중";
+            else if (item.getItemStatus() == 9) statusText = "반품완료";
+
+            MyPageCancelReturnDto.MyPageCancelReturnDtoBuilder builder = MyPageCancelReturnDto.builder()
+                    .orderItemSeq(item.getSeq())
+                    .orderSeq(order.getSeq())
+                    .orderUid(order.getOrderUid())
+                    .orderDate(order.getOrderDate() != null ? order.getOrderDate().format(DATE_FORMATTER) : "")
+                    .productName(item.getProductName())
+                    .productPrice(item.getFinalPrice())
+                    .quantity(item.getQuantity())
+                    .itemStatus(item.getItemStatus())
+                    .thumbnailUrl(prod != null && prod.getThumbnailUrl() != null ? prod.getThumbnailUrl() : "/images/default-product.png")
+                    .type(type)
+                    .statusText(statusText);
+
+            if ("CANCEL".equals(type)) {
+                com.example.java.orders.entity.Refund ref = refundMap.get(item.getSeq());
+                if (ref != null) {
+                    builder.requestDate(ref.getRequestDate() != null ? ref.getRequestDate().format(DATE_FORMATTER) : "")
+                            .uid(ref.getRefundUid())
+                            .completedDate(ref.getCompleteDate() != null ? ref.getCompleteDate().format(DATE_FORMATTER) : "")
+                            .reason("고객 주문 취소")
+                            .refundPrice(ref.getRefundPrice())
+                            .paymentMethod(order.getPaymentStatus() == 5 || order.getPaymentStatus() == 6 ? "토스 페이먼츠" : "카드")
+                            .originalPrice(ref.getRefundProductPrice())
+                            .discountPrice(ref.getRefundCoupon() + ref.getRefundHotdeal())
+                            .deliveryFee(0);
+                }
+            } else {
+                com.example.java.orders.entity.ReturnRequest req = returnReqMap.get(item.getSeq());
+                if (req != null) {
+                    com.example.java.orders.entity.Returns ret = returnsMap.get(req.getSeq());
+                    com.example.java.orders.entity.Refund ref = refundMap.get(item.getSeq());
+                    
+                    builder.requestDate(req.getRequestDate() != null ? req.getRequestDate().format(DATE_FORMATTER) : "")
+                            .uid(req.getReturnUid())
+                            .completedDate(req.getCompletedDate() != null ? req.getCompletedDate().format(DATE_FORMATTER) : "")
+                            .reason(req.getRefundReason() != null ? req.getRefundReason().getReason() : "고객 반품 신청");
+
+                    if (ref != null) {
+                        builder.refundPrice(ref.getRefundPrice())
+                                .paymentMethod("토스 페이먼츠")
+                                .originalPrice(ref.getRefundProductPrice())
+                                .discountPrice(ref.getRefundCoupon() + ref.getRefundHotdeal())
+                                .deliveryFee(ret != null && ret.getDeliveryCompany() != null ? 3000 : 0);
+                    } else {
+                        builder.refundPrice(item.getSubTotalPrice())
+                                .paymentMethod("토스 페이먼츠")
+                                .originalPrice(item.getOriginalPrice() * item.getQuantity())
+                                .discountPrice((item.getOriginalPrice() * item.getQuantity()) - item.getSubTotalPrice())
+                                .deliveryFee(3000);
+                    }
+                }
+            }
+
+            dtoList.add(builder.build());
+        }
+
+        return dtoList;
+    }
+
+    @Override
+    public MyPageOrderDetailDto findOrderDetailByOrderSeq(Long orderSeq) {
+        // 1. 주문 엔티티 조회
+        Orders orderEntity = queryFactory
+                .selectFrom(orders)
+                .where(orders.seq.eq(orderSeq))
+                .fetchOne();
+
+        if (orderEntity == null) {
+            return null;
+        }
+
+        // 2. 주문 상품 행 조회
+        List<Tuple> itemRows = queryFactory
+                .select(
+                        orderItem.orderSeq,
+                        orderItem.seq,
+                        product.seq,
+                        orderItem.productName,
+                        product.thumbnailUrl,
+                        orderItem.finalPrice,
+                        orderItem.quantity,
+                        orderItem.itemStatus,
+                        seller.deliveryCompany.name
+                )
+                .from(orderItem)
+                .join(options).on(orderItem.optionsSeq.eq(options.seq))
+                .join(product).on(options.product.seq.eq(product.seq))
+                .join(seller).on(product.sellerSeq.eq(seller.seq))
+                .where(orderItem.orderSeq.eq(orderSeq))
+                .fetch();
+
+        // 3. 배송 간이 행 조회
+        List<Tuple> deliveryRows = queryFactory
+                .select(
+                        delivery.orders.seq,
+                        delivery.deliveryCompany.name,
+                        delivery.status,
+                        delivery.tracking_number,
+                        delivery.completed_at
+                )
+                .from(delivery)
+                .where(delivery.orders.seq.eq(orderSeq))
+                .fetch();
+
+        // 4. 결제완료(status=2) 정보 조회
+        com.example.java.orders.entity.Payment paymentEntity = queryFactory
+                .selectFrom(com.example.java.orders.entity.QPayment.payment)
+                .where(com.example.java.orders.entity.QPayment.payment.orderSeq.eq(orderSeq)
+                        .and(com.example.java.orders.entity.QPayment.payment.status.eq(2)))
+                .orderBy(com.example.java.orders.entity.QPayment.payment.seq.desc())
+                .fetchFirst();
+
+        // 5. 배송비 및 수취인 정보 수집
+        List<com.example.java.delivery.entity.Delivery> deliveries = queryFactory
+                .selectFrom(delivery)
+                .where(delivery.orders.seq.eq(orderSeq))
+                .fetch();
+
+        int totalDeliveryFee = 0;
+        String recipientName = "고객";
+        String recipientPhone = "010-0000-0000";
+        String requestMemo = "";
+
+        if (deliveries != null && !deliveries.isEmpty()) {
+            totalDeliveryFee = deliveries.stream()
+                    .mapToInt(d -> d.getTotal_delivery_fee() != null ? d.getTotal_delivery_fee() : 0)
+                    .sum();
+            
+            com.example.java.delivery.entity.Delivery firstDel = deliveries.get(0);
+            recipientName = firstDel.getRecipient_name() != null ? firstDel.getRecipient_name() : "고객";
+            recipientPhone = firstDel.getRecipient_phone() != null ? firstDel.getRecipient_phone() : "010-0000-0000";
+            requestMemo = firstDel.getRequest_memo() != null ? firstDel.getRequest_memo() : "";
+        }
+
+        // 6. 결제 수단 포맷팅
+        String paymentMethodText = "카드";
+        if (paymentEntity != null) {
+            String provider = paymentEntity.getPgProvider() != null ? paymentEntity.getPgProvider() : "카드";
+            String methodText = "카드";
+            if (paymentEntity.getPaymentMethod() != null) {
+                methodText = switch (paymentEntity.getPaymentMethod()) {
+                    case 0 -> "카드";
+                    case 1 -> "계좌이체";
+                    case 2 -> "가상계좌";
+                    default -> "카드";
+                };
+            }
+            paymentMethodText = provider + " (" + methodText + ")";
+        }
+
+        // 7. 배송 그룹 빌드
+        Map<Long, Map<String, List<MyPageOrderItemDto>>> itemsByOrderAndCompany = groupItemsByOrderAndCompany(itemRows);
+        Map<Long, Map<String, DeliveryInfo>> deliveryInfoByOrderAndCompany = groupDeliveryInfoByOrderAndCompany(deliveryRows);
+
+        List<MyPageDeliveryDto> deliveryGroups = buildDeliveryCompanyGroups(
+                itemsByOrderAndCompany.get(orderSeq),
+                deliveryInfoByOrderAndCompany.get(orderSeq)
+        );
+
+        // 8. Dto 최종 취합
+        return MyPageOrderDetailDto.builder()
+                .orderSeq(orderSeq)
+                .orderUid(orderEntity.getOrderUid())
+                .orderDate(orderEntity.getOrderDate() != null ? orderEntity.getOrderDate().format(DATE_FORMATTER) : "")
+                .recipientName(recipientName)
+                .recipientPhone(recipientPhone)
+                .zipcode(orderEntity.getZipcode())
+                .address(orderEntity.getAddress())
+                .addressDetail(orderEntity.getAddressDetail())
+                .requestMemo(requestMemo)
+                .paymentMethod(paymentMethodText)
+                .productTotalPrice(orderEntity.getProductTotalPrice())
+                .discountPrice(nullToZero(orderEntity.getCouponDiscount()) + nullToZero(orderEntity.getHotdealDiscount()))
+                .deliveryFee(totalDeliveryFee)
+                .finalPrice(orderEntity.getFinalPrice())
+                .deliveries(deliveryGroups)
+                .build();
+    }
+
+    private int nullToZero(Integer value) {
+        return value == null ? 0 : value;
     }
 }

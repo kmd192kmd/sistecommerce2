@@ -3,6 +3,7 @@ package com.example.java.admin.controller;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.example.java.admin.dto.GroupBuyAdminListDto;
 import com.example.java.admin.dto.GroupBuyCreateDto;
+import com.example.java.admin.dto.GroupBuyOptionDto;
 import com.example.java.admin.dto.GroupBuySearchDto;
+import com.example.java.admin.dto.ProductOptionInfoDto;
 import com.example.java.admin.service.GroupBuyAdminService;
 
 import lombok.RequiredArgsConstructor;
@@ -82,4 +85,27 @@ public class GroupBuyAdminController {
         groupBuyAdminService.batchStop(seqs);
         return "redirect:/admin/group-buys";
     }
+// --- 옵션 리스트 페이지 ---
+    @GetMapping("/group-buys/select")
+    public String selectPage(@RequestParam(value = "page", defaultValue = "0") int page,
+                             Model model) {
+        Page<ProductOptionInfoDto> pageData =
+                groupBuyAdminService.getProductOptionsPage(PageRequest.of(page, 20));
+        model.addAttribute("products", pageData.getContent());
+        model.addAttribute("hasNext", pageData.hasNext());
+        model.addAttribute("page", page);
+        return "admin/group-buy/select";
+    }
+
+    // --- 옵션 조회 API (상품 별) ---
+    @GetMapping("/api/group-buys/options")
+    @ResponseBody
+    public ResponseEntity<Page<GroupBuyOptionDto>> getOptions(
+            @RequestParam(value = "productSeq") Long productSeq,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Page<GroupBuyOptionDto> optionsPage =
+                groupBuyAdminService.getOptionsByProduct(productSeq, pageable);
+        return ResponseEntity.ok(optionsPage);
+    }
+
 }

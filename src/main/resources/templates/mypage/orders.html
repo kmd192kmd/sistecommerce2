@@ -105,7 +105,7 @@
                             <span class="text-slate-500 font-medium">주문일자</span>
                             <span class="font-bold text-slate-800" th:text="${o.orderDate}">-</span>
                         </div>
-                        <a href="#" class="text-xs font-bold text-amber-600 hover:text-amber-700">주문 상세보기</a>
+                        <a th:href="@{/mypage/orders/{seq}(seq=${o.orderSeq})}" class="text-xs font-bold text-amber-600 hover:text-amber-700">주문 상세보기</a>
                     </div>
 
                     <div class="bg-slate-50/60 px-3 py-4 sm:px-6 sm:py-5 space-y-4">

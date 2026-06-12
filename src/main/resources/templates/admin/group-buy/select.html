@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>공동구매 상품 선택</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/admin/style.css">
+    <style>
+        .btn-more {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-body);
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-more:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-white);
+            border-color: var(--text-muted);
+        }
+    </style>
+
+</head>
+
+<body class="bg-body text-main">
+
+<div class="p-6 space-y-6">
+
+    <h4 class="text-title mb-4">공동구매 상품 선택</h4>
+
+    <!-- ================= 상품 테이블 ================= -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-center">
+                <thead class="text-label border-b border-[var(--border-color)]">
+                <tr>
+                    <th class="p-2">공동구매 여부</th>
+                    <th class="p-2">상품명</th>
+                    <th class="p-2">판매처이름</th>
+                    <th class="p-2">가격</th>
+                    <th class="p-2">옵션</th>
+                </tr>
+                </thead>
+
+                <tbody id="product-list">
+                <tr th:each="product : ${products}" class="border-b border-[var(--border-color)]">
+                    <td class="p-2">
+                        <span th:text="${product.isGroupBuy ? '진행중' : '미진행'}"></span>
+                    </td>
+
+                    <td class="p-2" th:text="${product.productName}"></td>
+
+                    <td class="p-2" th:text="${product.sellerName}"></td>
+
+                    <td class="p-2" th:text="${product.priceDisplay}"></td>
+
+                    <td class="p-2">
+                        <button
+                                class="btn btn-primary px-3 py-1 text-sm"
+                                th:attr="data-seq=${product.productSeq}"
+                                onclick="openOptionModal(this)">
+                            옵션 보기
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ================= 더보기 ================= -->
+    <div class="flex justify-center">
+        <button id="load-more"
+                th:if="${hasNext}"
+                class="btn btn-more"
+                onclick="loadMore()">
+            더보기
+        </button>
+    </div>
+
+</div>
+
+<!-- ================= 옵션 모달 ================= -->
+<div id="option-modal"
+     class="hidden fixed inset-0 bg-black/50 items-center justify-center"
+     onclick="if(event.target===this) closeOptionModal()">
+
+    <div class="bg-[var(--bg-body)] w-[500px] p-6 rounded-lg shadow-lg">
+
+        <h2 class="text-lg font-bold mb-4">옵션 선택</h2>
+
+        <form id="option-form" th:action="@{/admin/group-buys/create}" method="get">
+
+            <div id="option-list" class="space-y-2">
+                <p class="text-label">옵션 로딩 중...</p>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="submit" class="btn btn-primary px-4 py-2">
+                    공동구매 등록
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline px-4 py-2"
+                        onclick="closeOptionModal()">
+                    취소
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentPage = /*[[${page}]]*/ 0;
+
+    function openOptionModal(button) {
+        const productSeq = button.getAttribute('data-seq');
+        const modal = document.getElementById('option-modal');
+        const listDiv = document.getElementById('option-list');
+        
+        const form = document.getElementById("option-form");
+
+		 let hidden = document.getElementById("productSeqInput");
+	    if (!hidden) {
+	        hidden = document.createElement("input");
+	        hidden.type = "hidden";
+	        hidden.name = "productSeq";
+	        hidden.id = "productSeqInput";
+	        form.appendChild(hidden);
+	    }
+	    hidden.value = productSeq;
+
+        listDiv.innerHTML = '<p class="text-label">옵션 로딩 중...</p>';
+
+        fetch(`/admin/api/group-buys/options?productSeq=${productSeq}&size=20&page=0`)
+            .then(res => res.json())
+            .then(data => {
+                listDiv.innerHTML = '';
+
+                data.content.forEach(opt => {
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between border-b border-[var(--border-color)] py-2";
+
+                    div.innerHTML = `
+                        <label class="text-sm">${opt.optionName}</label>
+                        <input type="checkbox"
+                               name="optionsSeqs"
+                               value="${opt.optionSeq}"
+                               class="w-4 h-4">
+                    `;
+
+                    listDiv.appendChild(div);
+                });
+            });
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+
+    function closeOptionModal() {
+        const modal = document.getElementById('option-modal');
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+
+    function loadMore() {
+        const nextPage = currentPage + 1;
+
+        fetch(`/admin/group-buys/select?page=${nextPage}`)
+            .then(res => res.text())
+            .then(html => {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = html;
+
+                const rows = tmp.querySelectorAll('tbody#product-list tr');
+                const tbody = document.getElementById('product-list');
+
+                rows.forEach(r => tbody.appendChild(r));
+                currentPage = nextPage;
+            });
+    }
+</script>
+
+</body>
+</html>

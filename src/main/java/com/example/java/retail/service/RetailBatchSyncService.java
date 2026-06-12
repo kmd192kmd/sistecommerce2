@@ -3,7 +3,7 @@ package com.example.java.retail.service;
 import com.example.java.cart.entity.CartLog;
 import com.example.java.cart.repository.CartLogRepository;
 import com.example.java.product.dto.ProductDto;
-import com.example.java.product.repository.ProductRepository;
+import com.example.java.product.repository.ProductDetailRepository;
 import com.google.cloud.retail.v2.ProductServiceClient;
 import com.google.cloud.retail.v2.UpdateProductRequest;
 import com.google.cloud.retail.v2.UserEventServiceClient;
@@ -25,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RetailBatchSyncService {
 
-    private final ProductRepository productRepository;
+    private final ProductDetailRepository productDetailRepository;
     private final CartLogRepository cartLogRepository;
     private final ProductServiceClient productServiceClient;
     private final UserEventServiceClient userEventServiceClient;
@@ -49,7 +49,7 @@ public class RetailBatchSyncService {
     @Transactional(readOnly = true)
     public void syncAllProducts() {
         log.info("--- 기존 상품 데이터 전체 일괄 동기화 시작 ---");
-        int totalProducts = productRepository.countProducts();
+        int totalProducts = productDetailRepository.countProducts();
         int pageSize = 100;
         int successCount = 0;
         int failCount = 0;
@@ -58,7 +58,7 @@ public class RetailBatchSyncService {
                                       projectId, location, catalog, branch);
 
         for (int offset = 0; offset < totalProducts; offset += pageSize) {
-            List<ProductDto> products = productRepository.findProductsByPaging(offset, pageSize);
+            List<ProductDto> products = productDetailRepository.findProductsByPaging(offset, pageSize);
             
             for (ProductDto dto : products) {
                 try {

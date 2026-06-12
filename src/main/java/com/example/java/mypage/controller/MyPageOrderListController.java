@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.example.java.member.security.CustomUserDetails;
 import com.example.java.mypage.dto.MyPageOrderListDto;
+import com.example.java.mypage.dto.MyPageCancelReturnDto;
+import com.example.java.mypage.dto.MyPageOrderDetailDto;
 import com.example.java.mypage.service.MyPageOrderListService;
 import com.example.java.orders.service.PaymentService;
 import com.example.java.orders.dto.OrderItemCancelRequestDto;
@@ -68,7 +70,50 @@ public class MyPageOrderListController {
             log.error("주문 목록 조회 중 에러 발생: ", e);
         }
 
-        return "mypage/orderList/orders";
+        return "mypage/orders";
+    }
+
+    /**
+     * 마이페이지 - 취소/반품/교환/환불내역
+     */
+    @GetMapping("/returns")
+    public String getCancelReturns(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            Model model) {
+
+        Long memberSeq = userDetails.getMemberSeq();
+
+        try {
+            List<MyPageCancelReturnDto> cancelReturns = myPageOrderListService.getCancelReturns(memberSeq);
+            model.addAttribute("cancelReturns", cancelReturns);
+        } catch (Exception e) {
+            log.error("취소/반품 내역 조회 중 에러 발생: ", e);
+        }
+
+        return "mypage/returns";
+    }
+
+    /**
+     * 마이페이지 - 주문 상세 조회
+     */
+    @GetMapping("/orders/{orderSeq}")
+    public String getOrderDetail(
+            @PathVariable("orderSeq") Long orderSeq,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            Model model) {
+
+        try {
+            MyPageOrderDetailDto orderDetail = myPageOrderListService.getOrderDetail(orderSeq);
+            if (orderDetail == null) {
+                return "redirect:/mypage/orders";
+            }
+            model.addAttribute("orderDetail", orderDetail);
+        } catch (Exception e) {
+            log.error("주문 상세 조회 중 에러 발생: ", e);
+            return "redirect:/mypage/orders";
+        }
+
+        return "mypage/orderDetail";
     }
     
     @PostMapping("/orders/{orderSeq}/cancel")
