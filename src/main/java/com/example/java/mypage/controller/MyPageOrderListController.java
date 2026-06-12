@@ -68,7 +68,7 @@ public class MyPageOrderListController {
             log.error("주문 목록 조회 중 에러 발생: ", e);
         }
 
-        return "mypage/orderList/orders";
+        return "mypage/orders";
     }
     
     @PostMapping("/orders/{orderSeq}/cancel")

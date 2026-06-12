@@ -709,6 +709,15 @@ public class PaymentService {
                                         String orderId,
                                         Integer amount) {
 
+        if (paymentKey != null && paymentKey.startsWith("mock_")) {
+            log.info("[MOCK CONFIRM] Bypassing Toss API confirm for mock key: {}", paymentKey);
+            com.fasterxml.jackson.databind.node.ObjectNode mockNode = objectMapper.createObjectNode();
+            mockNode.put("status", "DONE");
+            mockNode.put("method", "계좌이체");
+            mockNode.put("approvedAt", java.time.OffsetDateTime.now().toString());
+            return mockNode;
+        }
+
         try {
             Map<String, Object> body = new HashMap<>();
             body.put("paymentKey", paymentKey);
@@ -764,6 +773,13 @@ public class PaymentService {
                                        String cancelReason,
                                        Integer cancelAmount) {
 
+        if (paymentKey != null && paymentKey.startsWith("mock_")) {
+            log.info("[MOCK CANCEL] Bypassing Toss API cancel for mock key: {}", paymentKey);
+            com.fasterxml.jackson.databind.node.ObjectNode mockNode = objectMapper.createObjectNode();
+            mockNode.put("status", "CANCELED");
+            return mockNode;
+        }
+
         try {
             Map<String, Object> body = new HashMap<>();
             body.put("cancelReason", cancelReason);
@@ -799,6 +815,7 @@ public class PaymentService {
                         errorMessage
                 );
             }
+
 
             return responseBody;
 
@@ -1135,6 +1152,9 @@ public class PaymentService {
                     .returnQuantity(item.getQuantity())
                     .status(0) // 0: 반품신청
                     .requestDate(now)
+                    .zipCode(order.getZipcode())
+                    .roadAddress(order.getAddress())
+                    .detailAddress(order.getAddressDetail())
                     .build();
             ReturnRequest savedRr = returnRequestRepository.save(rr);
 
@@ -1148,7 +1168,7 @@ public class PaymentService {
             Returns ret = Returns.builder()
                     .returnRequest(savedRr)
                     .deliveryCompany(company)
-                    .status("SHIPPING") // 반품 배송 중
+                    .status("RETURNING") // 반품 배송 중
                     .trackingNumber(trackingNumber)
                     .build();
             returnsRepository.save(ret);

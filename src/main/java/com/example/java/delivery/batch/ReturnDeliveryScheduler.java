@@ -1,4 +1,4 @@
-package com.example.java.orders.scheduler;
+package com.example.java.delivery.batch;
 
 import com.example.java.orders.entity.OrderItem;
 import com.example.java.orders.entity.ReturnRequest;
@@ -32,8 +32,8 @@ public class ReturnDeliveryScheduler {
     public void autoCompleteReturnDeliveries() {
         LocalDateTime threshold = LocalDateTime.now().minusHours(48);
         
-        // SHIPPING 상태인 모든 반품 배송 조회
-        List<Returns> shippingReturns = returnsRepository.findByStatus("SHIPPING");
+        // RETURNING 상태인 모든 반품 배송 조회
+        List<Returns> shippingReturns = returnsRepository.findByStatus("RETURNING");
         if (shippingReturns.isEmpty()) {
             return;
         }
@@ -49,7 +49,7 @@ public class ReturnDeliveryScheduler {
                 LocalDateTime now = LocalDateTime.now();
 
                 // 1. returns 테이블 상태 변경 및 완료일 설정
-                ret.setStatus("DELIVERED");
+                ret.setStatus("RETURNED");
                 ret.setCompletedDate(now);
                 returnsRepository.save(ret);
 

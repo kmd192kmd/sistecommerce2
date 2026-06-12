@@ -50,4 +50,14 @@ public class ReturnRequest {
 
     @Column(name = "reject_reason", length = 100)
     private String rejectReason;
+
+    @Column(name = "zip_code", nullable = false, length = 10)
+    private String zipCode;
+
+    @Column(name = "road_address", nullable = false, length = 200)
+    private String roadAddress;
+
+    @Column(name = "detail_address", length = 100)
+    private String detailAddress;
 }
+
