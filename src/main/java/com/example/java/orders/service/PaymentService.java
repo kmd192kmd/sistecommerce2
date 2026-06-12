@@ -53,6 +53,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -193,6 +196,30 @@ public class PaymentService {
         order.setRemainPrice(amount);
 
         ordersRepository.save(order);
+
+        // 결제 완료 후 배송 정보(Delivery, DeliveryHistory) 생성
+        String field = order.getField();
+        String recipientName = "고객";
+        String recipientPhone = "010-0000-0000";
+        String requestMemo = "";
+        if (field != null && field.contains("|")) {
+            String[] parts = field.split("\\|", -1);
+            if (parts.length >= 1 && !parts[0].isBlank()) {
+                recipientName = parts[0];
+            }
+            if (parts.length >= 2 && !parts[1].isBlank()) {
+                recipientPhone = parts[1];
+            }
+            if (parts.length >= 3) {
+                requestMemo = parts[2];
+            }
+        }
+        
+        try {
+            deliveryService.createDelivery(order, recipientName, recipientPhone, requestMemo, "B2C");
+        } catch (Exception e) {
+            log.error("결제 승인 후 배송 정보 생성 중 에러 발생: ", e);
+        }
 
         /*
             공구 주문이면 '결제됨' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,

@@ -23,7 +23,6 @@ import com.example.java.product.entity.Options;
 import com.example.java.product.entity.Product;
 import com.example.java.product.entity.Seller;
 import com.example.java.product.repository.OptionsRepository;
-import com.example.java.product.repository.ProductRepository;
 import com.example.java.product.repository.SellerRepository;
 
 import java.util.ArrayList;
@@ -45,9 +44,7 @@ public class DeliveryService {
     private final SnowflakeIdGenerator snowflakeIdGenerator;
     private final OrderItemRepository orderItemRepository;
     private final OptionsRepository optionsRepository;
-    private final ProductRepository productRepository;
     private final SellerRepository sellerRepository;
-    private final Random random = new Random();
 
 
     /**
@@ -237,7 +234,7 @@ public class DeliveryService {
     }
 
     /**
-     * 특정 주문의 모든 배송을 취소 상태(FAILED)로 변경한다.
+     * 특정 주문의 모든 배송을 취소 상태(CANCELED)로 변경한다.
      */
     @Transactional
     public void cancelAllDeliveriesForOrder(Long orderSeq) {
@@ -246,13 +243,13 @@ public class DeliveryService {
             return;
         }
         for (Delivery d : deliveries) {
-            d.setStatus("FAILED");
+            d.setStatus("CANCELED");
         }
         deliveryRepository.saveAll(deliveries);
     }
 
     /**
-     * 특정 주문 내에서 지정된 택배사(들)에 속한 배송 레코드만 취소 상태(FAILED)로 변경한다.
+     * 특정 주문 내에서 지정된 택배사(들)에 속한 배송 레코드만 취소 상태(CANCELED)로 변경한다.
      */
     @Transactional
     public void cancelDeliveriesForOrderAndCompanies(Long orderSeq, List<String> companyNames) {
@@ -266,7 +263,7 @@ public class DeliveryService {
         for (Delivery d : deliveries) {
             String companyName = (d.getDeliveryCompany() != null) ? d.getDeliveryCompany().getName() : "배송 준비중";
             if (companyNames.contains(companyName)) {
-                d.setStatus("FAILED");
+                d.setStatus("CANCELED");
             }
         }
         deliveryRepository.saveAll(deliveries);

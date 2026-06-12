@@ -360,39 +360,52 @@
     </div>
 </div>
 
-<!-- 주문취소 확인 모달 -->
+<!-- 주문취소 모달 (통합형) -->
 <div id="cancelConfirmModal" class="modal-overlay">
     <div class="modal-content">
-        <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-            </svg>
+        <!-- 1단계: 취소 확인 -->
+        <div id="cancelConfirmStep">
+            <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">주문취소 확인</h3>
+            <p id="confirmModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">선택하신 묶음의 상품들을<br>정말 취소하시겠습니까?</p>
+            <div class="flex gap-3">
+                <button onclick="closeCancelConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors">취소</button>
+                <button id="btnExecuteCancel" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
+            </div>
         </div>
-        <h3 class="text-lg font-bold text-slate-900 mb-2">주문취소 확인</h3>
-        <p id="confirmModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">선택하신 묶음의 상품들을<br>정말 취소하시겠습니까?</p>
-        <div class="flex gap-3">
-            <button onclick="closeCancelConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors">취소</button>
-            <button id="btnExecuteCancel" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
-        </div>
-    </div>
-</div>
 
-<!-- 주문취소 결과 알림 모달 -->
-<div id="cancelResultModal" class="modal-overlay">
-    <div class="modal-content">
-        <div id="resultModalIconSuccess" class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
-            <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+        <!-- 2단계: 처리 중 (로딩) -->
+        <div id="cancelProcessingStep" class="hidden">
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="animate-spin w-8 h-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">처리 중</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">요청을 처리하고 있습니다.<br>잠시만 기다려 주세요.</p>
         </div>
-        <div id="resultModalIconFail" class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
-            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+
+        <!-- 3단계: 결과 알림 -->
+        <div id="cancelResultStep" class="hidden">
+            <div id="resultModalIconSuccess" class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
+                <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <div id="resultModalIconFail" class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
+            <h3 id="resultModalTitle" class="text-lg font-bold text-slate-900 mb-2">결과 알림</h3>
+            <p id="resultModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">결과 메시지</p>
+            <button id="btnResultClose" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
         </div>
-        <h3 id="resultModalTitle" class="text-lg font-bold text-slate-900 mb-2">결과 알림</h3>
-        <p id="resultModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">결과 메시지</p>
-        <button id="btnResultClose" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
     </div>
 </div>
 
@@ -424,39 +437,52 @@
     </div>
 </div>
 
-<!-- 반품 확인 모달 -->
+<!-- 반품신청 모달 (통합형) -->
 <div id="returnConfirmModal" class="modal-overlay">
     <div class="modal-content">
-        <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-            </svg>
+        <!-- 1단계: 반품 확인 -->
+        <div id="returnConfirmStep">
+            <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">반품 신청 확인</h3>
+            <p id="returnConfirmModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">선택하신 상품들을<br>정말 반품 신청하시겠습니까?</p>
+            <div class="flex gap-3">
+                <button onclick="closeReturnConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors">취소</button>
+                <button id="btnExecuteReturn" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
+            </div>
         </div>
-        <h3 class="text-lg font-bold text-slate-900 mb-2">반품 신청 확인</h3>
-        <p id="returnConfirmModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">선택하신 상품들을<br>정말 반품 신청하시겠습니까?</p>
-        <div class="flex gap-3">
-            <button onclick="closeReturnConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-colors">취소</button>
-            <button id="btnExecuteReturn" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
-        </div>
-    </div>
-</div>
 
-<!-- 반품 결과 알림 모달 -->
-<div id="returnResultModal" class="modal-overlay">
-    <div class="modal-content">
-        <div id="returnResultModalIconSuccess" class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
-            <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+        <!-- 2단계: 처리 중 (로딩) -->
+        <div id="returnProcessingStep" class="hidden">
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="animate-spin w-8 h-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">처리 중</h3>
+            <p class="text-slate-500 text-sm leading-relaxed">요청을 처리하고 있습니다.<br>잠시만 기다려 주세요.</p>
         </div>
-        <div id="returnResultModalIconFail" class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
-            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+
+        <!-- 3단계: 결과 알림 -->
+        <div id="returnResultStep" class="hidden">
+            <div id="returnResultModalIconSuccess" class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
+                <svg class="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <div id="returnResultModalIconFail" class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 hidden">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
+            <h3 id="returnResultModalTitle" class="text-lg font-bold text-slate-900 mb-2">결과 알림</h3>
+            <p id="returnResultModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">결과 메시지</p>
+            <button id="btnReturnResultClose" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
         </div>
-        <h3 id="returnResultModalTitle" class="text-lg font-bold text-slate-900 mb-2">결과 알림</h3>
-        <p id="returnResultModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">결과 메시지</p>
-        <button id="btnReturnResultClose" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
     </div>
 </div>
 
@@ -468,7 +494,15 @@
         document.getElementById('modalTrackingNumber').innerText = trackingNumber || '발급대기';
         
         const currentStatus = status || 'READY';
-        document.getElementById('modalStatusText').innerText = currentStatus;
+        const statusTextEl = document.getElementById('modalStatusText');
+        statusTextEl.innerText = currentStatus;
+
+        // CANCELED나 FAILED일 경우 붉은색, 나머지는 파란색
+        if (currentStatus === 'CANCELED' || currentStatus === 'FAILED') {
+            statusTextEl.className = "font-bold text-red-600";
+        } else {
+            statusTextEl.className = "font-bold text-blue-600";
+        }
 
         // 엘리먼트 가져오기
         const step1Circle = document.querySelector('#step1 .step-circle');
@@ -496,7 +530,10 @@
         };
 
         // 상태별 분기 적용
-        if (currentStatus === 'READY') {
+        if (currentStatus === 'CANCELED' || currentStatus === 'FAILED') {
+            // 취소/실패 상태면 모든 스텝 비활성화 상태 유지
+            progress.style.width = "0%";
+        } else if (currentStatus === 'READY') {
             activate(step1Circle, step1Label);
             progress.style.width = "0%";
         } else if (currentStatus === 'SHIPPING' || currentStatus === 'DELAYED') {
@@ -509,7 +546,6 @@
             activate(step3Circle, step3Label);
             progress.style.width = "100%";
         } else {
-            activate(step1Circle, step1Label);
             progress.style.width = "0%";
         }
 
@@ -537,6 +573,11 @@
     }
 
     function showReturnConfirmModal(text, onConfirm) {
+        // Step 블록 보이기/숨기기 초기화
+        document.getElementById('returnConfirmStep').classList.remove('hidden');
+        document.getElementById('returnProcessingStep').classList.add('hidden');
+        document.getElementById('returnResultStep').classList.add('hidden');
+
         document.getElementById('returnConfirmModalText').innerHTML = text;
         const btnExecute = document.getElementById('btnExecuteReturn');
         
@@ -545,7 +586,6 @@
         btnExecute.parentNode.replaceChild(newBtnExecute, btnExecute);
         
         newBtnExecute.addEventListener('click', () => {
-            closeReturnConfirmModal();
             onConfirm();
         });
         
@@ -556,7 +596,16 @@
         document.getElementById('returnConfirmModal').classList.remove('active');
     }
 
-    function showReturnResultModal(isSuccess, title, message, onClose) {
+    function showReturnProcessing() {
+        document.getElementById('returnConfirmStep').classList.add('hidden');
+        document.getElementById('returnProcessingStep').classList.remove('hidden');
+        document.getElementById('returnResultStep').classList.add('hidden');
+    }
+
+    function showReturnResult(isSuccess, title, message, onClose) {
+        document.getElementById('returnConfirmStep').classList.add('hidden');
+        document.getElementById('returnProcessingStep').classList.add('hidden');
+        
         const successIcon = document.getElementById('returnResultModalIconSuccess');
         const failIcon = document.getElementById('returnResultModalIconFail');
         
@@ -576,15 +625,11 @@
         btnClose.parentNode.replaceChild(newBtnClose, btnClose);
         
         newBtnClose.addEventListener('click', () => {
-            closeReturnResultModal();
+            closeReturnConfirmModal();
             if (onClose) onClose();
         });
         
-        document.getElementById('returnResultModal').classList.add('active');
-    }
-
-    function closeReturnResultModal() {
-        document.getElementById('returnResultModal').classList.remove('active');
+        document.getElementById('returnResultStep').classList.remove('hidden');
     }
 
     async function handleOrderReturn(btn) {
@@ -601,7 +646,7 @@
         // 해당 묶음(div.delivery-company-group) 안의 체크된 아이템 요소들을 검색
         const groupContainer = btn.closest('.delivery-company-group');
         if (!groupContainer) {
-            showReturnResultModal(false, "오류", "주문 정보를 찾을 수 없습니다.");
+            showReturnResult(false, "오류", "주문 정보를 찾을 수 없습니다.");
             return;
         }
 
@@ -629,6 +674,7 @@
             `${displayTitle}을 정말 반품 신청하시겠습니까?<br><br>` +
             `<span class="text-xs text-amber-500 font-bold">※ 반품 신청 완료 후 택배 수거 및 검수가 진행됩니다.</span>`,
             async () => {
+                showReturnProcessing();
                 try {
                     const response = await fetch(`/mypage/orders/${orderSeq}/return`, {
                         method: "POST",
@@ -653,18 +699,18 @@
                         const message = result && result.message
                             ? result.message
                             : "반품 신청에 실패했습니다.";
-                        showReturnResultModal(false, "반품 실패", message);
+                        showReturnResult(false, "반품 실패", message);
                         return;
                     }
 
                     const successMsg = result && result.message ? result.message : "반품 신청이 완료되었습니다.";
-                    showReturnResultModal(true, "반품 완료", successMsg, () => {
+                    showReturnResult(true, "반품 완료", successMsg, () => {
                         location.reload();
                     });
 
                 } catch (error) {
                     console.error(error);
-                    showReturnResultModal(false, "오류", "반품 신청 요청 중 오류가 발생했습니다.");
+                    showReturnResult(false, "오류", "반품 신청 요청 중 오류가 발생했습니다.");
                 }
             }
         );
@@ -679,6 +725,11 @@
     }
 
     function showCancelConfirmModal(text, onConfirm) {
+        // Step 블록 보이기/숨기기 초기화
+        document.getElementById('cancelConfirmStep').classList.remove('hidden');
+        document.getElementById('cancelProcessingStep').classList.add('hidden');
+        document.getElementById('cancelResultStep').classList.add('hidden');
+
         document.getElementById('confirmModalText').innerHTML = text;
         const btnExecute = document.getElementById('btnExecuteCancel');
         
@@ -687,7 +738,6 @@
         btnExecute.parentNode.replaceChild(newBtnExecute, btnExecute);
         
         newBtnExecute.addEventListener('click', () => {
-            closeCancelConfirmModal();
             onConfirm();
         });
         
@@ -698,7 +748,16 @@
         document.getElementById('cancelConfirmModal').classList.remove('active');
     }
 
-    function showCancelResultModal(isSuccess, title, message, onClose) {
+    function showCancelProcessing() {
+        document.getElementById('cancelConfirmStep').classList.add('hidden');
+        document.getElementById('cancelProcessingStep').classList.remove('hidden');
+        document.getElementById('cancelResultStep').classList.add('hidden');
+    }
+
+    function showCancelResult(isSuccess, title, message, onClose) {
+        document.getElementById('cancelConfirmStep').classList.add('hidden');
+        document.getElementById('cancelProcessingStep').classList.add('hidden');
+        
         const successIcon = document.getElementById('resultModalIconSuccess');
         const failIcon = document.getElementById('resultModalIconFail');
         
@@ -718,15 +777,11 @@
         btnClose.parentNode.replaceChild(newBtnClose, btnClose);
         
         newBtnClose.addEventListener('click', () => {
-            closeCancelResultModal();
+            closeCancelConfirmModal();
             if (onClose) onClose();
         });
         
-        document.getElementById('cancelResultModal').classList.add('active');
-    }
-
-    function closeCancelResultModal() {
-        document.getElementById('cancelResultModal').classList.remove('active');
+        document.getElementById('cancelResultStep').classList.remove('hidden');
     }
 
     async function handleOrderCancel(btn) {
@@ -743,7 +798,7 @@
         // 해당 묶음(div.delivery-company-group) 안의 아이템 요소들을 검색
         const groupContainer = btn.closest('.delivery-company-group');
         if (!groupContainer) {
-            showCancelResultModal(false, "오류", "주문 정보를 찾을 수 없습니다.");
+            showCancelResult(false, "오류", "주문 정보를 찾을 수 없습니다.");
             return;
         }
 
@@ -754,7 +809,7 @@
             .filter(n => !isNaN(n));
 
         if (orderItemSeqList.length === 0) {
-            showCancelResultModal(false, "오류", "취소할 수 있는 상품이 없습니다.");
+            showCancelResult(false, "오류", "취소할 수 있는 상품이 없습니다.");
             return;
         }
 
@@ -771,6 +826,7 @@
             `${displayTitle}을 정말 주문 취소하시겠습니까?<br><br>` +
             `<span class="text-xs text-red-500 font-bold">※ 배송 준비 중이므로 즉시 환불 처리됩니다.</span>`,
             async () => {
+                showCancelProcessing();
                 try {
                     const response = await fetch(`/mypage/orders/${orderSeq}/cancel-items`, {
                         method: "POST",
@@ -795,18 +851,18 @@
                         const message = result && result.message
                             ? result.message
                             : "주문 취소에 실패했습니다.";
-                        showCancelResultModal(false, "취소 실패", message);
+                        showCancelResult(false, "취소 실패", message);
                         return;
                     }
 
                     const successMsg = result && result.message ? result.message : "주문 취소가 완료되었습니다.";
-                    showCancelResultModal(true, "취소 완료", successMsg, () => {
+                    showCancelResult(true, "취소 완료", successMsg, () => {
                         location.reload();
                     });
 
                 } catch (error) {
                     console.error(error);
-                    showCancelResultModal(false, "오류", "주문 취소 요청 중 오류가 발생했습니다.");
+                    showCancelResult(false, "오류", "주문 취소 요청 중 오류가 발생했습니다.");
                 }
             }
         );
@@ -826,13 +882,11 @@
 
     document.getElementById('cancelConfirmModal').addEventListener('click', function(e) {
         if (e.target === this) {
-            closeCancelConfirmModal();
-        }
-    });
-
-    document.getElementById('cancelResultModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeCancelResultModal();
+            // 로딩 중이 아닐 때만 닫기 허용
+            const processingStep = document.getElementById('cancelProcessingStep');
+            if (processingStep && processingStep.classList.contains('hidden')) {
+                closeCancelConfirmModal();
+            }
         }
     });
 
@@ -850,13 +904,11 @@
 
     document.getElementById('returnConfirmModal').addEventListener('click', function(e) {
         if (e.target === this) {
-            closeReturnConfirmModal();
-        }
-    });
-
-    document.getElementById('returnResultModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeReturnResultModal();
+            // 로딩 중이 아닐 때만 닫기 허용
+            const processingStep = document.getElementById('returnProcessingStep');
+            if (processingStep && processingStep.classList.contains('hidden')) {
+                closeReturnConfirmModal();
+            }
         }
     });
 </script>

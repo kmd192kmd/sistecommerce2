@@ -14,7 +14,8 @@ CHECK (
         'SHIPPING',
         'DELIVERED',
         'FAILED',
-        'DELAYED'
+        'DELAYED',
+        'CANCELED'
     )
 );
 
