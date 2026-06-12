@@ -15,7 +15,7 @@ import com.example.java.product.repository.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-//@Component
+@Component
 @RequiredArgsConstructor
 @Slf4j
 @Profile("!prod")
@@ -49,25 +49,30 @@ public class ElasticsearchIndexInitializer implements CommandLineRunner {
                     FROM product
                     """;
 
-            List<ProductDocument> docs = jdbcTemplate.query(sql, (rs, rowNum) -> ProductDocument.builder()
-                    .id(rs.getLong("seq"))
-                    .sellerSeq(rs.getLong("seller_seq"))
-                    .categorySeq(rs.getLong("category_seq"))
-                    .productName(rs.getString("product_name"))
-                    .price(rs.getInt("price"))
-                    .saleStatus(rs.getString("sale_status"))
-                    .approvalStatus(rs.getString("approval_status"))
-                    .hideYn(rs.getString("hide_yn"))
-                    .viewCount(rs.getLong("view_count"))
-                    .avgRating(rs.getDouble("avg_rating"))
-                    .reviewCount(rs.getLong("review_count"))
-                    .salesCount(rs.getLong("sales_count"))
-                    .createdDate(rs.getTimestamp("created_date") != null 
-                            ? rs.getTimestamp("created_date").toLocalDateTime() 
-                            : null)
-                    .status(rs.getString("status"))
-                    .thumbnailUrl(rs.getString("thumbnail_url"))
-                    .build());
+            List<ProductDocument> docs = jdbcTemplate.query(sql, (rs, rowNum) -> {
+                String productName = rs.getString("product_name");
+                return ProductDocument.builder()
+                        .id(rs.getLong("seq"))
+                        .sellerSeq(rs.getLong("seller_seq"))
+                        .categorySeq(rs.getLong("category_seq"))
+                        .productName(productName)
+                        .productNameChosung(com.example.java.product.util.ChosungUtil.getChosung(productName))
+                        .price(rs.getInt("price"))
+                        .saleStatus(rs.getString("sale_status"))
+                        .approvalStatus(rs.getString("approval_status"))
+                        .hideYn(rs.getString("hide_yn"))
+                        .viewCount(rs.getLong("view_count"))
+                        .avgRating(rs.getDouble("avg_rating"))
+                        .reviewCount(rs.getLong("review_count"))
+                        .salesCount(rs.getLong("sales_count"))
+                        .createdDate(rs.getTimestamp("created_date") != null 
+                                ? rs.getTimestamp("created_date").toLocalDateTime() 
+                                : null)
+                        .status(rs.getString("status"))
+                        .thumbnailUrl(rs.getString("thumbnail_url"))
+                        .embedding(com.example.java.product.util.EmbeddingUtil.getEmbedding(productName))
+                        .build();
+            });
 
             // 3. Elasticsearch에 전체 저장
             if (!docs.isEmpty()) {

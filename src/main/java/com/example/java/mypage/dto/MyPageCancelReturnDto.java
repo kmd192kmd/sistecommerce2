@@ -38,4 +38,10 @@ public class MyPageCancelReturnDto {
     private Integer originalPrice;
     private Integer discountPrice;
     private Integer deliveryFee;
+    
+    // 택배사 정보
+    private String deliveryCompany;
+    
+    // 그룹화용 하위 아이템 리스트
+    private java.util.List<MyPageCancelReturnDto> items;
 }

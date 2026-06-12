@@ -1,0 +1,57 @@
+{
+  "index": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  },
+  "analysis": {
+    "tokenizer": {
+      "nori_user_dict": {
+        "type": "nori_tokenizer",
+        "decompound_mode": "mixed"
+      }
+    },
+    "filter": {
+      "synonym_filter": {
+        "type": "synonym",
+        "synonyms": [
+          "노트북,랩탑",
+          "휴대폰,스마트폰,핸드폰",
+          "패딩,파카,점퍼"
+        ],
+        "lenient": true
+      },
+      "autocomplete_filter": {
+        "type": "edge_ngram",
+        "min_gram": 1,
+        "max_gram": 20
+      }
+    },
+    "analyzer": {
+      "nori_analyzer": {
+        "type": "custom",
+        "tokenizer": "nori_user_dict",
+        "filter": [
+          "lowercase",
+          "nori_part_of_speech",
+          "synonym_filter"
+        ]
+      },
+      "autocomplete_analyzer": {
+        "type": "custom",
+        "tokenizer": "standard",
+        "filter": [
+          "lowercase",
+          "autocomplete_filter"
+        ]
+      },
+      "chosung_analyzer": {
+        "type": "custom",
+        "tokenizer": "keyword",
+        "filter": [
+          "lowercase",
+          "autocomplete_filter"
+        ]
+      }
+    }
+  }
+}
