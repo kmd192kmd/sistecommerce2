@@ -9,6 +9,7 @@ import com.example.java.member.dto.MemberDto;
 import com.example.java.product.dto.CategoryDto;
 import com.example.java.product.service.CategoryService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -34,7 +35,11 @@ public class GlobalModelAdvice {
     // 세션의 최근 검색어 노출
     @SuppressWarnings("unchecked")
     @ModelAttribute("recentKeywords")
-    public List<String> recentKeywords(HttpSession session) {
+    public List<String> recentKeywords(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return List.of();
+        }
         List<String> list = (List<String>) session.getAttribute("recentKeywords");
         return list != null ? list : List.of();
     }

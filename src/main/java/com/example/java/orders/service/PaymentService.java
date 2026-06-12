@@ -3,6 +3,7 @@ package com.example.java.orders.service;
 import com.example.java.cart.repository.CartRepository;
 import com.example.java.delivery.entity.Delivery;
 import com.example.java.delivery.repository.DeliveryRepository;
+import com.example.java.delivery.service.DeliveryService;
 import com.example.java.member.entity.MemberCoupon;
 import com.example.java.member.repository.MemberCouponRepository;
 import com.example.java.orders.entity.OrderItem;
@@ -13,10 +14,13 @@ import com.example.java.orders.repository.OrderItemRepository;
 import com.example.java.orders.repository.OrdersRepository;
 import com.example.java.orders.repository.PaymentRepository;
 import com.example.java.orders.repository.RefundRepository;
+import com.example.java.orders.event.OrderPaidEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.java.product.entity.Options;
 import com.example.java.product.repository.OptionsRepository;
+import com.example.java.product.entity.Seller;
+import com.example.java.product.repository.SellerRepository;
 import com.example.java.stockhistory.entity.StockHistory;
 import com.example.java.stockhistory.enums.StockHistorySourceType;
 import com.example.java.stockhistory.enums.StockHistoryType;
@@ -27,6 +31,7 @@ import java.util.LinkedHashMap;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +53,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -61,7 +69,10 @@ public class PaymentService {
     private final RefundRepository refundRepository;
     private final ObjectMapper objectMapper;
     private final OptionsRepository optionsRepository;
+    private final SellerRepository sellerRepository;
+    private final DeliveryService deliveryService;
     private final StockHistoryRepository stockHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -125,7 +136,17 @@ public class PaymentService {
             throw new IllegalStateException("주문상품 정보가 없습니다. orderSeq=" + order.getSeq());
         }
 
-        decreaseStockForOrderItems(orderItems, order.getSeq());
+        /*
+            공구 주문(order_item.participation_seq != null)은 재고를 발주 입고로 충당하므로
+            결제 시점에 일반 재고(options.stock)를 깎지 않는다. 일반 주문 상품만 차감 대상.
+         */
+        List<OrderItem> stockTargets = orderItems.stream()
+                .filter(item -> item.getParticipationSeq() == null)
+                .toList();
+
+        if (!stockTargets.isEmpty()) {
+            decreaseStockForOrderItems(stockTargets, order.getSeq());
+        }
 
         JsonNode tossResponse = requestTossConfirm(paymentKey, orderId, amount);
 
@@ -175,6 +196,53 @@ public class PaymentService {
         order.setRemainPrice(amount);
 
         ordersRepository.save(order);
+
+        /*
+            결제 완료 후 배송 정보(Delivery, DeliveryHistory) 생성.
+            단, 공구 주문(participation_seq != null)은 배송이 '마감 확정 후 발주→입고→배송' 흐름이라
+            결제(참여) 시점엔 배송을 만들지 않는다. 일반 주문만 여기서 배송을 생성한다.
+         */
+        boolean isGroupBuyOrder = orderItems.stream()
+                .anyMatch(item -> item.getParticipationSeq() != null);
+
+        if (!isGroupBuyOrder) {
+            String field = order.getField();
+            String recipientName = "고객";
+            String recipientPhone = "010-0000-0000";
+            String requestMemo = "";
+            if (field != null && field.contains("|")) {
+                String[] parts = field.split("\\|", -1);
+                if (parts.length >= 1 && !parts[0].isBlank()) {
+                    recipientName = parts[0];
+                }
+                if (parts.length >= 2 && !parts[1].isBlank()) {
+                    recipientPhone = parts[1];
+                }
+                if (parts.length >= 3) {
+                    requestMemo = parts[2];
+                }
+            }
+
+            try {
+                deliveryService.createDelivery(order, recipientName, recipientPhone, requestMemo, "B2C");
+            } catch (Exception e) {
+                log.error("결제 승인 후 배송 정보 생성 중 에러 발생: ", e);
+            }
+        }
+
+        /*
+            공구 주문이면 '결제됨' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,
+            groupbuy의 리스너가 이를 받아 participation을 PARTICIPATING으로 확정한다.
+            @EventListener는 동기 — 이 트랜잭션 안에서 실행되므로 결제와 확정이 원자적으로 묶인다(NFR-003).
+         */
+        List<Long> participationSeqs = orderItems.stream()
+                .map(OrderItem::getParticipationSeq)
+                .filter(seq -> seq != null)
+                .toList();
+
+        if (!participationSeqs.isEmpty()) {
+            eventPublisher.publishEvent(new OrderPaidEvent(participationSeqs));
+        }
 
         /*
             결제 완료 후 사용한 회원 쿠폰을 사용완료 처리한다.
@@ -282,13 +350,6 @@ public class PaymentService {
             throw new IllegalStateException("결제완료 또는 부분환불 상태의 주문만 취소할 수 있습니다.");
         }
 
-        /*
-            배송대기 상태에서만 취소 가능.
-            현재 delivery가 order_item과 직접 연결되어 있지 않으므로,
-            해당 주문의 모든 delivery row가 READY일 때만 허용한다.
-         */
-        validateDeliveryReady(order.getSeq());
-
         Payment payment = paymentRepository.findTopByOrderSeqAndStatusOrderBySeqDesc(order.getSeq(), 2)
                 .orElseThrow(() -> new IllegalStateException("결제완료 정보를 찾을 수 없습니다. orderSeq=" + order.getSeq()));
 
@@ -325,6 +386,37 @@ public class PaymentService {
             }
         }
 
+        /*
+            배송대기 상태에서만 취소 가능.
+            취소하려는 상품들의 택배사(DeliveryCompany)명을 기준으로, 
+            해당 주문의 연계된 배송 건 중 동일한 택배사를 가진 배송 상태가 READY인지 검증한다.
+         */
+        List<String> cancelItemDeliveryCompanies = cancelItems.stream()
+                .map(item -> {
+                    Options opt = optionsRepository.findById(item.getOptionsSeq()).orElse(null);
+                    if (opt != null && opt.getProduct() != null && opt.getProduct().getSellerSeq() != null) {
+                        Seller sel = sellerRepository.findById(opt.getProduct().getSellerSeq()).orElse(null);
+                        if (sel != null && sel.getDeliveryCompany() != null) {
+                            return sel.getDeliveryCompany().getName();
+                        }
+                    }
+                    return "배송 준비중";
+                })
+                .distinct()
+                .toList();
+
+        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(order.getSeq());
+        if (deliveries != null && !deliveries.isEmpty()) {
+            for (Delivery d : deliveries) {
+                String dCompanyName = (d.getDeliveryCompany() != null) ? d.getDeliveryCompany().getName() : "배송 준비중";
+                if (cancelItemDeliveryCompanies.contains(dCompanyName)) {
+                    if (!"READY".equals(d.getStatus())) {
+                        throw new IllegalStateException("배송이 시작되어서 주문취소가 불가능합니다.");
+                    }
+                }
+            }
+        }
+
         int cancelAmount = calculateCancelAmount(cancelItems);
 
         if (cancelAmount <= 0) {
@@ -350,8 +442,16 @@ public class PaymentService {
 
         /*
             결제 취소 성공 후 취소한 주문상품 수량만큼 재고를 복구한다.
+            단, 공구 주문(participation_seq != null)은 결제 때 일반 재고를 깎지 않았으므로(발주로 충당)
+            환불 때도 재고를 복구하지 않는다. 일반 주문상품만 복구 대상.
          */
-        increaseStockForOrderItems(cancelItems, order.getSeq());
+        List<OrderItem> stockRestoreTargets = cancelItems.stream()
+                .filter(item -> item.getParticipationSeq() == null)
+                .toList();
+
+        if (!stockRestoreTargets.isEmpty()) {
+            increaseStockForOrderItems(stockRestoreTargets, order.getSeq());
+        }
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -410,7 +510,7 @@ public class PaymentService {
             /*
                 배송 row가 이미 있다면 실패 처리.
              */
-            cancelDeliveries(order.getSeq());
+            deliveryService.cancelAllDeliveriesForOrder(order.getSeq());
 
         } else {
             /*
@@ -420,6 +520,11 @@ public class PaymentService {
              */
             order.setOrderStatus(7);
             order.setPaymentStatus(4);
+
+            /*
+                취소된 특정 택배사 묶음의 배송 레코드를 FAILED 상태로 변경
+             */
+            deliveryService.cancelDeliveriesForOrderAndCompanies(order.getSeq(), cancelItemDeliveryCompanies);
         }
 
         payment.setUpdateDate(now);
@@ -571,19 +676,6 @@ public class PaymentService {
                 .ifPresent(memberCoupon -> memberCoupon.updateStatus(0));
     }
 
-    private void cancelDeliveries(Long orderSeq) {
-        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(orderSeq);
-
-        if (deliveries == null || deliveries.isEmpty()) {
-            return;
-        }
-
-        for (Delivery delivery : deliveries) {
-            delivery.setStatus("FAILED");
-        }
-
-        deliveryRepository.saveAll(deliveries);
-    }
 
     private void deleteOrderedCartItems(Orders order) {
     	
@@ -896,5 +988,58 @@ public class PaymentService {
                 .build();
 
         stockHistoryRepository.save(stockHistory);
+    }
+
+    /**
+     * 선택한 주문상품들을 반품 요청 상태(7)로 변경한다.
+     */
+    @Transactional
+    public void requestReturnItems(Long orderSeq,
+                                  Long memberSeq,
+                                  List<Long> orderItemSeqList,
+                                  String reason) {
+        if (orderSeq == null) {
+            throw new IllegalArgumentException("주문번호가 없습니다.");
+        }
+        if (memberSeq == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+        if (orderItemSeqList == null || orderItemSeqList.isEmpty()) {
+            throw new IllegalArgumentException("반품할 상품을 선택해야 합니다.");
+        }
+
+        Orders order = ordersRepository.findById(orderSeq)
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderSeq=" + orderSeq));
+
+        if (!order.getMemberSeq().equals(memberSeq)) {
+            throw new IllegalArgumentException("본인의 주문만 반품 신청할 수 있습니다.");
+        }
+
+        List<OrderItem> allOrderItems = orderItemRepository.findByOrderSeq(order.getSeq());
+        Set<Long> targetSeqs = new LinkedHashSet<>(orderItemSeqList);
+
+        List<OrderItem> targetItems = allOrderItems.stream()
+                .filter(item -> targetSeqs.contains(item.getSeq()))
+                .toList();
+
+        if (targetItems.size() != targetSeqs.size()) {
+            throw new IllegalArgumentException("선택한 상품 중 해당 주문에 포함되지 않은 상품이 있습니다.");
+        }
+
+        for (OrderItem item : targetItems) {
+            if (item.getItemStatus() != null) {
+                if (item.getItemStatus() == 6) {
+                    throw new IllegalStateException("이미 취소된 상품이 포함되어 있습니다. 상품명: " + item.getProductName());
+                }
+                if (item.getItemStatus() >= 7) {
+                    throw new IllegalStateException("이미 반품이 신청되었거나 완료된 상품입니다. 상품명: " + item.getProductName());
+                }
+            }
+        }
+
+        for (OrderItem item : targetItems) {
+            item.setItemStatus(7);
+        }
+        orderItemRepository.saveAll(targetItems);
     }
 }

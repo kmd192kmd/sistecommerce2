@@ -315,3 +315,6 @@ src/main/generated/
 
 # 구글 클라우드 인증 키 파일 제외
 src/main/resources/keys/*.json
+
+# Codex/AI 에이전트 로컬 설정 파일 (개인 환경마다 생성, 커밋 대상 아님)
+AGENTS.md

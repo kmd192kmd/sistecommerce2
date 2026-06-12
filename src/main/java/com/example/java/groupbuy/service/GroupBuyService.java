@@ -19,8 +19,11 @@ import com.example.java.groupbuy.entity.GroupBuyStatus;
 import com.example.java.groupbuy.entity.Participation;
 import com.example.java.groupbuy.entity.ParticipationStatus;
 import com.example.java.groupbuy.entity.WaitingQueue;
+import com.example.java.groupbuy.dto.ParticipateResponse;
 import com.example.java.groupbuy.payment.GroupBuyPaymentCommand;
 import com.example.java.groupbuy.payment.GroupBuyPaymentPort;
+import com.example.java.orders.dto.OrderCreateResultDto;
+import com.example.java.orders.service.OrdersCommandService;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.groupbuy.repository.GroupBuyRepository;
 import com.example.java.groupbuy.repository.ParticipationRepository;
@@ -33,7 +36,9 @@ import com.example.java.product.repository.ProductImageRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GroupBuyService {
@@ -45,6 +50,7 @@ public class GroupBuyService {
     private final ParticipationRepository participationRepository;
     private final WaitingQueueRepository waitingQueueRepository;
     private final GroupBuyPaymentPort paymentPort;
+    private final OrdersCommandService ordersCommandService;
 
     // ProductRepository가 dev에서 class(EntityManager 직접 구현)로 바뀌어 
     // JpaRepository 메서드가 없음.
@@ -64,6 +70,8 @@ public class GroupBuyService {
     private static final long CANCEL_LOCK_HOURS = 24;
     /** T_pay: 승격자의 결제 제한시간 (현재 24h). 불변조건 T_lock >= T_pay 를 지켜야 함. */
     private static final long PROMOTION_PAY_HOURS = 24;
+    /** 정규 참여자의 결제 대기시간(분). 자리 예약 후 이 시간 내 미결제면 만료 스케줄러가 반납한다. */
+    private static final long REGULAR_PAY_MINUTES = 10;
 
     /**
      * 공구 등록 (관리자).
@@ -166,7 +174,7 @@ public class GroupBuyService {
      * @return 정규 참여 성공이면 PARTICIPATED, 매진으로 대기열 등록되면 QUEUED
      */
     @Transactional
-    public ParticipateResult participate(Long groupBuySeq, Long optionSeq, Long memberSeq) {
+    public ParticipateResponse participate(Long groupBuySeq, Long optionSeq, Long memberSeq) {
         // 1) 옵션 행 비관적 락 (동시 참여 직렬화)
         GroupBuyOptions option = groupBuyOptionsRepository.findBySeqForUpdate(optionSeq)
                 .orElseThrow(() -> new IllegalArgumentException("해당 공구 옵션을 찾을 수 없습니다. seq=" + optionSeq));
@@ -198,36 +206,44 @@ public class GroupBuyService {
         if (option.isSoldOut()) {
             // 4-A) 매진 → 대기열 등록. 점유(occupied_count)·결제는 건드리지 않는다.
             //      대기열 대기자는 아직 점유 인원이 아니며(occupied = PARTICIPATING + PAYMENT_PENDING),
-            //      정규 참여자가 이탈해 자리가 나면 FIFO(created_at)로 승격된다 (승격은 취소 흐름에서 처리, 다음 단계).
+            //      앞사람이 이탈해 자리가 나면 FIFO(created_at)로 승격된다.
             waitingQueueRepository.save(WaitingQueue.builder()
                     .groupBuy(groupBuy)
                     .groupBuyOptions(option)
                     .memberSeq(memberSeq)
                     .createdAt(LocalDateTime.now())   // FIFO 승격 순서의 기준이 되는 등록 시각
                     .build());
-            return ParticipateResult.QUEUED;
+            return ParticipateResponse.queued();
         }
 
-        // 4-B) 정원 남음 → 정규 참여
-        // 옵션 점유(+1). 위에서 isSoldOut()을 확인했으니 통과하지만, occupy()는 내부에서도
-        // 매진을 재검사해 이중 방어한다(NFR-001).
-        option.occupy();
-        // 명시적 save 불필요: 락으로 조회한 option은 영속 상태라 commit 시 변경감지로 UPDATE 됨.
+        // 4-B) 정원 남음 → 자리 예약(결제 전). 실제 결제는 토스 결제창에서 별도로 진행한다(2단계).
+        //      오버셀 방지를 위해 결제를 기다리지 않고 지금 점유한다(occupy). 미결제로 이탈하면
+        //      만료 스케줄러가 결제기한 경과 시 자리를 반납(release)하고 대기열을 승격시킨다.
+        option.occupy(); // occupy()는 내부에서도 매진을 재검사해 이중 방어(NFR-001)
 
-        // 참여 INSERT 먼저 (정규 참여라 paymentDeadline/promotedAt은 null).
-        // 결제가 생성할 order_item.participation_seq 연결을 위해 결제 전에 참여 seq가 있어야 한다.
+        // 결제 대기(PAYMENT_PENDING)로 참여 INSERT. 결제기한 = min(now + 10분, 마감) — 미결제 자리를 오래 묶지 않는다.
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime deadline = now.plusMinutes(REGULAR_PAY_MINUTES);
+        if (deadline.isAfter(groupBuy.getEndAt())) {
+            deadline = groupBuy.getEndAt();
+        }
         Participation participation = participationRepository.save(Participation.builder()
                 .groupBuy(groupBuy)
                 .groupBuyOptions(option)
                 .memberSeq(memberSeq)
-                .status(ParticipationStatus.PARTICIPATING)
-                .createdAt(LocalDateTime.now())
+                .status(ParticipationStatus.PAYMENT_PENDING)
+                .paymentDeadline(deadline)
+                .createdAt(now)
                 .build());
 
-        // 결제(현재 스텁: 항상 성공). 실패 시 예외 → 트랜잭션 롤백으로 참여 INSERT/점유도 함께 원복
-        paymentPort.pay(buildPaymentCommand(groupBuy, option, participation.getSeq(), memberSeq));
+        // 결제 대기 주문 생성(orders + order_item, participation_seq 채움) → orderUid 반환.
+        // 가격 스냅샷 계산은 buildPaymentCommand 재사용. 실제 결제는 프론트가 이 orderUid로 토스 결제창에서 한다.
+        GroupBuyPaymentCommand snapshot = buildPaymentCommand(groupBuy, option, participation.getSeq(), memberSeq);
+        OrderCreateResultDto order = ordersCommandService.createGroupBuyOrder(
+                snapshot.memberSeq(), snapshot.participationSeq(), snapshot.optionsSeq(),
+                snapshot.originalPrice(), snapshot.finalPrice(), snapshot.participationDiscount());
 
-        return ParticipateResult.PARTICIPATED;
+        return ParticipateResponse.paymentRequired(order);
     }
 
     /**
@@ -327,26 +343,26 @@ public class GroupBuyService {
     }
 
     /**
-     * 승격자 결제 (대기열에서 승격된 결제대기자가 기한 내 직접 결제).
+     * 승격자 결제 시작 (대기열에서 승격된 결제대기자가 기한 내 직접 결제).
      *
-     * 승격 시 이미 옵션을 점유(occupied_count +1)했으므로, 이 메서드는 점유 수를 바꾸지 않고
-     * 상태만 PAYMENT_PENDING → PARTICIPATING 으로 "확정"시킨다.
-     * 결제가 완료돼야 비로소 확정 인원(PARTICIPATING 수)에 포함된다 (NFR-003 정합성).
+     * 승격 시 이미 옵션을 점유(occupied_count +1)했으므로 점유는 건드리지 않는다.
+     * 이 메서드는 그 참여에 대한 '결제 대기' 주문을 만들어 orderUid를 돌려줄 뿐이고,
+     * 실제 결제는 프론트가 토스 결제창에서 진행한다. 결제 성공 시 confirmAfterPayment가
+     * PAYMENT_PENDING → PARTICIPATING으로 확정한다 (정규 참여와 동일한 2단계 흐름으로 합류).
      *
      * 흐름:
      *  1) 결제대기(PAYMENT_PENDING) 참여 조회 → 없으면 거부
      *  2) 옵션 행 락 → 만료 처리(스케줄러)·취소와 직렬화
-     *  3) refresh로 상태 재확인 → 그 사이 만료(FAILED)되거나 
-     *  이미 결제됐으면 거부 (중복 결제 방지)
+     *  3) refresh로 상태 재확인 → 그 사이 만료되거나 이미 결제됐으면 거부
      *  4) 공구 ONGOING + 결제기한(now ≤ payment_deadline) 검증
-     *  5) 결제(스텁) — 실패 시 예외로 롤백
-     *  6) 상태 전이 PAYMENT_PENDING → PARTICIPATING
+     *  5) 결제 대기 주문 생성 → orderUid 반환 (결제 자체는 토스 결제창에서)
      *
      * 	@param groupBuySeq 결제할 공구 seq
      * 	@param memberSeq   승격된 회원 seq
+     * 	@return 결제 대기 주문 정보(orderUid/amount) — 프론트가 토스 결제창에 사용
      */
     @Transactional
-    public void confirmPromotedPayment(Long groupBuySeq, Long memberSeq) {
+    public ParticipateResponse startPromotedPayment(Long groupBuySeq, Long memberSeq) {
         // 1) 결제대기(승격) 참여 조회. 옵션 seq를 얻어 다음 단계에서 그 행을 잠근다.
         Participation participation = participationRepository
                 .findFirstByGroupBuySeqAndMemberSeqAndStatus(
@@ -376,12 +392,15 @@ public class GroupBuyService {
             throw new IllegalStateException("결제 기한이 지났습니다.");
         }
 
-        // 5) 결제 (스텁: 항상 성공). 실패 시 예외 → 트랜잭션 롤백
-        //    승격자는 participation이 이미 존재하므로 그 seq로 결제(order_item.participation_seq 연결)
-        paymentPort.pay(buildPaymentCommand(groupBuy, option, participation.getSeq(), memberSeq));
+        // 5) 결제 대기 주문 생성(orders + order_item, participation_seq 채움) → orderUid 반환.
+        //    승격자는 participation이 이미 존재하므로 그 seq로 주문을 만든다. 가격 스냅샷은 buildPaymentCommand 재사용.
+        //    실제 결제는 프론트가 이 orderUid로 토스 결제창에서 진행하고, 성공 시 confirmAfterPayment가 확정한다.
+        GroupBuyPaymentCommand snapshot = buildPaymentCommand(groupBuy, option, participation.getSeq(), memberSeq);
+        OrderCreateResultDto order = ordersCommandService.createGroupBuyOrder(
+                snapshot.memberSeq(), snapshot.participationSeq(), snapshot.optionsSeq(),
+                snapshot.originalPrice(), snapshot.finalPrice(), snapshot.participationDiscount());
 
-        // 6) 확정: PAYMENT_PENDING → PARTICIPATING. occupied_count는 이미 점유돼 있어 변동 없음.
-        participation.confirmPayment();
+        return ParticipateResponse.paymentRequired(order);
     }
 
     /**
@@ -481,7 +500,13 @@ public class GroupBuyService {
             // 무산: 공구 FAILED + 결제 완료자 전원 환불 후 FAILED (전원 일괄 결제취소)
             groupBuy.fail(now);
             participating.forEach(p -> {
-                paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                // 한 명의 PG 환불 실패가 나머지 전원의 마감을 막지 않도록 격리한다 (NFR-006).
+                // 실패 건은 로그로 남기고 FAILED 처리는 진행 — 환불 재시도는 별도 처리(미구현).
+                try {
+                    paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                } catch (Exception e) {
+                    log.error("[공구 무산 환불] 환불 실패 participationSeq={} (마감은 계속 진행)", p.getSeq(), e);
+                }
                 p.fail();
             });
         }
@@ -511,6 +536,30 @@ public class GroupBuyService {
      * 팀 합의: 제일 싼 옵션을 기준가로 두고 additional_price(0 이상)로 옵션별 가격차를 표현한다.
      * 결제·환불에서 공통으로 쓴다(참여/승격결제/취소/무산환불 모두 이 가격 기준).
      */
+    /**
+     * 결제 완료 후 공구 참여 확정 (결제 성공 이벤트를 받은 리스너가 호출).
+     *
+     * 참여 신청 때 옵션을 이미 점유(occupied_count +1)하고 participation은 PAYMENT_PENDING이었다.
+     * 결제가 끝났으므로 PARTICIPATING으로 확정한다 — 점유 수는 변하지 않는다(결제=확정, NFR-003).
+     * 옵션 행을 잠가 취소/만료 스케줄러와 직렬화하고, 상태 재확인으로 멱등을 보장한다
+     * (만료(EXPIRED)·중복 콜백 등으로 이미 PAYMENT_PENDING이 아니면 아무것도 안 함).
+     */
+    @Transactional
+    public void confirmAfterPayment(Long participationSeq) {
+        Participation participation = participationRepository.findById(participationSeq)
+                .orElseThrow(() -> new IllegalStateException("참여를 찾을 수 없습니다. seq=" + participationSeq));
+
+        // 옵션 행 락 — 취소/만료와 같은 행을 건드리므로 직렬화 (반환값은 락 목적이라 쓰지 않음)
+        groupBuyOptionsRepository.findBySeqForUpdate(participation.getGroupBuyOptions().getSeq())
+                .orElseThrow(() -> new IllegalStateException("옵션을 찾을 수 없습니다."));
+
+        entityManager.refresh(participation);
+        if (participation.getStatus() != ParticipationStatus.PAYMENT_PENDING) {
+            return; // 이미 확정/취소/만료됨 — 멱등(중복 결제 콜백 방어)
+        }
+        participation.confirmPayment(); // PAYMENT_PENDING → PARTICIPATING (변경감지로 UPDATE)
+    }
+
     private int optionFinalPrice(GroupBuy groupBuy, GroupBuyOptions option) {
         Integer additional = option.getOptions() != null ? option.getOptions().getAdditionalPrice() : null;
         return groupBuy.getFinalPrice() + (additional != null ? additional : 0);

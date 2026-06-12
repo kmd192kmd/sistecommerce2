@@ -219,9 +219,13 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
         for (Map.Entry<String, List<MyPageOrderItemDto>> entry : companyItems.entrySet()) {
             DeliveryInfo info = safeDeliveryInfo.get(entry.getKey());
 
+            boolean allCanceledOrReturned = !entry.getValue().isEmpty() && entry.getValue().stream()
+                    .allMatch(item -> item.getItemStatus() != null && (item.getItemStatus() == 6 || item.getItemStatus() == 9));
+            String defaultStatus = allCanceledOrReturned ? "CANCELED" : DELIVERY_READY_STATUS;
+
             deliveryGroups.add(MyPageDeliveryDto.builder()
                     .companyName(entry.getKey())
-                    .deliveryStatus(info != null ? info.status() : DELIVERY_READY_STATUS)
+                    .deliveryStatus(info != null ? info.status() : defaultStatus)
                     .trackingNumber(info != null ? info.trackingNumber() : TRACKING_PENDING)
                     .completedAt(info != null ? info.completedAt() : "")
                     .items(entry.getValue())
