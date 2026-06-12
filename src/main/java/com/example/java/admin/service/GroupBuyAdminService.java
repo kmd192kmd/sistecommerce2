@@ -29,7 +29,9 @@ import com.example.java.product.repository.OptionsRepository;
 import com.example.java.product.repository.ProductRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -144,7 +146,12 @@ public class GroupBuyAdminService {
                         .findByGroupBuySeqAndStatus(gb.getSeq(), ParticipationStatus.PARTICIPATING);
                 
                 for (Participation p : participations) {
-                    paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                    // 한 명의 PG 환불 실패가 나머지 강제중단을 막지 않도록 격리한다 (NFR-006).
+                    try {
+                        paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                    } catch (Exception e) {
+                        log.error("[공구 강제중단 환불] 환불 실패 participationSeq={} (중단은 계속 진행)", p.getSeq(), e);
+                    }
                     p.fail();
                 }
 

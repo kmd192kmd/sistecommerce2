@@ -36,7 +36,9 @@ import com.example.java.product.repository.ProductImageRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GroupBuyService {
@@ -498,7 +500,13 @@ public class GroupBuyService {
             // 무산: 공구 FAILED + 결제 완료자 전원 환불 후 FAILED (전원 일괄 결제취소)
             groupBuy.fail(now);
             participating.forEach(p -> {
-                paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                // 한 명의 PG 환불 실패가 나머지 전원의 마감을 막지 않도록 격리한다 (NFR-006).
+                // 실패 건은 로그로 남기고 FAILED 처리는 진행 — 환불 재시도는 별도 처리(미구현).
+                try {
+                    paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                } catch (Exception e) {
+                    log.error("[공구 무산 환불] 환불 실패 participationSeq={} (마감은 계속 진행)", p.getSeq(), e);
+                }
                 p.fail();
             });
         }
