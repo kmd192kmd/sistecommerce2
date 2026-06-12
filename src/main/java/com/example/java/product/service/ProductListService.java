@@ -22,6 +22,10 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
 import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.example.java.product.document.ProductDocument;
 import com.example.java.admin.repository.HotDealProductRepository;
 
@@ -139,48 +143,156 @@ public class ProductListService {
         }
 
         // 2. 그 외 일반 정렬/검색은 Elasticsearch 활용
-        Criteria criteria = new Criteria("status").is("NORMAL")
-                .and("hideYn").is("N")
-                .and("saleStatus").not().is("STOPPED");
-
-        if (showHotDealsOnly) {
-            if (activeHotDealProductSeqs == null || activeHotDealProductSeqs.isEmpty()) {
-                return new PageImpl<>(java.util.Collections.emptyList(), pageable, 0);
-            } else {
-                criteria = criteria.and("id").in(activeHotDealProductSeqs);
+        String queryJson;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode boolNode = mapper.createObjectNode();
+            
+            // must
+            ArrayNode mustArray = mapper.createArrayNode();
+            mustArray.add(mapper.createObjectNode().set("term", mapper.createObjectNode().put("status", "NORMAL")));
+            mustArray.add(mapper.createObjectNode().set("term", mapper.createObjectNode().put("hideYn", "N")));
+            
+            // must_not
+            ArrayNode mustNotArray = mapper.createArrayNode();
+            mustNotArray.add(mapper.createObjectNode().set("term", mapper.createObjectNode().put("saleStatus", "STOPPED")));
+            boolNode.set("must_not", mustNotArray);
+            
+            // filter
+            ArrayNode filterArray = mapper.createArrayNode();
+            
+            if (showHotDealsOnly) {
+                if (activeHotDealProductSeqs == null || activeHotDealProductSeqs.isEmpty()) {
+                    return new PageImpl<>(java.util.Collections.emptyList(), pageable, 0);
+                } else {
+                    ArrayNode hotDeals = mapper.createArrayNode();
+                    for (Long seq : activeHotDealProductSeqs) {
+                        hotDeals.add(seq);
+                    }
+                    filterArray.add(mapper.createObjectNode().set("terms", mapper.createObjectNode().set("id", hotDeals)));
+                }
             }
+            
+            List<Long> categorySeqs = categoryService.getDescendantCategorySeqs(categorySeq);
+            if (categorySeqs != null && !categorySeqs.isEmpty()) {
+                ArrayNode catArray = mapper.createArrayNode();
+                for (Long seq : categorySeqs) {
+                    catArray.add(seq);
+                }
+                filterArray.add(mapper.createObjectNode().set("terms", mapper.createObjectNode().set("categorySeq", catArray)));
+            }
+            
+            if ((minPrice != null && minPrice > 0) || (maxPrice != null && maxPrice < 999999999)) {
+                ObjectNode priceRange = mapper.createObjectNode();
+                ObjectNode rangeOpts = mapper.createObjectNode();
+                if (minPrice != null && minPrice > 0) {
+                    rangeOpts.put("gte", minPrice);
+                }
+                if (maxPrice != null && maxPrice < 999999999) {
+                    rangeOpts.put("lte", maxPrice);
+                }
+                priceRange.set("price", rangeOpts);
+                filterArray.add(mapper.createObjectNode().set("range", priceRange));
+            }
+            
+            if (minRating != null && minRating > 0.0) {
+                ObjectNode ratingRange = mapper.createObjectNode();
+                ratingRange.set("avgRating", mapper.createObjectNode().put("gte", minRating));
+                filterArray.add(mapper.createObjectNode().set("range", ratingRange));
+            }
+            
+            if (hideOutOfStock) {
+                filterArray.add(mapper.createObjectNode().set("term", mapper.createObjectNode().put("saleStatus", "ON_SALE")));
+            }
+            
+            boolNode.set("filter", filterArray);
+            
+            // Keyword (Advanced Search: Nori + Autocomplete + Chosung + Fuzzy + Vector)
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String trimmedKeyword = keyword.trim();
+                ObjectNode keywordBool = mapper.createObjectNode();
+                ArrayNode keywordShould = mapper.createArrayNode();
+                
+                if (com.example.java.product.util.ChosungUtil.isChosungOnly(trimmedKeyword)) {
+                    ObjectNode matchChosung = mapper.createObjectNode();
+                    matchChosung.set("productNameChosung", mapper.createObjectNode()
+                            .put("query", trimmedKeyword)
+                            .put("boost", 3.0));
+                    keywordShould.add(mapper.createObjectNode().set("match", matchChosung));
+                } else {
+                    ObjectNode matchName = mapper.createObjectNode();
+                    matchName.set("productName", mapper.createObjectNode()
+                            .put("query", trimmedKeyword)
+                            .put("boost", 3.0));
+                    keywordShould.add(mapper.createObjectNode().set("match", matchName));
+                    
+                    ObjectNode matchAuto = mapper.createObjectNode();
+                    matchAuto.set("productName.autocomplete", mapper.createObjectNode()
+                            .put("query", trimmedKeyword)
+                            .put("boost", 1.5));
+                    keywordShould.add(mapper.createObjectNode().set("match", matchAuto));
+                    
+                    ObjectNode fuzzyName = mapper.createObjectNode();
+                    fuzzyName.set("productName", mapper.createObjectNode()
+                            .put("value", trimmedKeyword)
+                            .put("fuzziness", "AUTO")
+                            .put("boost", 0.5));
+                    keywordShould.add(mapper.createObjectNode().set("fuzzy", fuzzyName));
+                }
+                ObjectNode boolInner = mapper.createObjectNode();
+                boolInner.set("should", keywordShould);
+                boolInner.put("minimum_should_match", 1);
+                keywordBool.set("bool", boolInner);
+                
+                mustArray.add(keywordBool);
+            }
+            
+            boolNode.set("must", mustArray);
+            
+            // Popularity score sorting
+            boolean isPopularitySort = (sortBy == null || "popularity".equalsIgnoreCase(sortBy) || "salesdesc".equalsIgnoreCase(sortBy));
+            if (isPopularitySort) {
+                ObjectNode functionScoreNode = mapper.createObjectNode();
+                functionScoreNode.set("query", mapper.createObjectNode().set("bool", boolNode));
+                
+                ArrayNode functions = mapper.createArrayNode();
+                ObjectNode scriptScore = mapper.createObjectNode();
+                ObjectNode script = mapper.createObjectNode();
+                
+                String scriptSource = "doc['salesCount'].value * 50.0 + doc['viewCount'].value * 30.0 + doc['avgRating'].value * 10.0 + doc['reviewCount'].value * 10.0";
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    scriptSource += " + (doc['embedding'].size() == 0 ? 0.0 : (cosineSimilarity(params.queryVector, 'embedding') + 1.0) * 100.0)";
+                    
+                    float[] queryVector = com.example.java.product.util.EmbeddingUtil.getEmbedding(keyword.trim());
+                    ArrayNode vectorArray = mapper.createArrayNode();
+                    for (float v : queryVector) {
+                        vectorArray.add(v);
+                    }
+                    ObjectNode paramsNode = mapper.createObjectNode();
+                    paramsNode.set("queryVector", vectorArray);
+                    script.set("params", paramsNode);
+                }
+                
+                script.put("source", scriptSource);
+                scriptScore.set("script", script);
+                functions.add(mapper.createObjectNode().set("script_score", scriptScore));
+                
+                functionScoreNode.set("functions", functions);
+                functionScoreNode.put("boost_mode", "sum");
+                
+                queryJson = mapper.writeValueAsString(mapper.createObjectNode().set("function_score", functionScoreNode));
+            } else {
+                queryJson = mapper.writeValueAsString(mapper.createObjectNode().set("bool", boolNode));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Elasticsearch query build failed", e);
         }
-
-        List<Long> categorySeqs = categoryService.getDescendantCategorySeqs(categorySeq);
-        if (categorySeqs != null && !categorySeqs.isEmpty()) {
-            criteria = criteria.and("categorySeq").in(categorySeqs);
-        }
-
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            criteria = criteria.and("productName").contains(keyword.trim());
-        }
-
-        if (minPrice != null && minPrice > 0) {
-            criteria = criteria.and("price").greaterThanEqual(minPrice);
-        }
-
-        if (maxPrice != null && maxPrice < 999999999) {
-            criteria = criteria.and("price").lessThanEqual(maxPrice);
-        }
-
-        if (minRating != null && minRating > 0.0) {
-            criteria = criteria.and("avgRating").greaterThanEqual(minRating);
-        }
-
-        if (hideOutOfStock) {
-            criteria = criteria.and("saleStatus").is("ON_SALE");
-        }
-
-        Query query = new CriteriaQuery(criteria);
+        
+        Query query = new StringQuery(queryJson);
         query.setPageable(pageable);
-
+        
         SearchHits<ProductDocument> searchHits = elasticsearchOperations.search(query, ProductDocument.class);
-
+        
         List<ProductDto> list = searchHits.getSearchHits().stream()
                 .map(SearchHit::getContent)
                 .map(doc -> ProductDto.builder()
@@ -210,8 +322,8 @@ public class ProductListService {
 
     private Sort getSortOption(String sortBy) {
 
-        if (sortBy == null) {
-            return Sort.by(Sort.Direction.DESC, "salesCount");
+        if (sortBy == null || "popularity".equalsIgnoreCase(sortBy) || "salesdesc".equalsIgnoreCase(sortBy) || "sales_desc".equalsIgnoreCase(sortBy)) {
+            return Sort.by(Sort.Direction.DESC, "_score");
         }
 
         return switch (sortBy.toLowerCase()) {
@@ -220,7 +332,7 @@ public class ProductListService {
             case "newest" -> Sort.by(Sort.Direction.DESC, "createdDate");
             case "review", "reviewdesc" -> Sort.by(Sort.Direction.DESC, "reviewCount");
             case "recommend" -> Sort.by(Sort.Direction.DESC, "recommend");
-            default -> Sort.by(Sort.Direction.DESC, "salesCount");
+            default -> Sort.by(Sort.Direction.DESC, "_score");
         };
     }
 

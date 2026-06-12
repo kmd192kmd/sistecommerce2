@@ -17,7 +17,7 @@
                     <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='salesDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == null or sort == 'salesDesc' or sort == ''} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
-                        <span th:if="${sort == null or sort == 'salesDesc' or sort == ''}">✓ </span>판매량순
+                        <span th:if="${sort == null or sort == 'salesDesc' or sort == ''}">✓ </span>인기순
                     </a>
                 </li>
                 <li>
