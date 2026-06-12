@@ -17,7 +17,7 @@
                 </div>
             </div>
             
-            <div id="chat-type-view" class="hidden flex-col items-center justify-center h-full p-6 space-y-4 bg-white">
+            <div id="chat-type-view" class="hidden flex-col items-center justify-center flex-1 p-6 space-y-4 bg-white">
                 <h3 class="font-bold text-gray-800 mb-4">어떤 상담을 원하시나요?</h3>
                 <button onclick="createRoom('AI')" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-transform active:scale-95">🤖 AI 챗봇 상담</button>
                 <button onclick="createRoom('ADMIN')" class="w-full bg-amber-500 text-slate-900 py-4 rounded-xl font-bold hover:bg-amber-600 transition-transform active:scale-95">👤 상담원 연결</button>
@@ -30,9 +30,10 @@
                 </button>
             </div>
 
-            <div id="chat-message-view" class="hidden flex-1 flex-col h-full bg-slate-50">
+            <div id="chat-message-view" class="hidden flex-1 flex-col min-h-0 bg-slate-50">
                 <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-                <div class="border-t border-gray-200 p-3 bg-white flex gap-2">
+                
+                <div class="border-t border-gray-200 p-3 bg-white flex gap-2 shrink-0">
                     <input type="text" id="chat-input" placeholder="메시지를 입력하세요" onkeypress="handleChatEnter(event)" 
                            class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
                     <button onclick="sendChatMessage()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors">전송</button>
@@ -50,8 +51,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
         <script th:inline="javascript">
-            // 💡 핵심 변경 1: username("chang")이 아닌 memberSeq(숫자)를 추출합니다.
-            // 비로그인 상태일 때 에러를 방지하기 위해 null 처리를 해줍니다.
+            // 현재 로그인한 회원의 PK (비로그인 시 null)
             const currentMemberSeq = /*[[${#authentication.principal != 'anonymousUser' ? #authentication.principal.memberSeq : null}]]*/ 1;
             
             let stompClient = null;
@@ -78,7 +78,6 @@
             }
 
             function loadChatList() {
-                // 💡 핵심 변경 2: 백엔드에서 Principal로 조회하므로 memberId 파라미터를 뺐습니다.
                 fetch(`/api/chat/rooms`)
                     .then(res => res.json())
                     .then(rooms => {
@@ -96,7 +95,6 @@
 
             function createRoom(category) {
                 let title = (category === 'AI') ? "🤖 AI 챗봇 상담" : "👤 상담원 연결";
-                // 💡 핵심 변경 3: memberId 파라미터 제거
                 fetch(`/api/chat/rooms?title=${encodeURIComponent(title)}&category=${category}`, { method: 'POST' })
                     .then(res => res.json())
                     .then(room => enterRoom(room.seq)); 
@@ -115,6 +113,7 @@
                 fetch(`/api/chat/rooms/${roomId}/messages`)
                     .then(res => res.json())
                     .then(messages => messages.forEach(msg => appendMessage(msg)));
+                
                 connectWebSocket(roomId);
             }
 
@@ -122,8 +121,7 @@
                 if(stompClient) stompClient.disconnect();
                 stompClient = Stomp.over(new SockJS('/ws-chat'));
                 stompClient.connect({}, () => {
-                    // 💡 핵심 변경 4: 백엔드 @SendTo("/topic/rooms/{roomId}") 경로와 'rooms' 복수형 맞춤
-                    stompClient.subscribe(`/topic/rooms/${roomId}`, (msg) => appendMessage(JSON.parse(msg.body)));
+                    stompClient.subscribe(`/topic/chat/${roomId}`, (msg) => appendMessage(JSON.parse(msg.body)));
                 });
             }
 
@@ -135,8 +133,7 @@
                 const input = document.getElementById('chat-input');
                 if(!input.value.trim()) return;
                 
-                // 💡 핵심 변경 5: senderId에 username 문자열이 아닌 memberSeq 숫자형 전달
-                stompClient.send(`/app/chat.sendMessage/${currentRoomId}`, {}, JSON.stringify({
+                stompClient.send(`/app/chat/${currentRoomId}/send`, {}, JSON.stringify({
                     senderType: 'USER',
                     senderId: currentMemberSeq, 
                     content: input.value
@@ -148,8 +145,11 @@
                 const div = document.getElementById('chat-messages');
                 const isMe = (msg.senderType === 'USER');
                 div.innerHTML += `<div class="flex flex-col w-full ${isMe ? 'items-end' : 'items-start'}">
-                    <div class="${isMe ? 'bg-amber-500' : 'bg-white border'} px-3 py-2 rounded-2xl text-sm max-w-[80%]">${msg.content}</div>
+                    <div class="${isMe ? 'bg-amber-500' : 'bg-white border'} px-3 py-2 rounded-2xl text-sm max-w-[80%] break-words">
+                        ${msg.content}
+                    </div>
                 </div>`;
+                // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동시킵니다.
                 div.scrollTop = div.scrollHeight;
             }
             

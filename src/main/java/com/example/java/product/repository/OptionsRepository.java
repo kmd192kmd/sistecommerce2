@@ -1,8 +1,9 @@
 package com.example.java.product.repository;
 
-import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -13,7 +14,8 @@ import com.example.java.product.entity.Options;
 import jakarta.persistence.LockModeType;
 
 public interface OptionsRepository extends JpaRepository<Options, Long> {
-    List<Options> findByProductSeq(Long productSeq);
+    // Paging version for product options
+    Page<Options> findByProductSeq(Long productSeq, Pageable pageable);
     
     /**
      * 결제 승인 시 재고 차감을 안전하게 처리하기 위한 잠금 조회.

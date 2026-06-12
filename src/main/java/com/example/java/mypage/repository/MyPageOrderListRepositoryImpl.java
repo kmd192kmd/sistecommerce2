@@ -21,6 +21,7 @@ import com.example.java.mypage.dto.MyPageDeliveryDto;
 import com.example.java.mypage.dto.MyPageOrderItemDto;
 import com.example.java.mypage.dto.MyPageOrderListDto;
 import com.example.java.mypage.dto.MyPageCancelReturnDto;
+import com.example.java.mypage.dto.MyPageOrderDetailDto;
 import com.example.java.orders.entity.OrderItem;
 import com.example.java.orders.entity.Orders;
 import com.querydsl.core.BooleanBuilder;
@@ -391,5 +392,129 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
         }
 
         return dtoList;
+    }
+
+    @Override
+    public MyPageOrderDetailDto findOrderDetailByOrderSeq(Long orderSeq) {
+        // 1. 주문 엔티티 조회
+        Orders orderEntity = queryFactory
+                .selectFrom(orders)
+                .where(orders.seq.eq(orderSeq))
+                .fetchOne();
+
+        if (orderEntity == null) {
+            return null;
+        }
+
+        // 2. 주문 상품 행 조회
+        List<Tuple> itemRows = queryFactory
+                .select(
+                        orderItem.orderSeq,
+                        orderItem.seq,
+                        product.seq,
+                        orderItem.productName,
+                        product.thumbnailUrl,
+                        orderItem.finalPrice,
+                        orderItem.quantity,
+                        orderItem.itemStatus,
+                        seller.deliveryCompany.name
+                )
+                .from(orderItem)
+                .join(options).on(orderItem.optionsSeq.eq(options.seq))
+                .join(product).on(options.product.seq.eq(product.seq))
+                .join(seller).on(product.sellerSeq.eq(seller.seq))
+                .where(orderItem.orderSeq.eq(orderSeq))
+                .fetch();
+
+        // 3. 배송 간이 행 조회
+        List<Tuple> deliveryRows = queryFactory
+                .select(
+                        delivery.orders.seq,
+                        delivery.deliveryCompany.name,
+                        delivery.status,
+                        delivery.tracking_number,
+                        delivery.completed_at
+                )
+                .from(delivery)
+                .where(delivery.orders.seq.eq(orderSeq))
+                .fetch();
+
+        // 4. 결제완료(status=2) 정보 조회
+        com.example.java.orders.entity.Payment paymentEntity = queryFactory
+                .selectFrom(com.example.java.orders.entity.QPayment.payment)
+                .where(com.example.java.orders.entity.QPayment.payment.orderSeq.eq(orderSeq)
+                        .and(com.example.java.orders.entity.QPayment.payment.status.eq(2)))
+                .orderBy(com.example.java.orders.entity.QPayment.payment.seq.desc())
+                .fetchFirst();
+
+        // 5. 배송비 및 수취인 정보 수집
+        List<com.example.java.delivery.entity.Delivery> deliveries = queryFactory
+                .selectFrom(delivery)
+                .where(delivery.orders.seq.eq(orderSeq))
+                .fetch();
+
+        int totalDeliveryFee = 0;
+        String recipientName = "고객";
+        String recipientPhone = "010-0000-0000";
+        String requestMemo = "";
+
+        if (deliveries != null && !deliveries.isEmpty()) {
+            totalDeliveryFee = deliveries.stream()
+                    .mapToInt(d -> d.getTotal_delivery_fee() != null ? d.getTotal_delivery_fee() : 0)
+                    .sum();
+            
+            com.example.java.delivery.entity.Delivery firstDel = deliveries.get(0);
+            recipientName = firstDel.getRecipient_name() != null ? firstDel.getRecipient_name() : "고객";
+            recipientPhone = firstDel.getRecipient_phone() != null ? firstDel.getRecipient_phone() : "010-0000-0000";
+            requestMemo = firstDel.getRequest_memo() != null ? firstDel.getRequest_memo() : "";
+        }
+
+        // 6. 결제 수단 포맷팅
+        String paymentMethodText = "카드";
+        if (paymentEntity != null) {
+            String provider = paymentEntity.getPgProvider() != null ? paymentEntity.getPgProvider() : "카드";
+            String methodText = "카드";
+            if (paymentEntity.getPaymentMethod() != null) {
+                methodText = switch (paymentEntity.getPaymentMethod()) {
+                    case 0 -> "카드";
+                    case 1 -> "계좌이체";
+                    case 2 -> "가상계좌";
+                    default -> "카드";
+                };
+            }
+            paymentMethodText = provider + " (" + methodText + ")";
+        }
+
+        // 7. 배송 그룹 빌드
+        Map<Long, Map<String, List<MyPageOrderItemDto>>> itemsByOrderAndCompany = groupItemsByOrderAndCompany(itemRows);
+        Map<Long, Map<String, DeliveryInfo>> deliveryInfoByOrderAndCompany = groupDeliveryInfoByOrderAndCompany(deliveryRows);
+
+        List<MyPageDeliveryDto> deliveryGroups = buildDeliveryCompanyGroups(
+                itemsByOrderAndCompany.get(orderSeq),
+                deliveryInfoByOrderAndCompany.get(orderSeq)
+        );
+
+        // 8. Dto 최종 취합
+        return MyPageOrderDetailDto.builder()
+                .orderSeq(orderSeq)
+                .orderUid(orderEntity.getOrderUid())
+                .orderDate(orderEntity.getOrderDate() != null ? orderEntity.getOrderDate().format(DATE_FORMATTER) : "")
+                .recipientName(recipientName)
+                .recipientPhone(recipientPhone)
+                .zipcode(orderEntity.getZipcode())
+                .address(orderEntity.getAddress())
+                .addressDetail(orderEntity.getAddressDetail())
+                .requestMemo(requestMemo)
+                .paymentMethod(paymentMethodText)
+                .productTotalPrice(orderEntity.getProductTotalPrice())
+                .discountPrice(nullToZero(orderEntity.getCouponDiscount()) + nullToZero(orderEntity.getHotdealDiscount()))
+                .deliveryFee(totalDeliveryFee)
+                .finalPrice(orderEntity.getFinalPrice())
+                .deliveries(deliveryGroups)
+                .build();
+    }
+
+    private int nullToZero(Integer value) {
+        return value == null ? 0 : value;
     }
 }
