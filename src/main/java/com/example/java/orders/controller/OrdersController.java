@@ -6,6 +6,7 @@ import com.example.java.orders.dto.CheckoutRequestDto;
 import com.example.java.orders.dto.OrderCreateResultDto;
 import com.example.java.orders.service.OrdersCommandService;
 import com.example.java.orders.service.OrdersViewService;
+import com.example.java.orders.dto.CheckoutItemDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,28 +42,62 @@ public class OrdersController {
     @GetMapping("/order/checkout")
     public String checkout(@RequestParam(value = "cartSeq", required = false) List<Long> cartSeqList,
                            @RequestParam(value = "memberCouponSeq", required = false) Long memberCouponSeq,
+                           @RequestParam(value = "directBuy", required = false, defaultValue = "false") Boolean directBuy,
+                           @RequestParam(value = "optionsSeq", required = false) Long optionsSeq,
+                           @RequestParam(value = "quantity", required = false) Integer quantity,
                            Authentication authentication,
                            Model model) {
 
         Long memberSeq = getLoginMemberSeq(authentication);
 
-        if (cartSeqList == null || cartSeqList.isEmpty()) {
-            throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
-        }
+        boolean isDirectBuy = Boolean.TRUE.equals(directBuy);
 
         model.addAttribute("loginMemberSeq", memberSeq);
-        model.addAttribute("selectedCartSeqList", cartSeqList);
-
-        model.addAttribute("cartItems", ordersViewService.getCheckoutItems(memberSeq, cartSeqList));
         model.addAttribute("deliveryAddresses", ordersViewService.getDeliveryAddresses(memberSeq));
         model.addAttribute("coupons", ordersViewService.getCoupons(memberSeq));
         model.addAttribute("selectedMemberCouponSeq", memberCouponSeq);
-        model.addAttribute("priceSummary", ordersViewService.getPriceSummary(memberSeq, memberCouponSeq, cartSeqList));
         model.addAttribute("order", ordersViewService.getOrderPreview());
 
         model.addAttribute("tossClientKey", tossClientKey);
         model.addAttribute("tossSuccessUrl", tossSuccessUrl);
         model.addAttribute("tossFailUrl", tossFailUrl);
+
+        if (isDirectBuy) {
+            if (optionsSeq == null) {
+                throw new IllegalArgumentException("바로구매할 상품 옵션을 선택해야 합니다.");
+            }
+
+            if (quantity == null || quantity < 1) {
+                throw new IllegalArgumentException("구매 수량은 1개 이상이어야 합니다.");
+            }
+
+            List<com.example.java.orders.dto.CheckoutItemDto> items =
+                    ordersViewService.getDirectCheckoutItems(optionsSeq, quantity);
+
+            model.addAttribute("cartItems", items);
+            model.addAttribute("priceSummary",
+                    ordersViewService.getPriceSummaryByItems(memberSeq, memberCouponSeq, items));
+
+            model.addAttribute("selectedCartSeqList", List.of());
+            model.addAttribute("directBuy", true);
+            model.addAttribute("directOptionsSeq", optionsSeq);
+            model.addAttribute("directQuantity", quantity);
+
+            return "order/checkout";
+        }
+
+        if (cartSeqList == null || cartSeqList.isEmpty()) {
+            throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
+        }
+
+        model.addAttribute("cartItems", ordersViewService.getCheckoutItems(memberSeq, cartSeqList));
+        model.addAttribute("priceSummary",
+                ordersViewService.getPriceSummary(memberSeq, memberCouponSeq, cartSeqList));
+
+        model.addAttribute("selectedCartSeqList", cartSeqList);
+        model.addAttribute("directBuy", false);
+        model.addAttribute("directOptionsSeq", null);
+        model.addAttribute("directQuantity", null);
 
         return "order/checkout";
     }

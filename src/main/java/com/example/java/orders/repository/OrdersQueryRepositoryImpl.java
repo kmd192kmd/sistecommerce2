@@ -6,6 +6,9 @@ import static com.example.java.member.entity.QCoupon.coupon;
 import static com.example.java.member.entity.QMemberCoupon.memberCoupon;
 import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
+import static com.example.java.delivery.entity.QDeliveryCompany.deliveryCompany;
+import static com.example.java.member.entity.QMemberships.memberships;
+import static com.example.java.product.entity.QSeller.seller;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +18,8 @@ import org.springframework.stereotype.Repository;
 
 import com.example.java.orders.dto.CheckoutItemDto;
 import com.example.java.orders.dto.CouponDto;
+import com.example.java.member.entity.Memberships;
+
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -164,7 +169,121 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 })
                 .toList();
     }
+    
+    @Override
+    public CheckoutItemDto findCheckoutItemByOptionsSeq(Long optionsSeq, Integer quantity) {
+        if (optionsSeq == null || quantity == null || quantity < 1) {
+            return null;
+        }
 
+        LocalDateTime now = LocalDateTime.now();
+
+        Tuple row = queryFactory
+                .select(
+                        options.seq,
+                        product.seq,
+                        product.productName,
+                        product.price,
+                        product.thumbnailUrl,
+                        options.additionalPrice,
+
+                        hotDealProduct.hotDeal.discountRate,
+                        hotDealProduct.hotDeal.discountPrice,
+
+                        options.color,
+                        options.optionsSize,
+                        options.volumeWeight,
+                        options.taste,
+                        options.storageType,
+                        options.scentIngredient,
+                        options.voltage,
+                        options.quantitySet,
+                        options.sizeSpec,
+                        options.storageCapacity,
+                        options.memory,
+                        options.switchAxis,
+                        options.connectionType,
+                        options.wearableSpec,
+                        options.materialType,
+                        options.optionsType
+                )
+                .from(options)
+                .join(options.product, product)
+                .leftJoin(hotDealProduct).on(
+                        hotDealProduct.options.seq.eq(options.seq),
+                        hotDealProduct.hotDeal.status.eq(1),
+                        hotDealProduct.hotDeal.startDate.loe(now),
+                        hotDealProduct.hotDeal.endDate.goe(now)
+                )
+                .where(
+                        options.seq.eq(optionsSeq),
+                        options.stock.goe(quantity),
+
+                        product.saleStatus.notIn("SOLD_OUT", "STOPPED"),
+                        product.hideYn.eq("N"),
+                        product.status.ne("DELETED")
+                )
+                .fetchOne();
+
+        if (row == null) {
+            return null;
+        }
+
+        Integer productPrice = row.get(product.price);
+        Integer additionalPrice = row.get(options.additionalPrice);
+
+        int originalUnitPrice = nullToZero(productPrice) + nullToZero(additionalPrice);
+
+        Integer hotdealRate = row.get(hotDealProduct.hotDeal.discountRate);
+        Integer hotdealPrice = row.get(hotDealProduct.hotDeal.discountPrice);
+
+        int hotdealUnitDiscount =
+                calculateHotdealUnitDiscount(originalUnitPrice, hotdealRate, hotdealPrice);
+
+        int finalUnitPrice = originalUnitPrice - hotdealUnitDiscount;
+
+        if (finalUnitPrice < 0) {
+            finalUnitPrice = 0;
+        }
+
+        String optionText = buildOptionText(
+                row.get(options.color),
+                row.get(options.optionsSize),
+                row.get(options.volumeWeight),
+                row.get(options.taste),
+                row.get(options.storageType),
+                row.get(options.scentIngredient),
+                row.get(options.voltage),
+                row.get(options.quantitySet),
+                row.get(options.sizeSpec),
+                row.get(options.storageCapacity),
+                row.get(options.memory),
+                row.get(options.switchAxis),
+                row.get(options.connectionType),
+                row.get(options.wearableSpec),
+                row.get(options.materialType),
+                row.get(options.optionsType)
+        );
+
+        String imageUrl = row.get(product.thumbnailUrl);
+
+        if (imageUrl == null || imageUrl.isBlank()) {
+            imageUrl = "/images/no-image.png";
+        }
+
+        return new CheckoutItemDto(
+                row.get(options.seq),
+                row.get(product.seq),
+                row.get(product.productName),
+                imageUrl,
+                optionText,
+                originalUnitPrice,
+                hotdealUnitDiscount,
+                finalUnitPrice,
+                quantity
+        );
+    }
+    
     @Override
     public List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq) {
         if (memberSeq == null) {
@@ -254,6 +373,60 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 discountRate,
                 makeDiscountText(discountType, discountPrice, discountRate)
         );
+    }
+    
+    @Override
+    public int findBaseDeliveryFeeByOptionsSeqList(List<Long> optionsSeqList) {
+        if (optionsSeqList == null || optionsSeqList.isEmpty()) {
+            return 0;
+        }
+
+        List<Tuple> rows = queryFactory
+                .select(
+                        deliveryCompany.seq,
+                        deliveryCompany.base_delivery_fee
+                )
+                .from(options)
+                .join(options.product, product)
+                .join(seller).on(product.sellerSeq.eq(seller.seq))
+                .join(seller.deliveryCompany, deliveryCompany)
+                .where(
+                        options.seq.in(optionsSeqList)
+                )
+                .groupBy(
+                        deliveryCompany.seq,
+                        deliveryCompany.base_delivery_fee
+                )
+                .fetch();
+
+        return rows.stream()
+                .mapToInt(row -> nullToZero(row.get(deliveryCompany.base_delivery_fee)))
+                .sum();
+    }
+
+    @Override
+    public boolean existsUsableMembership(Long memberSeq) {
+        if (memberSeq == null) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Integer result = queryFactory
+                .selectOne()
+                .from(memberships)
+                .where(
+                        memberships.member.seq.eq(memberSeq),
+                        memberships.status.in(
+                                Memberships.STATUS_ACTIVE,
+                                Memberships.STATUS_CANCELED
+                        ),
+                        memberships.expireAt.isNull()
+                                .or(memberships.expireAt.goe(now))
+                )
+                .fetchFirst();
+
+        return result != null;
     }
 
     private int calculateHotdealUnitDiscount(int originalUnitPrice,

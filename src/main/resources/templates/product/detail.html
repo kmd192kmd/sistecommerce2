@@ -411,7 +411,37 @@
 	        return;
 	    }
 
-	    alert('바로구매 기능을 연결해주세요.');
+	    const optionsSeq = document.getElementById('optionsSeq').value;
+	    const quantity = document.getElementById('quantity').value;
+
+	    if (!optionsSeq) {
+	        alert('옵션을 선택해주세요.');
+	        return;
+	    }
+
+	    if (!quantity || Number(quantity) < 1) {
+	        alert('수량은 1개 이상이어야 합니다.');
+	        return;
+	    }
+
+	    const selectEl = document.getElementById('optionsSeq');
+	    const optionEl = selectEl.options[selectEl.selectedIndex];
+	    const stock = Number(optionEl.dataset.stock || 0);
+
+	    if (stock <= 0) {
+	        alert('재고가 없는 상품입니다.');
+	        return;
+	    }
+
+	    if (Number(quantity) > stock) {
+	        alert(`재고(${stock}개)를 초과할 수 없습니다.`);
+	        return;
+	    }
+
+	    location.href =
+	        `/order/checkout?directBuy=true`
+	        + `&optionsSeq=${encodeURIComponent(optionsSeq)}`
+	        + `&quantity=${encodeURIComponent(quantity)}`;
 	}
 	
     /*
