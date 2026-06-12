@@ -341,26 +341,26 @@ public class GroupBuyService {
     }
 
     /**
-     * 승격자 결제 (대기열에서 승격된 결제대기자가 기한 내 직접 결제).
+     * 승격자 결제 시작 (대기열에서 승격된 결제대기자가 기한 내 직접 결제).
      *
-     * 승격 시 이미 옵션을 점유(occupied_count +1)했으므로, 이 메서드는 점유 수를 바꾸지 않고
-     * 상태만 PAYMENT_PENDING → PARTICIPATING 으로 "확정"시킨다.
-     * 결제가 완료돼야 비로소 확정 인원(PARTICIPATING 수)에 포함된다 (NFR-003 정합성).
+     * 승격 시 이미 옵션을 점유(occupied_count +1)했으므로 점유는 건드리지 않는다.
+     * 이 메서드는 그 참여에 대한 '결제 대기' 주문을 만들어 orderUid를 돌려줄 뿐이고,
+     * 실제 결제는 프론트가 토스 결제창에서 진행한다. 결제 성공 시 confirmAfterPayment가
+     * PAYMENT_PENDING → PARTICIPATING으로 확정한다 (정규 참여와 동일한 2단계 흐름으로 합류).
      *
      * 흐름:
      *  1) 결제대기(PAYMENT_PENDING) 참여 조회 → 없으면 거부
      *  2) 옵션 행 락 → 만료 처리(스케줄러)·취소와 직렬화
-     *  3) refresh로 상태 재확인 → 그 사이 만료(FAILED)되거나 
-     *  이미 결제됐으면 거부 (중복 결제 방지)
+     *  3) refresh로 상태 재확인 → 그 사이 만료되거나 이미 결제됐으면 거부
      *  4) 공구 ONGOING + 결제기한(now ≤ payment_deadline) 검증
-     *  5) 결제(스텁) — 실패 시 예외로 롤백
-     *  6) 상태 전이 PAYMENT_PENDING → PARTICIPATING
+     *  5) 결제 대기 주문 생성 → orderUid 반환 (결제 자체는 토스 결제창에서)
      *
      * 	@param groupBuySeq 결제할 공구 seq
      * 	@param memberSeq   승격된 회원 seq
+     * 	@return 결제 대기 주문 정보(orderUid/amount) — 프론트가 토스 결제창에 사용
      */
     @Transactional
-    public void confirmPromotedPayment(Long groupBuySeq, Long memberSeq) {
+    public ParticipateResponse startPromotedPayment(Long groupBuySeq, Long memberSeq) {
         // 1) 결제대기(승격) 참여 조회. 옵션 seq를 얻어 다음 단계에서 그 행을 잠근다.
         Participation participation = participationRepository
                 .findFirstByGroupBuySeqAndMemberSeqAndStatus(
@@ -390,12 +390,15 @@ public class GroupBuyService {
             throw new IllegalStateException("결제 기한이 지났습니다.");
         }
 
-        // 5) 결제 (스텁: 항상 성공). 실패 시 예외 → 트랜잭션 롤백
-        //    승격자는 participation이 이미 존재하므로 그 seq로 결제(order_item.participation_seq 연결)
-        paymentPort.pay(buildPaymentCommand(groupBuy, option, participation.getSeq(), memberSeq));
+        // 5) 결제 대기 주문 생성(orders + order_item, participation_seq 채움) → orderUid 반환.
+        //    승격자는 participation이 이미 존재하므로 그 seq로 주문을 만든다. 가격 스냅샷은 buildPaymentCommand 재사용.
+        //    실제 결제는 프론트가 이 orderUid로 토스 결제창에서 진행하고, 성공 시 confirmAfterPayment가 확정한다.
+        GroupBuyPaymentCommand snapshot = buildPaymentCommand(groupBuy, option, participation.getSeq(), memberSeq);
+        OrderCreateResultDto order = ordersCommandService.createGroupBuyOrder(
+                snapshot.memberSeq(), snapshot.participationSeq(), snapshot.optionsSeq(),
+                snapshot.originalPrice(), snapshot.finalPrice(), snapshot.participationDiscount());
 
-        // 6) 확정: PAYMENT_PENDING → PARTICIPATING. occupied_count는 이미 점유돼 있어 변동 없음.
-        participation.confirmPayment();
+        return ParticipateResponse.paymentRequired(order);
     }
 
     /**
