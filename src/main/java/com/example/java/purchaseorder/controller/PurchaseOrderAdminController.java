@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import com.example.java.product.entity.Options;
 import com.example.java.product.service.OptionsService;
 import com.example.java.purchaseorder.dto.PurchaseOrderListDTO;
 import com.example.java.purchaseorder.dto.PurchaseOrderSearchDTO;
@@ -23,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 public class PurchaseOrderAdminController {
 
 	private final PurchaseOrderService purchaseOrderService;
-	private final OptionsService optionsService;
 	
 	// TODO 목록화면 (재고현황목록에 발주등록 추가해야 함)
 	@GetMapping("/purchase-orders")
@@ -45,14 +43,8 @@ public class PurchaseOrderAdminController {
 	@GetMapping("/purchase-orders/new/{optionsSeq}")
 	public String showCreateForm(@PathVariable(value = "optionsSeq") Long optionsSeq, Model model) {
 
-		// TODO null 오류처리 필요
-		Options options = optionsService.findById(optionsSeq);
-		
-		// TODO Options 이 product랑 연결되면 수정해야 함
-		int supplyPrice = 200;
-
-	    model.addAttribute("options", options);
-	    model.addAttribute("supplyPrice", supplyPrice);
+		java.util.Map<String, Object> formData = purchaseOrderService.getCreateFormData(optionsSeq);
+		model.addAllAttributes(formData);
 
 	    return "admin/purchase-order/add";
 	}
