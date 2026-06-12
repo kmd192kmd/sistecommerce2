@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import com.example.java.member.entity.Member;
+import com.example.java.member.dto.LoginUserDto;
 
 import lombok.Getter;
 
@@ -56,6 +57,18 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         this.attributes = attributes;
         this.idToken    = idToken;
         this.userInfo   = userInfo;
+    }
+    
+    /** 회원/판매처/관리자 공통 로그인용 */
+    public CustomUserDetails(LoginUserDto user) {
+        this.memberSeq  = user.getSeq();
+        this.username   = user.getUsername();
+        this.password   = user.getPassword();
+        this.role       = user.getRole();
+        this.status     = user.getStatus();
+        this.attributes = Collections.emptyMap();
+        this.idToken    = null;
+        this.userInfo   = null;
     }
 
     /** OidcUser */
