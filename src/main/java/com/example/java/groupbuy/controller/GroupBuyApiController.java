@@ -94,21 +94,21 @@ public class GroupBuyApiController {
     }
 
     /**
-     * 승격자 결제.
-     * 예) POST /api/group-buys/7/promotion-payment  → "7번 공구에서 승격된 내 자리를 결제로 확정"
+     * 승격자 결제 시작.
+     * 예) POST /api/group-buys/7/promotion-payment  → "7번 공구에서 승격된 내 자리를 결제 진행"
      *
-     * 대기열에서 승격(PAYMENT_PENDING)된 회원이 결제기한 내 직접 결제해 참여중(PARTICIPATING)으로 전환한다.
-     * 점유는 승격 시 이미 잡혀 있어 변동 없고, 결제 완료로 확정 인원에 포함된다.
+     * 대기열에서 승격(PAYMENT_PENDING)된 회원의 자리에 대해 '결제 대기' 주문을 만들어 orderUid를 내려준다.
+     * 정규 참여와 동일하게 프론트가 그 값으로 토스 결제창을 띄우고, 결제 성공 시 PARTICIPATING으로 확정된다.
+     * 점유는 승격 시 이미 잡혀 있어 변동 없다.
      */
     @PostMapping("/{seq}/promotion-payment")
-    public ResponseEntity<Void> confirmPromotedPayment(
+    public ResponseEntity<ParticipateResponse> startPromotedPayment(
             @PathVariable(name = "seq") Long seq,
             @AuthenticationPrincipal CustomUserDetails user) {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        groupBuyService.confirmPromotedPayment(seq, user.getMemberSeq());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(groupBuyService.startPromotedPayment(seq, user.getMemberSeq()));
     }
 }
 
