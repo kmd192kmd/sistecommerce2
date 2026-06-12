@@ -29,7 +29,7 @@ import com.example.java.product.dto.ProductDto;
 import com.example.java.product.entity.Options;
 import com.example.java.product.entity.Product;
 import com.example.java.product.repository.OptionsRepository;
-import com.example.java.product.repository.ProductRepository;
+import com.example.java.product.repository.ProductDetailRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +43,7 @@ public class GroupBuyAdminService {
     private final GroupBuyQueryDslRepository repository;
     private final GroupBuyRepository groupBuyRepository;
     private final GroupBuyOptionsRepository groupBuyOptionsRepository;
-    private final ProductRepository productRepository;
+    private final ProductDetailRepository productDetailRepository;
     private final OptionsRepository optionsRepository;
     
     // 강제 중지 시 환불 및 참여 취소 처리를 위해 추가로 주입
@@ -91,7 +91,7 @@ public class GroupBuyAdminService {
     
     @Transactional
     public Long create(GroupBuyCreateDto dto) {
-    	Product product = productRepository.findById(dto.getProductSeq()).get();
+    	Product product = productDetailRepository.findById(dto.getProductSeq()).get();
 
         GroupBuy groupBuy = GroupBuy.builder()
                 .product(product)
@@ -134,9 +134,9 @@ public class GroupBuyAdminService {
         int offset = (int) pageable.getOffset();
         int size = pageable.getPageSize();
         // Fetch product DTOs (basic info) with paging
-        List<ProductDto> productDtos = productRepository.findProductsByPaging(offset, size);
+        List<ProductDto> productDtos = productDetailRepository.findProductsByPaging(offset, size);
         // Total count for pagination metadata
-        long total = productRepository.countProducts();
+        long total = productDetailRepository.countProducts();
 
         List<ProductOptionInfoDto> result = productDtos.stream().map(p -> {
             // Seller information
