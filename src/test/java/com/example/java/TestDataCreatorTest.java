@@ -15,6 +15,7 @@ import com.example.java.product.repository.SellerRepository;
 import com.example.java.delivery.entity.Delivery;
 import com.example.java.delivery.entity.DeliveryCompany;
 import com.example.java.delivery.repository.DeliveryRepository;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Disabled("Manual DB test data creator. Do not run during the default build.")
 @SpringBootTest
 public class TestDataCreatorTest {
 
