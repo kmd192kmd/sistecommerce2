@@ -2,7 +2,7 @@ package com.example.java.retail.service;
 
 import com.example.java.product.dto.ProductDto;
 import com.example.java.product.event.ProductUpdatedEvent;
-import com.example.java.product.repository.ProductRepository;
+import com.example.java.product.repository.ProductDetailRepository;
 import com.google.cloud.retail.v2.ProductServiceClient;
 import com.google.cloud.retail.v2.UpdateProductRequest;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class RetailProductEventListener {
 
     private final ProductServiceClient productServiceClient;
-    private final ProductRepository productRepository;
+    private final ProductDetailRepository productDetailRepository;
 
     @Value("${google.cloud.project-id}")
     private String projectId;
@@ -40,7 +40,7 @@ public class RetailProductEventListener {
     public void handleProductUpdatedEvent(ProductUpdatedEvent event) {
         Long productSeq = event.getProductSeq();
         try {
-            productRepository.findProductDetail(productSeq).ifPresentOrElse(
+            productDetailRepository.findProductDetail(productSeq).ifPresentOrElse(
                 dto -> syncProductToGoogle(dto),
                 () -> deleteProductFromGoogle(productSeq) // 만약 DB에 없으면(완전삭제 등) 구글에서도 삭제
             );
