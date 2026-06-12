@@ -171,3 +171,39 @@ EXCEPTION
         RAISE;
 END;
 /
+
+DECLARE
+  v_prod   NUMBER;
+  v_gb     NUMBER;
+  v_maxcnt NUMBER := 0;
+BEGIN
+  -- 뉴발란스 상품 재사용 (옵션 260/270/280 그대로)
+  SELECT seq INTO v_prod FROM product WHERE product_name = '뉴발란스 992 신발' AND ROWNUM = 1;
+
+  -- 새 진행중 공구 (마감 7일 뒤, 최소인원 1이라 테스트 쉬움)
+  INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at,
+                         min_count, max_count, original_price, final_price, status)
+  VALUES (group_buy_seq.NEXTVAL, v_prod,
+          SYSTIMESTAMP - INTERVAL '1' HOUR, SYSTIMESTAMP + INTERVAL '7' DAY, SYSTIMESTAMP,
+          1, 0, 300000, 260000, 'ONGOING')
+  RETURNING seq INTO v_gb;
+
+  -- 이 상품의 모든 옵션을 공구 옵션으로 (정원 40, 점유 0 → 자리 넉넉)
+  FOR o IN (SELECT seq FROM options WHERE product_seq = v_prod) LOOP
+    INSERT INTO group_buy_options (seq, group_buy_seq, options_seq, order_qty, occupied_count)
+    VALUES (group_buy_options_seq.NEXTVAL, v_gb, o.seq, 40, 0);
+    v_maxcnt := v_maxcnt + 40;
+  END LOOP;
+
+  UPDATE group_buy SET max_count = v_maxcnt WHERE seq = v_gb;
+
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('새 공구 seq = ' || v_gb);
+END;
+/
+
+UPDATE group_buy
+SET status   = 'ONGOING',
+    start_at = TIMESTAMP '2026-06-12 14:00:00'
+WHERE seq = 9;
+COMMIT;

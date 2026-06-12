@@ -44,8 +44,7 @@ public class OrdersCommandService {
         /*
             체크한 장바구니 상품만 조회한다.
          */
-        List<CheckoutItemDto> items =
-                ordersViewService.getCheckoutItems(memberSeq, requestDto.getCartSeq());
+        List<CheckoutItemDto> items = getCheckoutItemsByRequest(requestDto, memberSeq);
 
         if (items.isEmpty()) {
             throw new IllegalStateException("선택한 장바구니 상품이 없습니다.");
@@ -56,10 +55,10 @@ public class OrdersCommandService {
             화면에서 넘어온 amount는 신뢰하지 않는다.
          */
         PriceSummaryDto priceSummary =
-                ordersViewService.getPriceSummary(
+                ordersViewService.getPriceSummaryByItems(
                         memberSeq,
                         requestDto.getMemberCouponSeq(),
-                        requestDto.getCartSeq()
+                        items
                 );
 
         DeliveryInfo deliveryInfo = resolveDeliveryInfo(requestDto, memberSeq);
@@ -84,6 +83,7 @@ public class OrdersCommandService {
                 .memberSeq(memberSeq)
                 .memberCouponSeq(requestDto.getMemberCouponSeq())
                 .orderUid(orderUid)
+                .field(Boolean.TRUE.equals(requestDto.getDirectBuy()) ? "DIRECT" : "CART")
                 .productTotalPrice(productTotalPrice)
                 .couponDiscount(totalCouponDiscount)
                 .hotdealDiscount(hotdealDiscount)
@@ -113,6 +113,19 @@ public class OrdersCommandService {
                 orderName
         );
     }
+    
+    private List<CheckoutItemDto> getCheckoutItemsByRequest(CheckoutRequestDto requestDto,
+            Long memberSeq) {
+
+		if (Boolean.TRUE.equals(requestDto.getDirectBuy())) {
+		return ordersViewService.getDirectCheckoutItems(
+		requestDto.getOptionsSeq(),
+		requestDto.getQuantity()
+		);
+		}
+		
+		return ordersViewService.getCheckoutItems(memberSeq, requestDto.getCartSeq());
+	}
 
     /**
      * 공구 참여용 단건 '결제대기' 주문 생성. (장바구니 기반 createOrderFromCheckout과 별개 —
@@ -130,6 +143,10 @@ public class OrdersCommandService {
                                                     int originalPrice,
                                                     int finalPrice,
                                                     int participationDiscount) {
+
+        // 같은 참여에 대한 이전 미결제 결제대기 주문을 먼저 정리한다(중복 누적 방지).
+        // 결제 확정은 orderUid(주문 1개) 단위라, 새 주문 발급 전 이전 미결제 주문을 지워야 좀비 주문이 안 남는다.
+        cleanupPendingGroupBuyOrders(participationSeq);
 
         Options option = optionsRepository.findById(optionsSeq)
                 .orElseThrow(() -> new IllegalArgumentException("옵션을 찾을 수 없습니다. optionsSeq=" + optionsSeq));
@@ -188,6 +205,21 @@ public class OrdersCommandService {
         );
     }
 
+    /**
+     * 같은 공구 참여에 남아 있는 미결제(paymentStatus=0) 결제대기 주문을 삭제한다.
+     * 결제하기 재진입·이탈 후 재시도로 결제대기 주문이 중복 쌓이는 것을 막는다.
+     * 미결제 주문은 결제·환불 이력이 없어 물리 삭제해도 안전하다(결제완료 주문은 건드리지 않는다).
+     */
+    private void cleanupPendingGroupBuyOrders(Long participationSeq) {
+        for (OrderItem item : orderItemRepository.findByParticipationSeq(participationSeq)) {
+            Orders order = ordersRepository.findById(item.getOrderSeq()).orElse(null);
+            if (order != null && order.getPaymentStatus() != null && order.getPaymentStatus() == 0) {
+                orderItemRepository.delete(item);
+                ordersRepository.delete(order);
+            }
+        }
+    }
+
     private DeliveryInfo resolveDefaultDeliveryInfo(Long memberSeq) {
         return memberAddressService.myAddress(memberSeq).stream()
                 .filter(address -> "Y".equals(address.getDefaultYn()))
@@ -206,8 +238,18 @@ public class OrdersCommandService {
             throw new IllegalArgumentException("로그인 회원 번호가 없습니다.");
         }
 
-        if (requestDto.getCartSeq() == null || requestDto.getCartSeq().isEmpty()) {
-            throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
+        if (Boolean.TRUE.equals(requestDto.getDirectBuy())) {
+            if (requestDto.getOptionsSeq() == null) {
+                throw new IllegalArgumentException("바로구매할 상품 옵션을 선택해야 합니다.");
+            }
+
+            if (requestDto.getQuantity() == null || requestDto.getQuantity() < 1) {
+                throw new IllegalArgumentException("구매 수량은 1개 이상이어야 합니다.");
+            }
+        } else {
+            if (requestDto.getCartSeq() == null || requestDto.getCartSeq().isEmpty()) {
+                throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
+            }
         }
 
         if (requestDto.getAgreeRequired() == null || !requestDto.getAgreeRequired()) {

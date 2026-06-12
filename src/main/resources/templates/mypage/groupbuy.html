@@ -106,6 +106,14 @@
                             0원
                         </p>
                         <p class="text-xs text-slate-400 mt-1">확정가</p>
+
+                        <!-- 결제대기 상태일 때만 결제 재진입 버튼 (정규·승격 공용) -->
+                        <button th:if="${item.status.name() == 'PAYMENT_PENDING'}"
+                                type="button"
+                                class="gb-pay-btn mt-3 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg transition disabled:opacity-50"
+                                th:data-gb-seq="${item.groupBuySeq}">
+                            결제하기
+                        </button>
                     </div>
                 </div>
             </div>
@@ -124,5 +132,50 @@
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<!-- 토스 결제 SDK (결제대기 → 결제창 재진입). window.TossPayments 전역 제공 -->
+<script src="https://js.tosspayments.com/v2/standard"></script>
+<script th:inline="javascript">
+    // 서버가 심어준 토스 결제창 설정
+    const TOSS = {
+        clientKey:  /*[[${tossClientKey}]]*/  '',
+        successUrl: /*[[${tossSuccessUrl}]]*/ '',
+        failUrl:    /*[[${tossFailUrl}]]*/    '',
+        memberSeq:  /*[[${loginMemberSeq}]]*/ '',
+    };
+
+    // 결제대기(PAYMENT_PENDING) 항목의 "결제하기" 버튼 → promotion-payment 로 결제대기 주문을 받아 토스 결제창을 띄운다.
+    // 정규 참여자(이탈 후 재결제)와 대기열 승격자가 같은 API/흐름을 공유한다.
+    document.querySelectorAll('.gb-pay-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+            const seq = btn.dataset.gbSeq;
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/group-buys/' + seq + '/promotion-payment', { method: 'POST' });
+                if (!res.ok) {
+                    // 결제 기한 만료·이미 처리됨·미로그인 등
+                    alert('결제를 시작할 수 없어요. 결제 기한이 지났거나 이미 처리된 참여일 수 있어요.');
+                    return;
+                }
+                // ParticipateResponse: orderUid / amount / orderName
+                const order = await res.json();
+                const tossPayments = window.TossPayments(TOSS.clientKey);
+                const payment = tossPayments.payment({ customerKey: 'member-' + TOSS.memberSeq });
+                await payment.requestPayment({
+                    method: 'CARD',
+                    amount: { currency: 'KRW', value: Number(order.amount) },
+                    orderId: order.orderUid,
+                    orderName: order.orderName,
+                    successUrl: TOSS.successUrl,
+                    failUrl: TOSS.failUrl,
+                });
+            } catch (e) {
+                alert('결제 요청 중 오류가 발생했어요.');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+</script>
 </body>
 </html>
