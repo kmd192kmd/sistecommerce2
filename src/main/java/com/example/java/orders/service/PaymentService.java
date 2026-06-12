@@ -32,6 +32,7 @@ import com.example.java.stockhistory.entity.StockHistory;
 import com.example.java.stockhistory.enums.StockHistorySourceType;
 import com.example.java.stockhistory.enums.StockHistoryType;
 import com.example.java.stockhistory.repository.StockHistoryRepository;
+import com.example.java.orders.repository.OrdersQueryRepository;
 
 import java.util.LinkedHashMap;
 
@@ -84,7 +85,8 @@ public class PaymentService {
     private final ReturnRequestRepository returnRequestRepository;
     private final ReturnsRepository returnsRepository;
     private final com.example.java.common.util.SnowflakeIdGenerator snowflakeIdGenerator;
-
+    private final OrdersQueryRepository ordersQueryRepository;
+    
     @Value("${toss.secret-key}")
     private String tossSecretKey;
 
@@ -428,7 +430,15 @@ public class PaymentService {
             }
         }
 
-        int cancelAmount = calculateCancelAmount(cancelItems);
+        boolean allItemsCanceled = isAllItemsCanceled(allOrderItems, distinctOrderItemSeqSet);
+        
+        int cancelAmount = calculateOrderCancelAmount(
+                order,
+                allOrderItems,
+                cancelItems,
+                distinctOrderItemSeqSet,
+                allItemsCanceled
+        );
 
         if (cancelAmount <= 0) {
             throw new IllegalStateException("취소할 금액이 없습니다.");
@@ -500,7 +510,7 @@ public class PaymentService {
         order.setTotalRefundPrice(newTotalRefundPrice);
         order.setRemainPrice(newRemainPrice);
 
-        boolean allItemsCanceled = isAllItemsCanceled(allOrderItems, distinctOrderItemSeqSet);
+		
 
         if (allItemsCanceled) {
             /*
@@ -610,6 +620,51 @@ public class PaymentService {
         return cancelItems.stream()
                 .mapToInt(item -> nullToZero(item.getSubTotalPrice()) - nullToZero(item.getRefundPrice()))
                 .sum();
+    }
+    
+    /**
+     * 주문취소 환불금액 계산.
+     *
+     * 주문취소는 배송 시작 전 취소이므로,
+     * 취소 대상 택배사 묶음이 완전히 취소되는 경우 배송비도 환불한다.
+     *
+     * 반품은 이 메서드를 쓰면 안 된다.
+     * 반품은 배송 완료 후 환불이므로 배송비를 제외하고 calculateCancelAmount()만 사용한다.
+     */
+    private int calculateOrderCancelAmount(Orders order,
+                                           List<OrderItem> allOrderItems,
+                                           List<OrderItem> cancelItems,
+                                           Set<Long> currentCancelItemSeqSet,
+                                           boolean allItemsCanceled) {
+
+        /*
+            전체 주문취소라면 remainPrice 전액 환불.
+            remainPrice에는 실제 결제된 남은 금액이 들어 있으므로
+            배송비, 쿠폰 배분 오차, 이전 부분환불까지 가장 안전하게 반영된다.
+         */
+        if (allItemsCanceled) {
+            return getRemainPrice(order);
+        }
+
+        int productCancelAmount = calculateCancelAmount(cancelItems);
+
+        /*
+            멤버십 회원은 결제 시 배송비가 0원이므로
+            부분 주문취소에서도 배송비를 추가 환불하면 안 된다.
+         */
+        boolean usableMembership = ordersQueryRepository.existsUsableMembership(order.getMemberSeq());
+
+        if (usableMembership) {
+            return productCancelAmount;
+        }
+
+        int deliveryFeeRefundAmount = calculateCancelableDeliveryFee(
+                allOrderItems,
+                cancelItems,
+                currentCancelItemSeqSet
+        );
+
+        return productCancelAmount + deliveryFeeRefundAmount;
     }
 
     private Refund createRefundEntity(OrderItem item,
@@ -1212,5 +1267,87 @@ public class PaymentService {
         payment.setUpdateDate(now);
         ordersRepository.save(order);
         paymentRepository.save(payment);
+    }
+    
+    /**
+     * 선택 취소된 상품들이 속한 택배사 묶음 중,
+     * 해당 택배사의 남은 상품이 모두 취소되는 경우에만 배송비를 환불한다.
+     *
+     * 예)
+     * - CJ대한통운 상품 2개 중 2개 모두 취소 → CJ 배송비 환불
+     * - CJ대한통운 상품 2개 중 1개만 취소 → CJ 배송비 환불 안 함
+     *
+     * 현재 화면 정책상 주문취소는 같은 택배사 상품을 한 번에 묶어서 취소하므로
+     * 보통 선택한 택배사 배송비가 함께 환불된다.
+     */
+    private int calculateCancelableDeliveryFee(List<OrderItem> allOrderItems,
+                                               List<OrderItem> cancelItems,
+                                               Set<Long> currentCancelItemSeqSet) {
+
+        Map<Long, DeliveryCompany> selectedCompanyMap = new LinkedHashMap<>();
+
+        for (OrderItem item : cancelItems) {
+            DeliveryCompany company = getDeliveryCompanyByOrderItem(item);
+
+            if (company != null && company.getSeq() != null) {
+                selectedCompanyMap.put(company.getSeq(), company);
+            }
+        }
+
+        int deliveryFeeRefundAmount = 0;
+
+        for (Map.Entry<Long, DeliveryCompany> entry : selectedCompanyMap.entrySet()) {
+            Long companySeq = entry.getKey();
+            DeliveryCompany company = entry.getValue();
+
+            boolean allRemainingItemsOfCompanyCanceled = allOrderItems.stream()
+                    .filter(item -> !isAlreadyCanceledOrReturned(item))
+                    .filter(item -> {
+                        DeliveryCompany itemCompany = getDeliveryCompanyByOrderItem(item);
+                        return itemCompany != null
+                                && itemCompany.getSeq() != null
+                                && itemCompany.getSeq().equals(companySeq);
+                    })
+                    .allMatch(item -> currentCancelItemSeqSet.contains(item.getSeq()));
+
+            if (allRemainingItemsOfCompanyCanceled) {
+                deliveryFeeRefundAmount += nullToZero(company.getBase_delivery_fee());
+            }
+        }
+
+        return deliveryFeeRefundAmount;
+    }
+    
+    private DeliveryCompany getDeliveryCompanyByOrderItem(OrderItem item) {
+        if (item == null || item.getOptionsSeq() == null) {
+            return null;
+        }
+
+        Options options = optionsRepository.findById(item.getOptionsSeq())
+                .orElse(null);
+
+        if (options == null || options.getProduct() == null || options.getProduct().getSellerSeq() == null) {
+            return null;
+        }
+
+        Seller seller = sellerRepository.findById(options.getProduct().getSellerSeq())
+                .orElse(null);
+
+        if (seller == null) {
+            return null;
+        }
+
+        return seller.getDeliveryCompany();
+    }
+    
+    private boolean isAlreadyCanceledOrReturned(OrderItem item) {
+        if (item == null || item.getItemStatus() == null) {
+            return false;
+        }
+
+        return item.getItemStatus() == 6
+                || item.getItemStatus() == 7
+                || item.getItemStatus() == 8
+                || item.getItemStatus() == 9;
     }
 }
