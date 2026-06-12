@@ -126,7 +126,7 @@ public class OrdersViewService {
             afterHotdealProductPrice = 0;
         }
 
-        int deliveryFee = afterHotdealProductPrice >= 30000 ? 0 : 3000;
+        int deliveryFee = calculateDeliveryFee(memberSeq, items);
 
         CouponDto selectedCoupon =
                 ordersQueryRepository.findAvailableCouponByMemberSeqAndMemberCouponSeq(
@@ -149,5 +149,25 @@ public class OrdersViewService {
                 hotdealDiscount,
                 finalPrice
         );
+    }
+    
+    private int calculateDeliveryFee(Long memberSeq, List<CheckoutItemDto> items) {
+        boolean usableMembership = ordersQueryRepository.existsUsableMembership(memberSeq);
+
+        if (usableMembership) {
+            return 0;
+        }
+
+        List<Long> optionsSeqList = items.stream()
+                .map(CheckoutItemDto::optionsSeq)
+                .filter(optionsSeq -> optionsSeq != null)
+                .distinct()
+                .toList();
+
+        if (optionsSeqList.isEmpty()) {
+            return 0;
+        }
+
+        return ordersQueryRepository.findBaseDeliveryFeeByOptionsSeqList(optionsSeqList);
     }
 }

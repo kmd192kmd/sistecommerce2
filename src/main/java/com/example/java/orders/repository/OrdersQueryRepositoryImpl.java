@@ -6,6 +6,9 @@ import static com.example.java.member.entity.QCoupon.coupon;
 import static com.example.java.member.entity.QMemberCoupon.memberCoupon;
 import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
+import static com.example.java.delivery.entity.QDeliveryCompany.deliveryCompany;
+import static com.example.java.member.entity.QMemberships.memberships;
+import static com.example.java.product.entity.QSeller.seller;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +18,8 @@ import org.springframework.stereotype.Repository;
 
 import com.example.java.orders.dto.CheckoutItemDto;
 import com.example.java.orders.dto.CouponDto;
+import com.example.java.member.entity.Memberships;
+
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -368,6 +373,60 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 discountRate,
                 makeDiscountText(discountType, discountPrice, discountRate)
         );
+    }
+    
+    @Override
+    public int findBaseDeliveryFeeByOptionsSeqList(List<Long> optionsSeqList) {
+        if (optionsSeqList == null || optionsSeqList.isEmpty()) {
+            return 0;
+        }
+
+        List<Tuple> rows = queryFactory
+                .select(
+                        deliveryCompany.seq,
+                        deliveryCompany.base_delivery_fee
+                )
+                .from(options)
+                .join(options.product, product)
+                .join(seller).on(product.sellerSeq.eq(seller.seq))
+                .join(seller.deliveryCompany, deliveryCompany)
+                .where(
+                        options.seq.in(optionsSeqList)
+                )
+                .groupBy(
+                        deliveryCompany.seq,
+                        deliveryCompany.base_delivery_fee
+                )
+                .fetch();
+
+        return rows.stream()
+                .mapToInt(row -> nullToZero(row.get(deliveryCompany.base_delivery_fee)))
+                .sum();
+    }
+
+    @Override
+    public boolean existsUsableMembership(Long memberSeq) {
+        if (memberSeq == null) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Integer result = queryFactory
+                .selectOne()
+                .from(memberships)
+                .where(
+                        memberships.member.seq.eq(memberSeq),
+                        memberships.status.in(
+                                Memberships.STATUS_ACTIVE,
+                                Memberships.STATUS_CANCELED
+                        ),
+                        memberships.expireAt.isNull()
+                                .or(memberships.expireAt.goe(now))
+                )
+                .fetchFirst();
+
+        return result != null;
     }
 
     private int calculateHotdealUnitDiscount(int originalUnitPrice,

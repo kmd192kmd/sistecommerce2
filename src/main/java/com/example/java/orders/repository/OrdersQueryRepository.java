@@ -26,4 +26,17 @@ public interface OrdersQueryRepository {
      * 선택한 member_coupon.seq가 실제 로그인 회원의 사용 가능한 쿠폰인지 검증 후 조회.
      */
     CouponDto findAvailableCouponByMemberSeqAndMemberCouponSeq(Long memberSeq, Long memberCouponSeq);
+    
+    /**
+     * 선택한 옵션 목록의 택배사 기본 배송비 합계 조회.
+     * 같은 택배사는 중복 배송비를 제거하고 한 번만 계산한다.
+     */
+    int findBaseDeliveryFeeByOptionsSeqList(List<Long> optionsSeqList);
+
+    /**
+     * 회원이 멤버십 혜택 유지 상태인지 확인.
+     * active: 가입 상태
+     * canceled: 취소 예정이지만 만료일까지 혜택 유지
+     */
+    boolean existsUsableMembership(Long memberSeq);
 }
