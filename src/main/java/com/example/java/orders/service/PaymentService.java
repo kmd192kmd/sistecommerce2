@@ -433,8 +433,16 @@ public class PaymentService {
 
         /*
             결제 취소 성공 후 취소한 주문상품 수량만큼 재고를 복구한다.
+            단, 공구 주문(participation_seq != null)은 결제 때 일반 재고를 깎지 않았으므로(발주로 충당)
+            환불 때도 재고를 복구하지 않는다. 일반 주문상품만 복구 대상.
          */
-        increaseStockForOrderItems(cancelItems, order.getSeq());
+        List<OrderItem> stockRestoreTargets = cancelItems.stream()
+                .filter(item -> item.getParticipationSeq() == null)
+                .toList();
+
+        if (!stockRestoreTargets.isEmpty()) {
+            increaseStockForOrderItems(stockRestoreTargets, order.getSeq());
+        }
 
         LocalDateTime now = LocalDateTime.now();
 
