@@ -53,6 +53,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
@@ -193,6 +196,39 @@ public class PaymentService {
         order.setRemainPrice(amount);
 
         ordersRepository.save(order);
+
+        /*
+            결제 완료 후 배송 정보(Delivery, DeliveryHistory) 생성.
+            단, 공구 주문(participation_seq != null)은 배송이 '마감 확정 후 발주→입고→배송' 흐름이라
+            결제(참여) 시점엔 배송을 만들지 않는다. 일반 주문만 여기서 배송을 생성한다.
+         */
+        boolean isGroupBuyOrder = orderItems.stream()
+                .anyMatch(item -> item.getParticipationSeq() != null);
+
+        if (!isGroupBuyOrder) {
+            String field = order.getField();
+            String recipientName = "고객";
+            String recipientPhone = "010-0000-0000";
+            String requestMemo = "";
+            if (field != null && field.contains("|")) {
+                String[] parts = field.split("\\|", -1);
+                if (parts.length >= 1 && !parts[0].isBlank()) {
+                    recipientName = parts[0];
+                }
+                if (parts.length >= 2 && !parts[1].isBlank()) {
+                    recipientPhone = parts[1];
+                }
+                if (parts.length >= 3) {
+                    requestMemo = parts[2];
+                }
+            }
+
+            try {
+                deliveryService.createDelivery(order, recipientName, recipientPhone, requestMemo, "B2C");
+            } catch (Exception e) {
+                log.error("결제 승인 후 배송 정보 생성 중 에러 발생: ", e);
+            }
+        }
 
         /*
             공구 주문이면 '결제됨' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,
@@ -406,8 +442,16 @@ public class PaymentService {
 
         /*
             결제 취소 성공 후 취소한 주문상품 수량만큼 재고를 복구한다.
+            단, 공구 주문(participation_seq != null)은 결제 때 일반 재고를 깎지 않았으므로(발주로 충당)
+            환불 때도 재고를 복구하지 않는다. 일반 주문상품만 복구 대상.
          */
-        increaseStockForOrderItems(cancelItems, order.getSeq());
+        List<OrderItem> stockRestoreTargets = cancelItems.stream()
+                .filter(item -> item.getParticipationSeq() == null)
+                .toList();
+
+        if (!stockRestoreTargets.isEmpty()) {
+            increaseStockForOrderItems(stockRestoreTargets, order.getSeq());
+        }
 
         LocalDateTime now = LocalDateTime.now();
 

@@ -1092,7 +1092,7 @@ COMMENT ON COLUMN participation.payment_deadline IS '대기열의 첫 번째 사
 COMMENT ON COLUMN participation.promoted_at IS '대기열의 첫 번째 사용자가 승격된 시각';
 COMMENT ON COLUMN participation.created_at IS '참여 또는 승격된 시각';
 COMMENT ON COLUMN delivery.tracking_number IS 'unique';
-COMMENT ON COLUMN delivery.status IS 'READY/SHIPPING/DELIVERED/FAILED';
+COMMENT ON COLUMN delivery.status IS 'READY/SHIPPING/DELIVERED/FAILED/DELAYED/CANCELED';
 COMMENT ON COLUMN delivery.orders_seq IS '주문번호/발주번호는 배타적 check 제약조건이 걸려있음';
 COMMENT ON COLUMN delivery.purchase_order_seq IS '주문번호/발주번호는 배타적 check 제약조건이 걸려있음';
 
