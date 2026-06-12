@@ -28,18 +28,18 @@
                 <span class="w-20 font-bold text-gray-700">승인 여부</span>
 
                 <label class="flex items-center gap-1 cursor-pointer">
-                    <input type="radio"
-                           name="approvalStatus"
-                           value="ALL"
-                           th:checked="${approvalStatus == 'ALL'}">
-                    <span>전체</span>
+					<input type="radio"
+					       name="approvalStatus"
+					       value="ALL"
+					       th:checked="${approvalStatus == null or approvalStatus == '' or approvalStatus == 'ALL'}">
+					<span>전체</span>
                 </label>
                 <label class="flex items-center gap-1 cursor-pointer">
-                    <input type="radio"
-                           name="approvalStatus"
-                           value=""
-                           th:checked="${approvalStatus == null or approvalStatus == ''}">
-                    <span>승인 대기</span>
+					<input type="radio"
+					       name="approvalStatus"
+					       value="PENDING"
+					       th:checked="${approvalStatus == 'PENDING'}">
+					<span>승인 대기</span>
                 </label>
 
                 <label class="flex items-center gap-1 cursor-pointer">
