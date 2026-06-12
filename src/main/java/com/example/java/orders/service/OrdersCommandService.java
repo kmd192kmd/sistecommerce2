@@ -131,6 +131,10 @@ public class OrdersCommandService {
                                                     int finalPrice,
                                                     int participationDiscount) {
 
+        // 같은 참여에 대한 이전 미결제 결제대기 주문을 먼저 정리한다(중복 누적 방지).
+        // 결제 확정은 orderUid(주문 1개) 단위라, 새 주문 발급 전 이전 미결제 주문을 지워야 좀비 주문이 안 남는다.
+        cleanupPendingGroupBuyOrders(participationSeq);
+
         Options option = optionsRepository.findById(optionsSeq)
                 .orElseThrow(() -> new IllegalArgumentException("옵션을 찾을 수 없습니다. optionsSeq=" + optionsSeq));
 
@@ -186,6 +190,21 @@ public class OrdersCommandService {
                 savedOrder.getFinalPrice(),
                 productName
         );
+    }
+
+    /**
+     * 같은 공구 참여에 남아 있는 미결제(paymentStatus=0) 결제대기 주문을 삭제한다.
+     * 결제하기 재진입·이탈 후 재시도로 결제대기 주문이 중복 쌓이는 것을 막는다.
+     * 미결제 주문은 결제·환불 이력이 없어 물리 삭제해도 안전하다(결제완료 주문은 건드리지 않는다).
+     */
+    private void cleanupPendingGroupBuyOrders(Long participationSeq) {
+        for (OrderItem item : orderItemRepository.findByParticipationSeq(participationSeq)) {
+            Orders order = ordersRepository.findById(item.getOrderSeq()).orElse(null);
+            if (order != null && order.getPaymentStatus() != null && order.getPaymentStatus() == 0) {
+                orderItemRepository.delete(item);
+                ordersRepository.delete(order);
+            }
+        }
     }
 
     private DeliveryInfo resolveDefaultDeliveryInfo(Long memberSeq) {
