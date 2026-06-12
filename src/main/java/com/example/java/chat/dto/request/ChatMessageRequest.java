@@ -1,6 +1,7 @@
 package com.example.java.chat.dto.request;
 
-import com.example.java.chat.entity.SenderType;
+import com.example.java.chat.enums.SenderType;
+
 import lombok.Getter;
 import lombok.Setter;
 

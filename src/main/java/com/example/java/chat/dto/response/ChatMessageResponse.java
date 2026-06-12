@@ -1,26 +1,32 @@
 package com.example.java.chat.dto.response;
 
 import com.example.java.chat.entity.ChatMessage;
-import com.example.java.chat.entity.SenderType;
+import com.example.java.chat.enums.SenderType;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import java.time.format.DateTimeFormatter;
 
 @Getter
+@Setter
+@NoArgsConstructor
 public class ChatMessageResponse {
-    private Long id;
-    private Long roomId;
+    private Long seq;
+    private Long chatSeq;
     private SenderType senderType;
     private Long senderId;
     private String content;
-    private LocalDateTime createdAt;
+    private String createdAt;
 
+    // 엔티티를 받아 DTO로 안전하게 변환하는 생성자
     public ChatMessageResponse(ChatMessage message) {
-        this.id = message.getSeq();               // PK 매핑 (기존 getId -> getSeq)
-        this.roomId = message.getChatSeq();       // 방 번호 매핑 (기존 getRoomId -> getChatSeq)
+        this.seq = message.getSeq(); // 기존 getId()에서 getSeq()로 변경 반영!
+        this.chatSeq = message.getChatSeq();
         this.senderType = message.getSenderType();
-        this.senderId = message.getSenderId();    // 발신자 번호 (AI면 null이 들어감)
+        this.senderId = message.getSenderId();
         this.content = message.getContent();
-        this.createdAt = message.getCreatedAt();
+        if (message.getCreatedAt() != null) {
+            this.createdAt = message.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
     }
 }

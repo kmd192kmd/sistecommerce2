@@ -12,41 +12,49 @@ import org.springframework.stereotype.Controller;
 import com.example.java.chat.dto.request.ChatMessageRequest;
 import com.example.java.chat.dto.response.ChatMessageResponse;
 import com.example.java.chat.service.ChatService;
+import com.example.java.chat.service.AiChatbotService; // 👈 새로 추가
 import com.example.java.member.security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ChatStompController {
 
     private final ChatService chatService;
+    private final AiChatbotService aiChatbotService; // 👈 새로 추가
 
-    @MessageMapping("/chat.sendMessage/{roomId}")
-    @SendTo("/topic/rooms/{roomId}")
+    @MessageMapping("/chat/{roomId}/send")
+    @SendTo("/topic/chat/{roomId}")
     public ChatMessageResponse sendMessage(
             @DestinationVariable("roomId") Long roomId, 
             @Payload ChatMessageRequest request, 
             Principal principal) {
         
-        // 1. SecurityContext(Principal)에서 로그인한 사용자의 고유 번호 추출
         Long memberSeq = getMemberSeqFromPrincipal(principal);
+        log.info("채팅 수신 - 방: {}, 발신자: {}, 내용: {}", roomId, memberSeq, request.getContent());
 
-        // 2. ChatService가 요구하는 4개의 파라미터로 풀어서 전달합니다.
-        // 에러가 났던 부분 해결!
-        return chatService.saveMessage(
+        // 1. 사용자 메시지를 DB에 저장 (이 결과는 @SendTo를 통해 즉시 사용자의 화면에 나타남)
+        ChatMessageResponse userMessage = chatService.saveMessage(
             roomId, 
             memberSeq, 
             request.getContent(), 
             request.getSenderType()
         );
+
+        // 2. 비동기 AI 답변 생성 지시! 
+        // (사용자 화면에는 이미 위 메시지가 떴고, 백그라운드에서 AI가 생각하기 시작합니다)
+        // 챗봇용 방인지 체크하는 로직을 나중에 추가할 수 있습니다.
+        aiChatbotService.processUserMessageAndRespond(roomId, request.getContent());
+
+        return userMessage;
     }
 
-    /**
-     * Principal 객체로부터 안전하게 회원의 고유 번호(memberSeq)를 반환하는 유틸리티 메서드
-     */
     private Long getMemberSeqFromPrincipal(Principal principal) {
         if (principal == null) {
+            log.error("웹소켓 인증 정보 없음");
             throw new IllegalArgumentException("인증 정보가 존재하지 않습니다. 로그인이 필요합니다.");
         }
         
