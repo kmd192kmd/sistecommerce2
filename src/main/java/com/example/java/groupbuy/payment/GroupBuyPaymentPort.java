@@ -6,7 +6,7 @@ package com.example.java.groupbuy.payment;
  * 결제(주문 생성)는 토스 2단계 흐름으로 바뀌어 {@code OrdersCommandService.createGroupBuyOrder} +
  * 토스 결제창 + {@code PaymentService.confirmPayment}가 담당하므로, 이 포트에는 더 이상 결제(pay)가 없다.
  * 남은 건 취소/무산/강제중단 시의 환불뿐이라, 이 포트는 '환불 경계'로만 쓴다.
- * 현재는 {@link StubPaymentAdapter}로 대체하고, 추후 실제 토스 취소 구현체를 주입한다.
+ * 구현체는 {@link GroupBuyRefundAdapter}(participation_seq로 원주문을 찾아 토스 취소에 위임).
  */
 public interface GroupBuyPaymentPort {
 
