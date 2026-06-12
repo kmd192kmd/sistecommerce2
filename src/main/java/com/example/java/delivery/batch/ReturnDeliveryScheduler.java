@@ -25,9 +25,9 @@ public class ReturnDeliveryScheduler {
     private final OrderItemRepository orderItemRepository;
 
     /**
-     * 매일 새벽 6시에 반품 배송 상태를 체크하여, 반품 신청 후 48시간이 지난 건들을 자동으로 완료 처리한다.
+     * 매일 저녁 6시에 반품 배송 상태를 체크하여, 반품 신청 후 48시간이 지난 건들을 자동으로 완료 처리한다.
      */
-    @Scheduled(cron = "0 0 6 * * *") // 매일 새벽 6시 정각에 실행
+    @Scheduled(cron = "0 0 18 * * *") // 매일 저녁 6시(18시) 정각에 실행
     @Transactional
     public void autoCompleteReturnDeliveries() {
         LocalDateTime threshold = LocalDateTime.now().minusHours(48);

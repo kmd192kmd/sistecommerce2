@@ -17,8 +17,9 @@
             <svg th:if="${activeMenu == 'orders'}" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </a>
         
-        <a href="#" th:class="${activeMenu == 'returns'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
+        <a th:href="@{/mypage/returns}" th:class="${activeMenu == 'returns'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">
             <span class="flex-1">취소/반품/교환/환불내역</span>
+            <svg th:if="${activeMenu == 'returns'}" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </a>
         
         <a th:href="@{/mypage/membership}" th:class="${activeMenu == 'membership'} ? 'group flex items-center px-4 py-3 font-bold text-amber-600 bg-amber-50/50 rounded-xl transition-all' : 'group flex items-center px-4 py-3 font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all'">

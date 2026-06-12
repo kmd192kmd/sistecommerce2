@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.example.java.member.security.CustomUserDetails;
 import com.example.java.mypage.dto.MyPageOrderListDto;
+import com.example.java.mypage.dto.MyPageCancelReturnDto;
 import com.example.java.mypage.service.MyPageOrderListService;
 import com.example.java.orders.service.PaymentService;
 import com.example.java.orders.dto.OrderItemCancelRequestDto;
@@ -69,6 +70,26 @@ public class MyPageOrderListController {
         }
 
         return "mypage/orders";
+    }
+
+    /**
+     * 마이페이지 - 취소/반품/교환/환불내역
+     */
+    @GetMapping("/returns")
+    public String getCancelReturns(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            Model model) {
+
+        Long memberSeq = userDetails.getMemberSeq();
+
+        try {
+            List<MyPageCancelReturnDto> cancelReturns = myPageOrderListService.getCancelReturns(memberSeq);
+            model.addAttribute("cancelReturns", cancelReturns);
+        } catch (Exception e) {
+            log.error("취소/반품 내역 조회 중 에러 발생: ", e);
+        }
+
+        return "mypage/returns";
     }
     
     @PostMapping("/orders/{orderSeq}/cancel")
