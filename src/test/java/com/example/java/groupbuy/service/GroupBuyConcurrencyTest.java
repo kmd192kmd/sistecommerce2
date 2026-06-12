@@ -1,6 +1,9 @@
 package com.example.java.groupbuy.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -16,11 +19,16 @@ import org.testcontainers.containers.OracleContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import com.example.java.groupbuy.dto.ParticipateResponse;
 import com.example.java.groupbuy.dto.ParticipateResult;
 import com.example.java.groupbuy.entity.GroupBuyOptions;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.groupbuy.repository.ParticipationRepository;
 import com.example.java.groupbuy.repository.WaitingQueueRepository;
+import com.example.java.orders.dto.OrderCreateResultDto;
+import com.example.java.orders.service.OrdersCommandService;
+
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * 공구 참여 동시성 검증 (점유 + participation INSERT + 매진 시 대기열 분기 전체 흐름).
@@ -65,8 +73,16 @@ class GroupBuyConcurrencyTest {
     @Autowired
     WaitingQueueRepository waitingQueueRepository;
 
+    // 결제 대기 주문 생성(orders 도메인)은 이 테스트의 관심사(점유 동시성)가 아니고
+    // 테스트 스키마엔 orders 테이블이 없으므로 모킹한다. participate는 반환값만 사용한다.
+    @MockitoBean
+    OrdersCommandService ordersCommandService;
+
     @Test
     void 동시참여_정원은_정규참여_나머지는_대기열로_분기된다() throws InterruptedException {
+        when(ordersCommandService.createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new OrderCreateResultDto(1L, "GB-TEST", 0, "테스트상품"));
+
         ExecutorService pool = Executors.newFixedThreadPool(THREADS);
         CountDownLatch ready = new CountDownLatch(THREADS); // 전 스레드 준비 완료 신호
         CountDownLatch start = new CountDownLatch(1);        // 동시 출발 신호
@@ -81,8 +97,8 @@ class GroupBuyConcurrencyTest {
                 try {
                     start.await();
                     // 매진은 더 이상 예외가 아니라 QUEUED 반환이므로, 반환값으로 결과를 분류한다.
-                    ParticipateResult result = groupBuyService.participate(GROUP_BUY_SEQ, OPTION_SEQ, memberSeq);
-                    if (result == ParticipateResult.PARTICIPATED) {
+                    ParticipateResponse response = groupBuyService.participate(GROUP_BUY_SEQ, OPTION_SEQ, memberSeq);
+                    if (response.result() == ParticipateResult.PARTICIPATED) {
                         participated.incrementAndGet();
                     } else {
                         queued.incrementAndGet();

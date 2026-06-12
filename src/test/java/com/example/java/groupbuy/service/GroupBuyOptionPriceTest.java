@@ -1,8 +1,11 @@
 package com.example.java.groupbuy.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -20,7 +23,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.example.java.groupbuy.dto.GroupBuyOptionView;
 import com.example.java.groupbuy.entity.GroupBuyOptions;
-import com.example.java.groupbuy.payment.GroupBuyPaymentPort;
+import com.example.java.orders.dto.OrderCreateResultDto;
+import com.example.java.orders.service.OrdersCommandService;
 import com.example.java.product.entity.Options;
 
 /**
@@ -48,8 +52,10 @@ class GroupBuyOptionPriceTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    // participate가 호출하는 공구 주문 생성(orders 도메인)은 테스트 스키마에 테이블이 없으므로 모킹.
+    // 이 테스트의 관심사는 '넘기는 금액(finalPrice)'이라, 그 인자만 검증한다.
     @MockitoBean
-    GroupBuyPaymentPort paymentPort;
+    OrdersCommandService ordersCommandService;
 
     private static final AtomicLong SEQ = new AtomicLong(900);
 
@@ -81,11 +87,14 @@ class GroupBuyOptionPriceTest {
         // given: 기준가 8000 + 추가금 3000 옵션
         long[] ids = createWithAdditional(10, 3000);
 
-        // when: 참여(결제)
+        when(ordersCommandService.createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new OrderCreateResultDto(1L, "GB-TEST", 11000, "테스트상품"));
+
+        // when: 참여(자리 예약 + 결제 대기 주문 생성)
         groupBuyService.participate(ids[0], ids[1], 1L);
 
-        // then: 결제액 = 8000 + 3000 = 11000
-        verify(paymentPort).pay(argThat(c -> c.memberSeq() == 1L && c.finalPrice() == 11000));
+        // then: 결제 대기 주문 금액 = 8000 + 3000 = 11000
+        verify(ordersCommandService).createGroupBuyOrder(eq(1L), anyLong(), anyLong(), anyInt(), eq(11000), anyInt());
     }
 
     @Test
@@ -93,10 +102,13 @@ class GroupBuyOptionPriceTest {
         // given: 기준가 8000 + 추가금 0 (제일 싼 옵션)
         long[] ids = createWithAdditional(10, 0);
 
+        when(ordersCommandService.createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new OrderCreateResultDto(1L, "GB-TEST", 8000, "테스트상품"));
+
         groupBuyService.participate(ids[0], ids[1], 2L);
 
-        // then: 결제액 = 8000 + 0 = 8000
-        verify(paymentPort).pay(argThat(c -> c.memberSeq() == 2L && c.finalPrice() == 8000));
+        // then: 결제 대기 주문 금액 = 8000 + 0 = 8000
+        verify(ordersCommandService).createGroupBuyOrder(eq(2L), anyLong(), anyLong(), anyInt(), eq(8000), anyInt());
     }
 
     @Test

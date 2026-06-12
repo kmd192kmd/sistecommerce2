@@ -10,6 +10,8 @@ import com.example.java.orders.entity.OrderItem;
 import com.example.java.orders.entity.Orders;
 import com.example.java.orders.repository.OrderItemRepository;
 import com.example.java.orders.repository.OrdersRepository;
+import com.example.java.product.entity.Options;
+import com.example.java.product.repository.OptionsRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +30,7 @@ public class OrdersCommandService {
     private final OrdersRepository ordersRepository;
     private final OrderItemRepository orderItemRepository;
     private final MemberAddressService memberAddressService;
+    private final OptionsRepository optionsRepository;
 
     private static final Double DEFAULT_LATITUDE = 37.5665000;
     private static final Double DEFAULT_LONGITUDE = 126.9780000;
@@ -109,6 +112,91 @@ public class OrdersCommandService {
                 savedOrder.getFinalPrice(),
                 orderName
         );
+    }
+
+    /**
+     * 공구 참여용 단건 '결제대기' 주문 생성. (장바구니 기반 createOrderFromCheckout과 별개 —
+     * 공구는 1인1상품·수량1·쿠폰/핫딜 없음.)
+     *
+     * 결제 전 단계라 orderStatus=1(결제대기)/paymentStatus=0(미결제)으로 두고,
+     * order_item에 participation_seq를 채워 공구 주문임을 표시한다(이후 결제·환불·재고처리가 이걸로 분기).
+     * 반환한 orderUid로 프론트가 토스 결제창을 띄우고, 결제 성공 시 confirmPayment가 마무리한다.
+     * 가격은 모두 구매 시점 스냅샷(호출측 공구 서비스가 계산해 넘긴다). 배송지는 회원 기본배송지.
+     */
+    @Transactional
+    public OrderCreateResultDto createGroupBuyOrder(Long memberSeq,
+                                                    Long participationSeq,
+                                                    Long optionsSeq,
+                                                    int originalPrice,
+                                                    int finalPrice,
+                                                    int participationDiscount) {
+
+        Options option = optionsRepository.findById(optionsSeq)
+                .orElseThrow(() -> new IllegalArgumentException("옵션을 찾을 수 없습니다. optionsSeq=" + optionsSeq));
+
+        String productName = option.getProduct().getProductName(); // 구매 시점 상품명 스냅샷
+        DeliveryInfo delivery = resolveDefaultDeliveryInfo(memberSeq);
+
+        Orders order = Orders.builder()
+                .memberSeq(memberSeq)
+                .memberCouponSeq(null)
+                .orderUid(createOrderUid())
+                .productTotalPrice(originalPrice)
+                .couponDiscount(0)
+                .hotdealDiscount(0)
+                .finalPrice(finalPrice)
+                .totalRefundPrice(0)
+                .remainPrice(finalPrice)
+                .orderStatus(1)   // 결제대기
+                .paymentStatus(0) // 미결제
+                .orderDate(null)
+                .regdate(LocalDateTime.now())
+                .zipcode(delivery.zipcode())
+                .address(delivery.address())
+                .addressDetail(delivery.addressDetail())
+                .currLatitude(DEFAULT_LATITUDE)
+                .currLongitude(DEFAULT_LONGITUDE)
+                .build();
+
+        Orders savedOrder = ordersRepository.save(order);
+
+        OrderItem orderItem = OrderItem.builder()
+                .orderSeq(savedOrder.getSeq())
+                .participationSeq(participationSeq) // 공구 주문 식별 + 결제 후 확정 연결고리
+                .optionsSeq(optionsSeq)
+                .productName(productName)
+                .quantity(1)
+                .originalPrice(originalPrice)
+                .hotdealDiscount(0)
+                .couponDiscount(0)
+                .participationDiscount(participationDiscount)
+                .finalPrice(finalPrice)
+                .subTotalPrice(finalPrice) // 수량 1
+                .refundQuantity(0)
+                .refundPrice(0)
+                .itemStatus(0)
+                .returnQuantity(null)
+                .build();
+
+        orderItemRepository.save(orderItem);
+
+        return new OrderCreateResultDto(
+                savedOrder.getSeq(),
+                savedOrder.getOrderUid(),
+                savedOrder.getFinalPrice(),
+                productName
+        );
+    }
+
+    private DeliveryInfo resolveDefaultDeliveryInfo(Long memberSeq) {
+        return memberAddressService.myAddress(memberSeq).stream()
+                .filter(address -> "Y".equals(address.getDefaultYn()))
+                .findFirst()
+                .map(address -> new DeliveryInfo(
+                        address.getZipcode(),
+                        address.getAddress(),
+                        address.getAddressDetail()))
+                .orElseThrow(() -> new IllegalStateException("기본 배송지가 없습니다. 배송지를 먼저 등록해주세요."));
     }
 
     private void validateCheckoutRequest(CheckoutRequestDto requestDto,
