@@ -263,12 +263,14 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
                 .select(
                         orderItem,
                         orders,
-                        product
+                        product,
+                        seller.deliveryCompany.name
                 )
                 .from(orderItem)
                 .join(orders).on(orderItem.orderSeq.eq(orders.seq))
                 .join(options).on(orderItem.optionsSeq.eq(options.seq))
                 .join(product).on(options.product.seq.eq(product.seq))
+                .join(seller).on(product.sellerSeq.eq(seller.seq))
                 .where(orders.memberSeq.eq(memberSeq)
                         .and(orderItem.itemStatus.in(6, 7, 8, 9)))
                 .orderBy(orderItem.seq.desc())
@@ -335,6 +337,11 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
             else if (item.getItemStatus() == 8) statusText = "반품진행중";
             else if (item.getItemStatus() == 9) statusText = "반품완료";
 
+            String companyName = row.get(seller.deliveryCompany.name);
+            if (companyName == null || companyName.trim().isEmpty()) {
+                companyName = "배송 준비중";
+            }
+
             MyPageCancelReturnDto.MyPageCancelReturnDtoBuilder builder = MyPageCancelReturnDto.builder()
                     .orderItemSeq(item.getSeq())
                     .orderSeq(order.getSeq())
@@ -346,7 +353,8 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
                     .itemStatus(item.getItemStatus())
                     .thumbnailUrl(prod != null && prod.getThumbnailUrl() != null ? prod.getThumbnailUrl() : "/images/default-product.png")
                     .type(type)
-                    .statusText(statusText);
+                    .statusText(statusText)
+                    .deliveryCompany(companyName);
 
             if ("CANCEL".equals(type)) {
                 com.example.java.orders.entity.Refund ref = refundMap.get(item.getSeq());
@@ -391,7 +399,59 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
             dtoList.add(builder.build());
         }
 
-        return dtoList;
+        // 5. 그룹화 처리 (주문번호 + 타입 + 접수일자 + 택배사 기준)
+        Map<String, MyPageCancelReturnDto> groupMap = new LinkedHashMap<>();
+        for (MyPageCancelReturnDto dto : dtoList) {
+            String key = dto.getOrderUid() + "_" + dto.getType() + "_" + (dto.getRequestDate() != null ? dto.getRequestDate() : "") + "_" + (dto.getDeliveryCompany() != null ? dto.getDeliveryCompany() : "");
+            if (!groupMap.containsKey(key)) {
+                MyPageCancelReturnDto groupDto = MyPageCancelReturnDto.builder()
+                        .orderItemSeq(dto.getOrderItemSeq())
+                        .orderSeq(dto.getOrderSeq())
+                        .orderUid(dto.getOrderUid())
+                        .orderDate(dto.getOrderDate())
+                        .productName(dto.getProductName())
+                        .productPrice(dto.getProductPrice())
+                        .quantity(dto.getQuantity())
+                        .itemStatus(dto.getItemStatus())
+                        .thumbnailUrl(dto.getThumbnailUrl())
+                        .type(dto.getType())
+                        .statusText(dto.getStatusText())
+                        .requestDate(dto.getRequestDate())
+                        .uid(dto.getUid())
+                        .completedDate(dto.getCompletedDate())
+                        .reason(dto.getReason())
+                        .refundPrice(0)
+                        .originalPrice(0)
+                        .discountPrice(0)
+                        .deliveryFee(0)
+                        .paymentMethod(dto.getPaymentMethod())
+                        .deliveryCompany(dto.getDeliveryCompany())
+                        .items(new ArrayList<>())
+                        .build();
+                groupMap.put(key, groupDto);
+            }
+            
+            MyPageCancelReturnDto group = groupMap.get(key);
+            group.getItems().add(dto);
+            
+            group.setRefundPrice(group.getRefundPrice() + (dto.getRefundPrice() != null ? dto.getRefundPrice() : 0));
+            group.setOriginalPrice(group.getOriginalPrice() + (dto.getOriginalPrice() != null ? dto.getOriginalPrice() : 0));
+            group.setDiscountPrice(group.getDiscountPrice() + (dto.getDiscountPrice() != null ? dto.getDiscountPrice() : 0));
+            if (dto.getDeliveryFee() != null && dto.getDeliveryFee() > group.getDeliveryFee()) {
+                group.setDeliveryFee(dto.getDeliveryFee());
+            }
+        }
+
+        List<MyPageCancelReturnDto> groupedList = new ArrayList<>();
+        for (MyPageCancelReturnDto group : groupMap.values()) {
+            int subSize = group.getItems().size();
+            if (subSize > 1) {
+                group.setProductName(group.getProductName() + " 외 " + (subSize - 1) + "건");
+            }
+            groupedList.add(group);
+        }
+
+        return groupedList;
     }
 
     @Override

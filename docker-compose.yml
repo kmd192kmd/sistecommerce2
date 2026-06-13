@@ -36,6 +36,13 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
     restart: on-failure
+    command: >
+      sh -c "
+      if ! elasticsearch-plugin list | grep -q analysis-nori; then
+        elasticsearch-plugin install --batch analysis-nori;
+      fi;
+      exec /usr/local/bin/docker-entrypoint.sh elasticsearch
+      "
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.1

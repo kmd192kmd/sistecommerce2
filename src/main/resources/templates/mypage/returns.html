@@ -81,27 +81,31 @@
                         <div class="flex items-center gap-3 text-slate-400">
                             <span>주문번호:</span>
                             <span class="font-semibold text-slate-600" th:text="${cr.orderUid}">GM-17812...</span>
+                            <span class="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full" th:text="${cr.deliveryCompany}">배송사</span>
                         </div>
                     </div>
 
-                    <div class="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div class="flex gap-5 items-center">
-                            <div class="relative w-20 h-20 rounded-xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
-                                <img th:src="${cr.thumbnailUrl}" alt="상품 이미지" class="w-full h-full object-cover">
-                            </div>
-                            <div class="space-y-1">
-                                <h4 th:text="${cr.productName}" class="font-bold text-base text-slate-950 leading-tight">상품명</h4>
-                                <p class="text-sm text-slate-500 font-medium">
-                                    <span th:text="${#numbers.formatInteger(cr.productPrice, 0, 'COMMA') + '원'}">15,000원</span>
-                                    <span class="mx-1">/</span>
-                                    <span th:text="${cr.quantity + '개'}">1개</span>
-                                </p>
+                    <div class="p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                        <!-- 상품 목록 영역 (배송 묶음 전체 나열) -->
+                        <div class="flex-1 space-y-4 w-full">
+                            <div th:each="item : ${cr.items}" class="flex gap-5 items-center pb-3 last:pb-0 border-b border-slate-100/50 last:border-b-0">
+                                <div class="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
+                                    <img th:src="${item.thumbnailUrl}" alt="상품 이미지" class="w-full h-full object-cover">
+                                </div>
+                                <div class="space-y-0.5">
+                                    <h4 th:text="${item.productName}" class="font-bold text-sm text-slate-950 leading-tight">상품명</h4>
+                                    <p class="text-xs text-slate-500 font-medium">
+                                        <span th:text="${#numbers.formatInteger(item.productPrice, 0, 'COMMA') + '원'}">15,000원</span>
+                                        <span class="mx-1">/</span>
+                                        <span th:text="${item.quantity + '개'}">1개</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
                         <!-- 상태 및 상세조회 버튼 -->
-                        <div class="w-full md:w-auto flex justify-between md:justify-end items-center gap-6 self-stretch md:self-auto border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
-                            <div class="flex flex-col items-start md:items-center gap-1">
+                        <div class="w-full lg:w-auto flex justify-between lg:justify-end items-center gap-6 self-stretch lg:self-auto border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100">
+                            <div class="flex flex-col items-start lg:items-center gap-1">
                                 <span class="text-xs text-slate-400 font-bold">진행 상태</span>
                                 <span class="status-badge font-extrabold" 
                                       th:classappend="${cr.type == 'CANCEL' ? 'status-CANCEL' : (cr.itemStatus == 9 ? 'status-RETURNED' : 'status-RETURN')}"
@@ -128,7 +132,7 @@
                                     th:data-discount-price="${cr.discountPrice}"
                                     th:data-delivery-fee="${cr.deliveryFee}"
                                     onclick="openDetailModal(this)"
-                                    class="btn-detail py-2.5 px-6 border text-slate-700 bg-white border-slate-200 hover:border-amber-500 hover:text-amber-600 text-sm shadow-sm">
+                                    class="btn-detail py-2.5 px-6 border text-slate-700 bg-white border-slate-200 hover:border-amber-500 hover:text-amber-600 text-sm shadow-sm shrink-0">
                                 <span th:text="${cr.type == 'CANCEL' ? '취소 상세' : '반품 상세'}">상세 보기</span>
                             </button>
                         </div>

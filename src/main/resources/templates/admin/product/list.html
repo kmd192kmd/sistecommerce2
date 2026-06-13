@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>상품 관리</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
+
+    <style>
+        .btn-more {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-body);
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-more:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-white);
+            border-color: var(--text-muted);
+        }
+        
+        .thumb-img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body class="bg-body text-main">
+
+<div class="p-6 space-y-6">
+
+    <h4 class="text-title mb-4">상품 관리</h4>
+
+    <!-- ================= 검색 ================= -->
+    <div class="card">
+
+        <form method="get"
+              th:action="@{/admin/products}"
+              class="space-y-4">
+
+            <!-- 판매 상태 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">판매 상태</span>
+
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value=""
+						       th:checked="${search.saleStatus == null or search.saleStatus == ''}">
+						전체
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="ON_SALE"
+						       th:checked="${search.saleStatus == 'ON_SALE'}">
+						판매 중
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="SOLD_OUT"
+						       th:checked="${search.saleStatus == 'SOLD_OUT'}">
+						품절
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="saleStatus" value="STOPPED"
+						       th:checked="${search.saleStatus == 'STOPPED'}">
+						판매 중지
+                    </label>
+                </div>
+            </div>
+
+            <!-- 상품 상태 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">상품 상태</span>
+
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value=""
+                               th:checked="${search.status == null or search.status == ''}">
+                        전체
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="NORMAL"
+                               th:checked="${search.status == 'NORMAL'}">
+                        정상
+                    </label>
+
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="DELETED"
+                               th:checked="${search.status == 'DELETED'}">
+                        삭제
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 카테고리 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">카테고리</span>
+                <div class="flex gap-2">
+                    <select class="form-input w-32" name="category1">
+                        <option value="">카테고리 선택</option>
+                    </select>
+                    <select class="form-input w-32" name="category2">
+                        <option value="">카테고리 선택</option>
+                    </select>
+                    <select class="form-input w-32" name="categorySeq">
+                        <option value="">카테고리 선택</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 상품 가격 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">상품 가격</span>
+
+                <div class="flex items-center gap-2">
+                    <input type="number"
+				       name="priceFrom"
+				       th:value="${search.priceFrom}"
+				       class="form-input w-32">
+                    <span class="text-label">원 이상 ~</span>
+                    <input type="number"
+				       name="priceTo"
+				       th:value="${search.priceTo}"
+				       class="form-input w-32">
+                    <span class="text-label">원 이하</span>
+                </div>
+            </div>
+            
+            <!-- 기간 검색 (등록일) -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">기간 검색</span>
+	
+	            <div class="flex items-center gap-2">
+	                <input type="datetime-local"
+				       name="createdDateFrom"
+				       th:value="${search.createdDateFrom}"
+				       class="form-input">
+	                <span class="text-label">~</span>
+	                <input type="datetime-local"
+				       name="createdDateTo"
+				       th:value="${search.createdDateTo}"
+				       class="form-input">
+	            </div>
+	        </div>
+
+            <!-- 검색 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">검색어</span>
+
+                <div class="flex gap-2 w-full">
+                    <select class="form-input w-32" name="searchType">
+                        <option value="productName" th:selected="${search.searchType == 'productName'}">상품명</option>
+                        <option value="sellerName" th:selected="${search.searchType == 'sellerName'}">판매처</option>
+                    </select>
+
+                    <input type="text"
+				       name="keyword"
+				       th:value="${search.keyword}"
+				       class="form-input w-[28rem]"
+				       placeholder="검색어 입력">
+
+                    <button type="submit"
+                            class="btn btn-primary px-12 py-2 text-base">
+                        검색
+                    </button>
+
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- ================= 목록 ================= -->
+
+    <h4 class="text-title mb-4">검색결과</h4>
+    <div class="mb-4 flex gap-2">
+        <button class="btn btn-outline" onclick="updateSelectedStatus('DELETED')">
+            <i class="fa-solid fa-trash"></i> 선택상품 삭제
+        </button>
+        <button class="btn btn-outline" onclick="updateSelectedSaleStatus('SOLD_OUT')">
+            <i class="fa-solid fa-ban"></i> 선택상품 품절
+        </button>
+        <button class="btn btn-outline" onclick="updateSelectedSaleStatus('STOPPED')">
+            <i class="fa-solid fa-pause"></i> 선택상품 판매 중지
+        </button>
+        <button class="btn btn-outline" onclick="updateSelectedSaleStatus('ON_SALE')">
+            <i class="fa-solid fa-play"></i> 선택상품 판매 중
+        </button>
+    </div>
+
+    <div class="card">
+
+        <div class="overflow-x-auto">
+
+            <table class="w-full text-sm text-center">
+
+                <thead class="text-label border-b border-[var(--border-color)]">
+                <tr>
+                    <th class="p-2"><input type="checkbox" id="checkAll"></th>
+                    <th class="p-2">번호</th>
+                    <th class="p-2">상품상태</th>
+                    <th class="p-2">상품명</th>
+                    <th class="p-2">가격</th>
+                    <th class="p-2">옵션</th>
+                    <th class="p-2">대표 이미지</th>
+                    <th class="p-2">판매처</th>
+                    <th class="p-2">등록일</th>
+					<th class="p-2">관리</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="item : ${list}"
+                    class="border-b border-[var(--border-color)]">
+
+                    <td class="p-2"><input type="checkbox" class="checkItem" th:value="${item.productSeq}"></td>
+
+                    <td class="p-2"
+                        th:text="${item.optionsSeq}">
+                    </td>
+
+                    <td class="p-2 font-bold"
+                        th:text="${
+                            item.saleStatus == 'ON_SALE' ? '판매 중' :
+                            item.saleStatus == 'SOLD_OUT' ? '품절' :
+                            '판매 중지'
+                        }"
+                        th:classappend="${
+                            item.saleStatus == 'ON_SALE' ? ' text-green-500' :
+                            item.saleStatus == 'SOLD_OUT' ? ' text-gray-500' :
+                            ' text-red-500'
+                        }">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${item.productName}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${#numbers.formatInteger(item.price, 3, 'COMMA')}">
+                    </td>
+                    
+                    <td class="p-2"
+                        th:text="${item.optionsName != null ? item.optionsName : '-'}">
+                    </td>
+
+                    <td class="p-2 flex justify-center items-center">
+                        <img th:if="${item.thumbnailUrl != null}" th:src="${item.thumbnailUrl}" class="thumb-img" alt="대표 이미지">
+                        <div th:unless="${item.thumbnailUrl != null}" class="thumb-img flex justify-center items-center bg-gray-200">
+                            <i class="fa-solid fa-image text-gray-400"></i>
+                        </div>
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${item.sellerName}">
+                    </td>
+
+                    <td class="p-2"
+                        th:text="${#temporals.format(item.createdDate, 'yyyy.MM.dd')}">
+                    </td>
+                    
+					<td class="p-2">
+					    <a th:href="@{/admin/products/edit/{productSeq}(productSeq=${item.productSeq})}"
+					       class="btn btn-secondary text-sm px-3 py-1">
+					        <i class="fa-solid fa-check"></i> 상세페이지
+					    </a>
+					</td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ================= 더보기 ================= -->
+
+    <div class="mt-6">
+        <button id="loadMoreBtn"
+                th:if="${hasNext}"
+                class="btn btn-more">
+            더보기
+        </button>
+    </div>
+
+</div>
+
+<script>
+
+let page = 1;
+
+const saleStatusMap = {
+    ON_SALE: { text: "판매 중", color: "text-green-500" },
+    SOLD_OUT: { text: "품절", color: "text-gray-500" },
+    STOPPED: { text: "판매 중지", color: "text-red-500" }
+};
+
+const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMore);
+}
+
+// 전체 선택 기능
+document.getElementById('checkAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.checkItem');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+
+async function loadMore() {
+
+	const params = new URLSearchParams(window.location.search);
+	params.set("page", page);
+
+	const response =
+        await fetch(`/api/admin/products?${params.toString()}`);
+
+    const slice = await response.json();
+
+    const tbody = document.querySelector("tbody");
+
+    slice.content.forEach(item => {
+
+        const status = saleStatusMap[item.saleStatus] || {
+            text: item.saleStatus,
+            color: ""
+        };
+
+        const priceFormatted = item.price.toLocaleString();
+        const optionsName = item.optionsName ? item.optionsName : '-';
+        const createdDate = item.createdDate ? item.createdDate.substring(0,10).replaceAll("-", ".") : "-";
+        
+        let imgHtml = `<div class="thumb-img flex justify-center items-center bg-gray-200"><i class="fa-solid fa-image text-gray-400"></i></div>`;
+        if (item.thumbnailUrl) {
+            imgHtml = `<img src="${item.thumbnailUrl}" class="thumb-img" alt="대표 이미지">`;
+        }
+
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="border-b border-[var(--border-color)]">
+                <td class="p-2"><input type="checkbox" class="checkItem" value="${item.productSeq}"></td>
+                
+                <td class="p-2">${item.optionsSeq}</td>
+
+                <td class="p-2 font-bold ${status.color}">
+                    ${status.text}
+                </td>
+
+                <td class="p-2">${item.productName}</td>
+
+                <td class="p-2">
+                    ${priceFormatted}
+                </td>
+
+                <td class="p-2">${optionsName}</td>
+
+                <td class="p-2 flex justify-center items-center">
+                    ${imgHtml}
+                </td>
+
+                <td class="p-2">${item.sellerName}</td>
+
+                <td class="p-2">
+                    ${createdDate}
+                </td>
+                
+				<td class="p-2">
+				    <a href="/admin/products/edit/${item.productSeq}"
+				       class="btn btn-secondary text-sm px-3 py-1">
+				       <i class="fa-solid fa-check"></i> 상세페이지
+				    </a>
+				</td>
+
+            </tr>
+        `);
+
+    });
+
+    if (slice.last) {
+        loadMoreBtn.style.display = "none";
+    }
+
+    page++;
+}
+
+async function updateSelectedStatus(status) {
+    const checked = document.querySelectorAll('.checkItem:checked');
+    if (checked.length === 0) {
+        alert("선택된 상품이 없습니다.");
+        return;
+    }
+
+    if (!confirm("선택한 상품의 상태를 변경하시겠습니까?")) return;
+
+    // 중복된 productSeq 제거
+    const productSeqs = [...new Set(Array.from(checked).map(cb => parseInt(cb.value)))];
+
+    try {
+        const res = await fetch("/api/admin/products/status", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productSeqs, status })
+        });
+
+        if (res.ok) {
+            alert("변경되었습니다.");
+            location.reload();
+        } else {
+            alert("처리 중 오류가 발생했습니다.");
+        }
+    } catch (e) {
+        alert("처리 중 오류가 발생했습니다.");
+    }
+}
+
+async function updateSelectedSaleStatus(saleStatus) {
+    const checked = document.querySelectorAll('.checkItem:checked');
+    if (checked.length === 0) {
+        alert("선택된 상품이 없습니다.");
+        return;
+    }
+
+    if (!confirm("선택한 상품의 판매 상태를 변경하시겠습니까?")) return;
+
+    const productSeqs = [...new Set(Array.from(checked).map(cb => parseInt(cb.value)))];
+
+    try {
+        const res = await fetch("/api/admin/products/sale-status", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productSeqs, saleStatus })
+        });
+
+        if (res.ok) {
+            alert("변경되었습니다.");
+            location.reload();
+        } else {
+            alert("처리 중 오류가 발생했습니다.");
+        }
+    } catch (e) {
+        alert("처리 중 오류가 발생했습니다.");
+    }
+}
+
+</script>
+
+</body>
+</html>
