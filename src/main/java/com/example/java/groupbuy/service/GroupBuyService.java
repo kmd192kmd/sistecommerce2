@@ -496,6 +496,23 @@ public class GroupBuyService {
     }
 
     /**
+     * 결제대기자의 명시적 취소 (공구 + 로그인 회원 기준). 화면에서 호출하는 진입점.
+     *
+     * 토스 결제창에서 사용자가 '취소'를 누르면 failUrl이 아니라 requestPayment Promise가 reject되므로
+     * (모달이라 URL 리다이렉트 없음), 프론트의 catch에서 이 API를 호출해 자리를 즉시 반납한다.
+     * 1인 1상품이라 공구 + 회원이면 결제대기 참여가 유일하게 특정된다.
+     *
+     * 멱등: 결제대기 참여가 없으면(이미 결제완료/만료/취소) 아무 것도 하지 않는다.
+     */
+    @Transactional
+    public void cancelPendingPaymentByMember(Long groupBuySeq, Long memberSeq) {
+        participationRepository
+                .findFirstByGroupBuySeqAndMemberSeqAndStatus(
+                        groupBuySeq, memberSeq, ParticipationStatus.PAYMENT_PENDING)
+                .ifPresent(p -> cancelPendingPayment(p.getSeq()));
+    }
+
+    /**
      * 공구 마감 처리 (스케줄러가 마감 시각 지난 공구마다 1건씩 호출) — 확정/무산 판정.
      *
      * 확정 인원은 결제 완료(PARTICIPATING) 수만 센다. 결제대기(PAYMENT_PENDING) 승격자는

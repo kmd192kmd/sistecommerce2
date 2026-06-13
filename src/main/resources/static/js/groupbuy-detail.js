@@ -8056,8 +8056,13 @@ function C({ id: e, data: t, toss: n }) {
 				return;
 			}
 			await h(n);
-		} catch {
-			u("결제 요청 중 오류가 발생했습니다.");
+		} catch (t) {
+			if (t && (t.code === "USER_CANCEL" || t.code === "PAY_PROCESS_CANCELED")) {
+				try {
+					await fetch(`/api/group-buys/${e}/cancel-pending`, { method: "POST" });
+				} catch {}
+				u("결제를 취소했어요. 예약했던 자리를 반납했습니다.");
+			} else u("결제 요청 중 오류가 발생했습니다.");
 		} finally {
 			c(!1);
 		}
