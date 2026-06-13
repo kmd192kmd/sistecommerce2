@@ -554,6 +554,36 @@
 
     function closeModal() {
         document.getElementById('trackModal').classList.remove('active');
+        
+        // 모달창 닫힘 애니메이션(300ms) 완료 후 상태 초기화 (이전 상태가 비치는 UX 개선)
+        setTimeout(() => {
+            const step1Circle = document.querySelector('#step1 .step-circle');
+            const step1Label = document.querySelector('#step1 .step-label');
+            const step2Circle = document.querySelector('#step2 .step-circle');
+            const step2Label = document.querySelector('#step2 .step-label');
+            const step3Circle = document.querySelector('#step3 .step-circle');
+            const step3Label = document.querySelector('#step3 .step-label');
+            const progress = document.getElementById('stepProgress');
+            const statusTextEl = document.getElementById('modalStatusText');
+            const trackingNumEl = document.getElementById('modalTrackingNumber');
+
+            const resetClasses = (circle, label) => {
+                if (circle && label) {
+                    circle.className = "step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300";
+                    label.className = "step-label text-xs font-bold text-slate-400 mt-2 transition-all";
+                }
+            };
+
+            resetClasses(step1Circle, step1Label);
+            resetClasses(step2Circle, step2Label);
+            resetClasses(step3Circle, step3Label);
+            if (progress) progress.style.width = "0%";
+            if (statusTextEl) {
+                statusTextEl.innerText = 'READY';
+                statusTextEl.className = "font-bold text-blue-600";
+            }
+            if (trackingNumEl) trackingNumEl.innerText = '-';
+        }, 300);
     }
 
     function showReturnAlertModal() {
