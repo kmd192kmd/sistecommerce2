@@ -207,3 +207,85 @@ SET status   = 'ONGOING',
     start_at = TIMESTAMP '2026-06-12 14:00:00'
 WHERE seq = 9;
 COMMIT;
+
+-- 공구 테스트용 더미 20개 더 만들기(상품 20개 + 그 상품에 대한 공구 20개)
+
+DECLARE
+    v_seller NUMBER;
+    v_cat    NUMBER;
+    v_prod   NUMBER;
+    v_gb     NUMBER;
+    v_opt    NUMBER;
+BEGIN
+    SELECT seq INTO v_seller FROM seller   WHERE name = '판매처 1' AND ROWNUM = 1;
+    SELECT seq INTO v_cat    FROM category WHERE category_name = '운동화' AND depth_level = 2 AND ROWNUM = 1;
+
+    FOR i IN 1..20 LOOP
+        -- 상품 (이름에 번호 붙여 화면에서 구분)
+        INSERT INTO product (seq, seller_seq, category_seq, product_name, price, content, approval_status)
+        VALUES (product_seq.NEXTVAL, v_seller, v_cat, '뉴발란스 992 신발 (' || i || ')', 300000,
+                '테스트용 진행중 공구 더미', 'APPROVED')
+        RETURNING seq INTO v_prod;
+
+        -- 대표 이미지 (기존 뉴발란스 이미지 재사용)
+        INSERT INTO product_image (seq, product_seq, image_url, public_id, thumbnail_yn)
+        VALUES (product_image_seq.NEXTVAL, v_prod, '/src/images/product/newbalance992.jpg', 'newbalance992', 'Y');
+
+        -- 진행중 공구 (1시간 전 시작 ~ 7일 뒤 마감, min_count=1 이라 테스트 쉬움)
+        INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at,
+                               min_count, max_count, original_price, final_price, status)
+        VALUES (group_buy_seq.NEXTVAL, v_prod,
+                SYSTIMESTAMP - INTERVAL '1' HOUR, SYSTIMESTAMP + INTERVAL '7' DAY, SYSTIMESTAMP,
+                1, 120, 300000, 260000, 'ONGOING')
+        RETURNING seq INTO v_gb;
+
+        -- 옵션 260/270/280 (각 정원 40, 점유 0 → 자리 넉넉, max_count=120과 일치)
+        INSERT INTO options (seq, product_seq, options_size, stock, safety_stock, additional_price)
+        VALUES (options_seq.NEXTVAL, v_prod, '260', 100, 10, 0) RETURNING seq INTO v_opt;
+        INSERT INTO group_buy_options (seq, group_buy_seq, options_seq, order_qty, occupied_count)
+        VALUES (group_buy_options_seq.NEXTVAL, v_gb, v_opt, 40, 0);
+
+        INSERT INTO options (seq, product_seq, options_size, stock, safety_stock, additional_price)
+        VALUES (options_seq.NEXTVAL, v_prod, '270', 100, 10, 0) RETURNING seq INTO v_opt;
+        INSERT INTO group_buy_options (seq, group_buy_seq, options_seq, order_qty, occupied_count)
+        VALUES (group_buy_options_seq.NEXTVAL, v_gb, v_opt, 40, 0);
+
+        INSERT INTO options (seq, product_seq, options_size, stock, safety_stock, additional_price)
+        VALUES (options_seq.NEXTVAL, v_prod, '280', 100, 10, 0) RETURNING seq INTO v_opt;
+        INSERT INTO group_buy_options (seq, group_buy_seq, options_seq, order_qty, occupied_count)
+        VALUES (group_buy_options_seq.NEXTVAL, v_gb, v_opt, 40, 0);
+    END LOOP;
+
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('진행중 공구 더미 20건 등록 완료.');
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('오류: ' || SQLERRM);
+        RAISE;
+END;
+/
+
+-- 관련 시퀀스를 각 테이블의 max(seq)+1로 맞추는 보정 SQL
+
+DECLARE
+    v_max NUMBER;
+BEGIN
+    SELECT NVL(MAX(seq),0)+1 INTO v_max FROM product;
+    EXECUTE IMMEDIATE 'ALTER SEQUENCE product_seq RESTART START WITH ' || v_max;
+
+    SELECT NVL(MAX(seq),0)+1 INTO v_max FROM options;
+    EXECUTE IMMEDIATE 'ALTER SEQUENCE options_seq RESTART START WITH ' || v_max;
+
+    SELECT NVL(MAX(seq),0)+1 INTO v_max FROM product_image;
+    EXECUTE IMMEDIATE 'ALTER SEQUENCE product_image_seq RESTART START WITH ' || v_max;
+
+    SELECT NVL(MAX(seq),0)+1 INTO v_max FROM group_buy;
+    EXECUTE IMMEDIATE 'ALTER SEQUENCE group_buy_seq RESTART START WITH ' || v_max;
+
+    SELECT NVL(MAX(seq),0)+1 INTO v_max FROM group_buy_options;
+    EXECUTE IMMEDIATE 'ALTER SEQUENCE group_buy_options_seq RESTART START WITH ' || v_max;
+
+    DBMS_OUTPUT.PUT_LINE('시퀀스 5개 보정 완료.');
+END;
+/

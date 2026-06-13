@@ -170,7 +170,14 @@
                     failUrl: TOSS.failUrl,
                 });
             } catch (e) {
-                alert('결제 요청 중 오류가 발생했어요.');
+                // 토스 결제창에서 '취소'를 누르면 failUrl이 아니라 여기로 reject된다(모달이라 URL 안 바뀜).
+                // 예약해둔 결제대기 자리를 즉시 반납한다 (안 그러면 10분 만료까지 묶임).
+                if (e && (e.code === 'USER_CANCEL' || e.code === 'PAY_PROCESS_CANCELED')) {
+                    try { await fetch('/api/group-buys/' + seq + '/cancel-pending', { method: 'POST' }); } catch (_) {}
+                    alert('결제를 취소했어요. 예약했던 자리를 반납했습니다.');
+                } else {
+                    alert('결제 요청 중 오류가 발생했어요.');
+                }
             } finally {
                 btn.disabled = false;
             }
