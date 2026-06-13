@@ -206,4 +206,46 @@ class GroupBuyPromotionPaymentTest {
 
         verify(paymentPort, times(0)).refund(anyLong()); // 결제 전이라 환불 없음
     }
+
+    @Test
+    void 결제대기자가_명시적_취소하면_CANCELLED되고_점유반납후_다음대기자가_승격된다() {
+        // given: 정원1(이미 점유). member9가 결제대기(기한 여유) + 대기열에 member10
+        long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
+        long gb = ids[0], opt = ids[1];
+        insertPaymentPending(gb, opt, 9L, LocalDateTime.now().plusHours(20)); // 기한 여유 — 취소는 기한 무관
+        insertWaiting(gb, opt, 10L);                                          // 대기열 1명
+
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
+
+        // when: 토스 결제창에서 명시적 취소 (failUrl → OrderPaymentFailedEvent → 이 메서드)
+        groupBuyService.cancelPendingPayment(pSeq);
+
+        // then: 9번 CANCELLED / 10번 승격 / 점유 유지 / 환불 없음(결제 전이었으므로)
+        assertThat(statusOf(gb, 9L)).as("명시적 취소자는 CANCELLED").isEqualTo(ParticipationStatus.CANCELLED);
+        assertThat(statusOf(gb, 10L)).as("같은 옵션 다음 대기자가 승격").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
+
+        GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
+        assertThat(after.getOccupiedCount()).as("점유 유지 (release -1 + 승격 +1 = 0)").isEqualTo(1);
+
+        verify(paymentPort, times(0)).refund(anyLong()); // 결제 전이라 환불 없음
+    }
+
+    @Test
+    void 이미_결제완료된_참여는_취소콜백이_와도_변화없다_멱등() {
+        // given: 결제대기였다가 결제 완료(PARTICIPATING)된 참여 — 취소 대상이 아니어야
+        long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
+        long gb = ids[0], opt = ids[1];
+        insertPaymentPending(gb, opt, 9L, LocalDateTime.now().plusHours(20));
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
+        groupBuyService.confirmAfterPayment(pSeq); // 결제 완료 → PARTICIPATING
+
+        // when: 뒤늦은(중복) failUrl 콜백으로 취소 시도
+        groupBuyService.cancelPendingPayment(pSeq);
+
+        // then: PARTICIPATING 유지(취소 안 됨), 점유 불변 — PAYMENT_PENDING이 아니면 멱등 무시
+        assertThat(statusOf(gb, 9L)).as("결제완료자는 취소 콜백에도 PARTICIPATING 유지")
+                .isEqualTo(ParticipationStatus.PARTICIPATING);
+        GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
+        assertThat(after.getOccupiedCount()).as("점유 불변").isEqualTo(1);
+    }
 }

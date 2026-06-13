@@ -453,6 +453,49 @@ public class GroupBuyService {
     }
 
     /**
+     * 결제대기자의 명시적 결제 취소 처리 (토스 결제창에서 '취소'를 눌러 failUrl로 돌아온 경우).
+     *
+     * 결제대기(PAYMENT_PENDING) 참여를 CANCELLED로 돌리고 점유를 복구(release)한 뒤
+     * 같은 옵션의 다음 대기자를 승격시킨다. 결제 전이라 환불은 없다.
+     *
+     * 만료(expirePromotion)와 동일한 자리 반납 로직이며, 차이는 두 가지다:
+     *  - 상태를 EXPIRED가 아니라 CANCELLED로 둔다 (시간 만료가 아니라 사용자의 능동 취소).
+     *  - 결제기한 검증을 하지 않는다 — 사용자가 직접 취소했으므로 기한과 무관하게 즉시 반납한다.
+     *
+     * 멱등: 이미 처리됐거나(만료 EXPIRED / 결제완료 PARTICIPATING) 사라진 참여면 아무 것도 하지 않는다
+     * (중복 failUrl 콜백·경쟁 방어).
+     *
+     * @param participationSeq 취소할 결제대기 참여 seq
+     */
+    @Transactional
+    public void cancelPendingPayment(Long participationSeq) {
+        Participation participation = participationRepository.findById(participationSeq).orElse(null);
+        if (participation == null) {
+            return; // 이미 사라진 경우 — 무시
+        }
+
+        // 옵션 행 비관적 락 (결제/만료/취소가 같은 행을 건드리므로 직렬화)
+        GroupBuyOptions option = groupBuyOptionsRepository
+                .findBySeqForUpdate(participation.getGroupBuyOptions().getSeq())
+                .orElseThrow(() -> new IllegalStateException("옵션을 찾을 수 없습니다."));
+
+        // 락 획득 후 상태 재확인: 락 대기 중 결제가 완료(PARTICIPATING)되거나 만료(EXPIRED)됐을 수 있다.
+        // PAYMENT_PENDING이 아니면 취소하지 않는다 (멱등 — 중복 콜백/경쟁 방어).
+        entityManager.refresh(participation);
+        if (participation.getStatus() != ParticipationStatus.PAYMENT_PENDING) {
+            return;
+        }
+
+        GroupBuy groupBuy = option.getGroupBuy();
+        LocalDateTime now = LocalDateTime.now();
+
+        // 취소 확정 + 점유 복구 + 다음 대기자 승격 (환불 없음 — 결제 전)
+        participation.cancel();          // status → CANCELLED
+        option.release();                // occupied_count -1 (자리 반납)
+        promoteNextWaiting(option, groupBuy, now); // 같은 옵션 FIFO 다음 1명 승격
+    }
+
+    /**
      * 공구 마감 처리 (스케줄러가 마감 시각 지난 공구마다 1건씩 호출) — 확정/무산 판정.
      *
      * 확정 인원은 결제 완료(PARTICIPATING) 수만 센다. 결제대기(PAYMENT_PENDING) 승격자는
