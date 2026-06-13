@@ -37,7 +37,7 @@ BEGIN
 
     INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at, min_count, max_count, original_price, final_price, status)
     VALUES (group_buy_seq.NEXTVAL, v_prod,
-            SYSTIMESTAMP - INTERVAL '1' DAY, SYSTIMESTAMP + INTERVAL '5' DAY, SYSTIMESTAMP,
+            CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) - INTERVAL '1' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '5' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
             20, 50, 5000000, 3000000, 'ONGOING')
     RETURNING seq INTO v_gb;
 
@@ -64,7 +64,7 @@ BEGIN
 
     INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at, min_count, max_count, original_price, final_price, status)
     VALUES (group_buy_seq.NEXTVAL, v_prod,
-            SYSTIMESTAMP - INTERVAL '2' DAY, SYSTIMESTAMP + INTERVAL '4' DAY, SYSTIMESTAMP,
+            CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) - INTERVAL '2' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '4' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
             80, 200, 200000, 140000, 'ONGOING')
     RETURNING seq INTO v_gb;
 
@@ -93,7 +93,7 @@ BEGIN
 
     INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at, min_count, max_count, original_price, final_price, status)
     VALUES (group_buy_seq.NEXTVAL, v_prod,
-            SYSTIMESTAMP - INTERVAL '3' DAY, SYSTIMESTAMP + INTERVAL '2' HOUR, SYSTIMESTAMP,
+            CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) - INTERVAL '3' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '2' HOUR, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
             15, 30, 2000000, 1600000, 'ONGOING')
     RETURNING seq INTO v_gb;
 
@@ -123,7 +123,7 @@ BEGIN
     -- 시작전: start_at 이 미래
     INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at, min_count, max_count, original_price, final_price, status)
     VALUES (group_buy_seq.NEXTVAL, v_prod,
-            SYSTIMESTAMP + INTERVAL '2' DAY, SYSTIMESTAMP + INTERVAL '9' DAY, SYSTIMESTAMP,
+            CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '2' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '9' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
             50, 120, 300000, 260000, 'SCHEDULED')
     RETURNING seq INTO v_gb;
 
@@ -153,7 +153,7 @@ BEGIN
 
     INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at, min_count, max_count, original_price, final_price, status)
     VALUES (group_buy_seq.NEXTVAL, v_prod,
-            SYSTIMESTAMP - INTERVAL '1' DAY, SYSTIMESTAMP + INTERVAL '6' DAY, SYSTIMESTAMP,
+            CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) - INTERVAL '1' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '6' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
             30, 60, 1000000, 600000, 'ONGOING')
     RETURNING seq INTO v_gb;
 
@@ -184,7 +184,7 @@ BEGIN
   INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at,
                          min_count, max_count, original_price, final_price, status)
   VALUES (group_buy_seq.NEXTVAL, v_prod,
-          SYSTIMESTAMP - INTERVAL '1' HOUR, SYSTIMESTAMP + INTERVAL '7' DAY, SYSTIMESTAMP,
+          CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) - INTERVAL '1' HOUR, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '7' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
           1, 0, 300000, 260000, 'ONGOING')
   RETURNING seq INTO v_gb;
 
@@ -235,7 +235,7 @@ BEGIN
         INSERT INTO group_buy (seq, product_seq, start_at, end_at, created_at,
                                min_count, max_count, original_price, final_price, status)
         VALUES (group_buy_seq.NEXTVAL, v_prod,
-                SYSTIMESTAMP - INTERVAL '1' HOUR, SYSTIMESTAMP + INTERVAL '7' DAY, SYSTIMESTAMP,
+                CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) - INTERVAL '1' HOUR, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP) + INTERVAL '7' DAY, CAST(SYSTIMESTAMP AT TIME ZONE 'Asia/Seoul' AS TIMESTAMP),
                 1, 120, 300000, 260000, 'ONGOING')
         RETURNING seq INTO v_gb;
 
