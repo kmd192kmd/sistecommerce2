@@ -50,13 +50,13 @@
         background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
         z-index: 50; display: flex; justify-content: center; align-items: center;
         opacity: 0; visibility: hidden; pointer-events: none;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        transition: opacity 0.15s ease, visibility 0.15s ease;
     }
     .modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
     .modal-content {
         background: white; padding: 2rem; border-radius: 24px;
         width: 90%; max-width: 450px; text-align: center;
-        transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: scale(0.95); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     }
     .modal-overlay.active .modal-content { transform: scale(1); }
@@ -89,9 +89,9 @@
             <div>
                 <h1 class="text-2xl font-extrabold text-slate-900">주문상세</h1>
                 <p class="text-slate-500 mt-2 text-sm">
-                    <span class="font-bold text-slate-700" th:text="${orderDetail.orderDate}">2026. 4. 14</span> 주문
+                    <span class="font-bold text-slate-700" th:text="${orderDetail.orderDate}">-</span> 주문
                     <span class="mx-2 text-slate-300">·</span>
-                    주문번호 <span class="font-semibold text-slate-800" th:text="${orderDetail.orderUid}">201001284239411</span>
+                    주문번호 <span class="font-semibold text-slate-800" th:text="${orderDetail.orderUid}">-</span>
                 </p>
             </div>
 
@@ -110,7 +110,7 @@
                                 <span class="status-badge status-DELIVERED">배송완료</span>
                                 <span class="text-sm font-semibold text-slate-600"
                                       th:if="${d.completedAt != null and !d.completedAt.isEmpty()}"
-                                      th:text="${d.completedAt + ' 도착'}">4/17(금) 도착</span>
+                                      th:text="${d.completedAt + ' 도착'}">-</span>
                             </th:block>
                             <!-- 주문취소 상태 -->
                             <th:block th:if="${d.deliveryStatus == 'CANCELED'}">
@@ -232,7 +232,7 @@
                                         onclick="handleOrderReturn(this)"
                                         class="btn-action py-2.5 border text-sm shadow-sm transition-all"
                                         th:classappend="${d.deliveryStatus == 'DELIVERED' ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}">
-                                    교환, 반품 신청
+                                    반품 신청
                                 </button>
 
                                 <!-- 취소 완료 처리 -->
@@ -268,22 +268,22 @@
                         <tbody>
                             <tr>
                                 <th>받는사람</th>
-                                <td th:text="${orderDetail.recipientName}">김*도</td>
+                                <td th:text="${orderDetail.recipientName}">-</td>
                             </tr>
                             <tr>
                                 <th>연락처</th>
-                                <td th:text="${orderDetail.recipientPhone}">010****7821</td>
+                                <td th:text="${orderDetail.recipientPhone}">-</td>
                             </tr>
                             <tr>
                                 <th>받는주소</th>
                                 <td th:text="${'(' + orderDetail.zipcode + ') ' + orderDetail.address + ' ' + (orderDetail.addressDetail != null ? orderDetail.addressDetail : '')}">
-                                    (16951) 경기도 용인시 ...
+                                    -
                                 </td>
                             </tr>
                             <tr>
                                 <th>배송요청사항</th>
                                 <td th:text="${orderDetail.requestMemo != null and !orderDetail.requestMemo.isEmpty() ? orderDetail.requestMemo : '없음'}">
-                                    문 앞
+                                    -
                                 </td>
                             </tr>
                         </tbody>
@@ -312,21 +312,21 @@
                             <span>총 상품가격</span>
                             <span class="font-bold text-slate-800"
                                   th:text="${#numbers.formatInteger(orderDetail.productTotalPrice != null ? orderDetail.productTotalPrice : 0, 0, 'COMMA') + ' 원'}">
-                                88,740 원
+                                -
                             </span>
                         </div>
                         <div class="flex justify-between items-center text-slate-600">
                             <span>할인금액</span>
                             <span class="font-bold text-red-500"
                                   th:text="${'- ' + #numbers.formatInteger(orderDetail.discountPrice != null ? orderDetail.discountPrice : 0, 0, 'COMMA') + ' 원'}">
-                                -19,150 원
+                                --
                             </span>
                         </div>
                         <div class="flex justify-between items-center text-slate-600">
                             <span>배송비</span>
                             <span class="font-bold text-slate-800"
                                   th:text="${#numbers.formatInteger(orderDetail.deliveryFee != null ? orderDetail.deliveryFee : 0, 0, 'COMMA') + ' 원'}">
-                                0 원
+                                -
                             </span>
                         </div>
                         <hr class="border-slate-100 my-2">
@@ -334,7 +334,7 @@
                             <span>총 결제금액</span>
                             <span class="text-lg text-slate-900"
                                   th:text="${#numbers.formatInteger(orderDetail.finalPrice != null ? orderDetail.finalPrice : 0, 0, 'COMMA') + ' 원'}">
-                                69,590 원
+                                -
                             </span>
                         </div>
                     </div>
@@ -558,7 +558,13 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 
 <script>
+    let modalResetTimeout = null;
+
     function showDeliveryTrack(trackingNumber, status, companyName) {
+        if (modalResetTimeout) {
+            clearTimeout(modalResetTimeout);
+            modalResetTimeout = null;
+        }
         document.getElementById('modalTrackingNumber').innerText = trackingNumber || '발급대기';
         document.getElementById('modalCompanyName').innerText = companyName ? `(${companyName})` : '';
         
@@ -617,8 +623,43 @@
 
     function closeModal() {
         document.getElementById('trackModal').classList.remove('active');
-        const companyNameEl = document.getElementById('modalCompanyName');
-        if (companyNameEl) companyNameEl.innerText = '';
+        
+        if (modalResetTimeout) {
+            clearTimeout(modalResetTimeout);
+        }
+        
+        // 모달창 닫힘 애니메이션(150ms) 완료 후 상태 초기화 (이전 상태가 비치는 UX 개선)
+        modalResetTimeout = setTimeout(() => {
+            const step1Circle = document.querySelector('#step1 .step-circle');
+            const step1Label = document.querySelector('#step1 .step-label');
+            const step2Circle = document.querySelector('#step2 .step-circle');
+            const step2Label = document.querySelector('#step2 .step-label');
+            const step3Circle = document.querySelector('#step3 .step-circle');
+            const step3Label = document.querySelector('#step3 .step-label');
+            const progress = document.getElementById('stepProgress');
+            const statusTextEl = document.getElementById('modalStatusText');
+            const trackingNumEl = document.getElementById('modalTrackingNumber');
+
+            const resetClasses = (circle, label) => {
+                if (circle && label) {
+                    circle.className = "step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300";
+                    label.className = "step-label text-xs font-bold text-slate-400 mt-2 transition-all";
+                }
+            };
+
+            resetClasses(step1Circle, step1Label);
+            resetClasses(step2Circle, step2Label);
+            resetClasses(step3Circle, step3Label);
+            if (progress) progress.style.width = "0%";
+            if (statusTextEl) {
+                statusTextEl.innerText = 'READY';
+                statusTextEl.className = "font-bold text-blue-600";
+            }
+            if (trackingNumEl) trackingNumEl.innerText = '-';
+            const companyNameEl = document.getElementById('modalCompanyName');
+            if (companyNameEl) companyNameEl.innerText = '';
+            modalResetTimeout = null;
+        }, 150);
     }
 
     function showReturnAlertModal() {

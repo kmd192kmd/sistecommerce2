@@ -43,6 +43,8 @@
     }
 
     .status-DELIVERED { background-color: #dcfce7; color: #16a34a; }
+    .status-SHIPPING { background-color: #dbeafe; color: #2563eb; }
+    .status-READY { background-color: #fef3c7; color: #d97706; }
     .status-CANCELED { background-color: #fee2e2; color: #ef4444; }
 
     .modal-overlay {
@@ -50,13 +52,13 @@
         background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
         z-index: 50; display: flex; justify-content: center; align-items: center;
         opacity: 0; visibility: hidden; pointer-events: none;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
+        transition: opacity 0.15s ease, visibility 0.15s ease;
     }
     .modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
     .modal-content {
         background: white; padding: 2rem; border-radius: 24px;
         width: 90%; max-width: 400px; text-align: center;
-        transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: scale(0.95); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     }
     .modal-overlay.active .modal-content { transform: scale(1); }
@@ -83,23 +85,24 @@
                         <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
-                        <input type="text" name="keyword" th:value="${keyword}" placeholder="주문하신 상품명을 검색해보세요"
+                        <input type="text" name="keyword" th:value="${orderKeyword}" placeholder="주문하신 상품명을 검색해보세요"
                                class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
                     </div>
                     <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm shadow-amber-200">검색</button>
                 </form>
 
                 <div class="flex flex-wrap gap-2 text-xs font-semibold mt-4">
-                    <a th:href="@{/mypage/orders(keyword=${keyword}, period='6months')}"
+                    <a th:href="@{/mypage/orders(keyword=${orderKeyword}, period='6months')}"
                        th:class="${period == '6months' || period == null || period == ''} ? 'px-4 py-2 bg-slate-800 text-white rounded-lg transition-all' : 'px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors'">최근 6개월</a>
                     <a th:each="year : ${#numbers.sequence(#dates.year(#dates.createNow()), 2024, -1)}"
-                       th:href="@{/mypage/orders(keyword=${keyword}, period=${year})}"
+                       th:href="@{/mypage/orders(keyword=${orderKeyword}, period=${year})}"
                        th:text="${year}"
                        th:class="${period == #strings.toString(year)} ? 'px-4 py-2 bg-slate-800 text-white rounded-lg transition-all' : 'px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors'">2024</a>
                 </div>
             </div>
 
-            <div class="space-y-5" th:if="${orders != null and !orders.isEmpty()}">
+            <div id="orderListContainer">
+                <div class="space-y-5" th:if="${orders != null and !orders.isEmpty()}">
                 <article th:each="o : ${orders}" class="premium-card overflow-hidden">
                     <div class="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
                         <div class="text-sm flex items-center gap-3">
@@ -122,6 +125,12 @@
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'CANCELED'}">
                                     <span class="status-badge status-CANCELED">주문취소</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'SHIPPING' or d.deliveryStatus == 'DELAYED'}">
+                                    <span class="status-badge status-SHIPPING">배송중</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'READY'}">
+                                    <span class="status-badge status-READY">배송대기</span>
                                 </div>
                             </div>
 
@@ -292,6 +301,7 @@
                 <h3 class="text-lg font-bold text-slate-700">주문 내역이 없습니다.</h3>
                 <p class="text-slate-500 mt-2 text-sm">새로운 상품을 둘러보고 마음에 드는 상품을 주문해보세요.</p>
                 <a th:href="@{/}" class="inline-block mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">쇼핑하러 가기</a>
+            </div>
             </div>
         </section>
     </div>
@@ -492,7 +502,13 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 
 <script>
+    let modalResetTimeout = null;
+
     function showDeliveryTrack(trackingNumber, status, companyName) {
+        if (modalResetTimeout) {
+            clearTimeout(modalResetTimeout);
+            modalResetTimeout = null;
+        }
         document.getElementById('modalTrackingNumber').innerText = trackingNumber || '발급대기';
         document.getElementById('modalCompanyName').innerText = companyName ? `(${companyName})` : '';
         
@@ -558,8 +574,12 @@
     function closeModal() {
         document.getElementById('trackModal').classList.remove('active');
         
-        // 모달창 닫힘 애니메이션(300ms) 완료 후 상태 초기화 (이전 상태가 비치는 UX 개선)
-        setTimeout(() => {
+        if (modalResetTimeout) {
+            clearTimeout(modalResetTimeout);
+        }
+        
+        // 모달창 닫힘 애니메이션(150ms) 완료 후 상태 초기화 (이전 상태가 비치는 UX 개선)
+        modalResetTimeout = setTimeout(() => {
             const step1Circle = document.querySelector('#step1 .step-circle');
             const step1Label = document.querySelector('#step1 .step-label');
             const step2Circle = document.querySelector('#step2 .step-circle');
@@ -588,7 +608,30 @@
             if (trackingNumEl) trackingNumEl.innerText = '-';
             const companyNameEl = document.getElementById('modalCompanyName');
             if (companyNameEl) companyNameEl.innerText = '';
-        }, 300);
+            modalResetTimeout = null;
+        }, 150);
+    }
+
+    async function refreshOrderList() {
+        try {
+            const currentUrl = window.location.pathname + window.location.search;
+            const response = await fetch(currentUrl);
+            if (!response.ok) throw new Error("네트워크 응답 오류");
+            
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, "text/html");
+            
+            const newContainer = doc.getElementById("orderListContainer");
+            const currentContainer = document.getElementById("orderListContainer");
+            
+            if (newContainer && currentContainer) {
+                currentContainer.innerHTML = newContainer.innerHTML;
+            }
+        } catch (error) {
+            console.error("목록 갱신 실패:", error);
+            location.reload();
+        }
     }
 
     function showReturnAlertModal() {
@@ -740,7 +783,7 @@
 
                     const successMsg = result && result.message ? result.message : "반품 신청이 완료되었습니다.";
                     showReturnResult(true, "반품 완료", successMsg, () => {
-                        location.reload();
+                        refreshOrderList();
                     });
 
                 } catch (error) {
@@ -892,7 +935,7 @@
 
                     const successMsg = result && result.message ? result.message : "주문 취소가 완료되었습니다.";
                     showCancelResult(true, "취소 완료", successMsg, () => {
-                        location.reload();
+                        refreshOrderList();
                     });
 
                 } catch (error) {

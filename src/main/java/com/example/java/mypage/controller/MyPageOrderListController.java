@@ -63,7 +63,7 @@ public class MyPageOrderListController {
             }
             List<MyPageOrderListDto> orders = myPageOrderListService.getOrders(memberSeq, keyword, period);
             model.addAttribute("orders", orders);
-            model.addAttribute("keyword", keyword);
+            model.addAttribute("orderKeyword", keyword);
             model.addAttribute("period", period);
             
         } catch (Exception e) {
@@ -73,25 +73,7 @@ public class MyPageOrderListController {
         return "mypage/orders";
     }
 
-    /**
-     * 마이페이지 - 취소/반품/교환/환불내역
-     */
-    @GetMapping("/returns")
-    public String getCancelReturns(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            Model model) {
 
-        Long memberSeq = userDetails.getMemberSeq();
-
-        try {
-            List<MyPageCancelReturnDto> cancelReturns = myPageOrderListService.getCancelReturns(memberSeq);
-            model.addAttribute("cancelReturns", cancelReturns);
-        } catch (Exception e) {
-            log.error("취소/반품 내역 조회 중 에러 발생: ", e);
-        }
-
-        return "mypage/returns";
-    }
 
     /**
      * 마이페이지 - 주문 상세 조회
@@ -116,6 +98,19 @@ public class MyPageOrderListController {
         return "mypage/orderDetail";
     }
     
+    /**
+     * 주문 전체 취소 API
+     * 
+     * [존재하는 이유]
+     * 1. 전액 환불 프로세스 처리: 사용자가 주문 전체(100% 금액)를 한 번에 일괄 취소하려 할 때,
+     *    클라이언트 측에서 별도의 상품 ID 목록 파라미터를 넘겨주지 않고도 간단하고 명확하게 동작하도록 함.
+     * 2. PG사 연동 최적화: PG사 결제 취소 연동 시 부분 취소(Partial Cancel)가 아닌
+     *    원거래 자체에 대한 "전액 취소(Full Cancel)" 요청을 바로 보낼 수 있어 로직이 간결하고 에러 발생 확률이 낮음.
+     * 3. 확장성: 주문 상세 화면 등에서 개별 품목 선택 없이 전체를 통째로 취소하는 UI/UX를 대응하기 위해 보존함.
+     * 
+     * (※ 현재 orders.html 묶음 배송 단위 취소 화면에서는 부분 취소 API인 /cancel-items를 사용하고 있으나,
+     *     이 전체 취소 API는 시스템의 완결성과 향후 전체 취소 요구사항을 위해 유지됨.)
+     */
     @PostMapping("/orders/{orderSeq}/cancel")
     public ResponseEntity<Map<String, Object>> cancelOrder(
             @PathVariable("orderSeq") Long orderSeq,
