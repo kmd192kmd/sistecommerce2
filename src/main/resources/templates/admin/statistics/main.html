@@ -2,31 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>매출 추이</title>
-
+    <title>관리자 메인 통계</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
     <style>
-	    .chart-container {
-		    display: flex;
-		    gap: 20px;
-		}
-		.chart-box {
-		    flex: 1;
-		    min-width: 0;
-		    height: 350px;
-		}
 		.chart-box {
 		    height: 400px;
-		}
-		.pie-chart-container {
-		    display: flex;
-		    gap: 30px;
-		    justify-content: center;
 		}
 		.pie-chart-box {
-		    width: 350px;
-		    height: 400px;
-		    text-align: center;
+		    height: 450px;
 		}
 		.pie-chart-box canvas {
 		    width: 100% !important;
@@ -39,50 +25,90 @@
 		}
     </style>
 </head>
-<body>
+<body class="font-sans antialiased overflow-hidden">
 
-<div>
-	총 회원 수 : <span th:text="${dashboard.memberTotalCount}"></span>명
-	총 상품 수 : <span th:text="${dashboard.productTotalCount}"></span>개
-	총 주문 수 : <span th:text="${dashboard.ordersTotalCount}"></span>건
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        <h4 class="text-title mb-4">메인 통계</h4>
+        
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-4">		
+		    <div class="card">
+		        <span class="text-label">총 회원 수</span>
+		        <h4 class="text-value"
+		            th:text="${dashboard.memberTotalCount} + '명'">
+		        </h4>
+		    </div>
+		    <div class="card">
+		        <span class="text-label">총 상품 수</span>
+		        <h4 class="text-value"
+		            th:text="${dashboard.productTotalCount} + '개'">
+		        </h4>
+		    </div>
+		    <div class="card">
+		        <span class="text-label">총 주문 수</span>
+		        <h4 class="text-value"
+		            th:text="${dashboard.ordersTotalCount} + '건'">
+		        </h4>
+		    </div>
+		</div>
+
+		<div class="card">	
+	    <div class="flex justify-between items-center mb-6">
+	        <h4 class="text-title">
+	            매출 추이
+	        </h4>
+	        <select id="salesPeriod"
+	                class="form-input w-40">
+	            <option value="7d">최근 7일</option>
+	            <option value="15d">최근 15일</option>
+	            <option value="month">이번 달</option>
+	            <option value="3m">최근 3개월</option>
+	        </select>
+	    </div>
+	    <canvas id="salesChart"></canvas>
+	</div>
+	
+	<h4 class="text-title mb-4">인기상품 통계</h4>
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">	
+	    <div class="card chart-box">
+	        <canvas id="productChart"></canvas>
+	    </div>
+	    <div class="card chart-box">
+	        <canvas id="categoryChart"></canvas>
+	    </div>
+	    <div class="card chart-box">
+	        <canvas id="sellerChart"></canvas>
+	    </div>
+	</div>
+	
+	<h4 class="text-title mb-4">상품현황 차트</h4>
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">	
+	    <div class="card pie-chart-box">
+	        <canvas id="productStatusChart"></canvas>
+	        <h4 class="text-title text-center mt-4">
+	            상품 현황
+	        </h4>
+	    </div>
+	    <div class="card pie-chart-box">
+	        <canvas id="deliveryStatusChart"></canvas>
+	        <h4 class="text-title text-center mt-4">
+	            배송 현황
+	        </h4>
+	    </div>
+	</div>
+
+	</main>
+  </div>
 </div>
 
-<h2>매출 추이</h2>
-
-<select id="salesPeriod">
-    <option value="7d" selected>최근 7일</option>
-    <option value="15d">최근 15일</option>
-    <option value="month">이번 달</option>
-    <option value="3m">최근 3개월</option>
-</select>
-
-<div style="width: 100%; max-width: 1000px;">
-    <canvas id="salesChart"></canvas>
-</div>
-
-<div class="chart-container">
-    <div class="chart-box">
-        <canvas id="productChart"></canvas>
-    </div>
-    <div class="chart-box">
-        <canvas id="categoryChart"></canvas>
-    </div>
-    <div class="chart-box">
-        <canvas id="sellerChart"></canvas>
-    </div>
-</div>
-
-<div class="pie-chart-container">
-    <div class="pie-chart-box">
-        <canvas id="productStatusChart"></canvas>
-        <h4 class="chart-caption">상품현황</h4>
-    </div>
-    <div class="pie-chart-box">
-        <canvas id="deliveryStatusChart"></canvas>
-        <h4 class="chart-caption">배송현황</h4>
-    </div>
-</div>
-
+<script src="/admin/admin-common.js"></script>
 <script th:inline="javascript">
 
     const salesTrend = /*[[${salesTrend}]]*/ [];
