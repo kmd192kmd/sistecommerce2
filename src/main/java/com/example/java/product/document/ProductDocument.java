@@ -29,8 +29,10 @@ public class ProductDocument {
     @Id
     private Long id; // product seq
 
+    @Field(type = FieldType.Long)
     private Long sellerSeq;
     
+    @Field(type = FieldType.Long)
     private Long categorySeq;
 
     @MultiField(
@@ -45,6 +47,7 @@ public class ProductDocument {
     @Field(type = FieldType.Text, analyzer = "chosung_analyzer")
     private String productNameChosung;
 
+    @Field(type = FieldType.Integer)
     private Integer price;
 
     @Field(type = FieldType.Keyword)
@@ -56,12 +59,16 @@ public class ProductDocument {
     @Field(type = FieldType.Keyword)
     private String hideYn;
 
+    @Field(type = FieldType.Long)
     private Long viewCount;
 
+    @Field(type = FieldType.Double)
     private Double avgRating;
 
+    @Field(type = FieldType.Long)
     private Long reviewCount;
 
+    @Field(type = FieldType.Long)
     private Long salesCount;
 
     @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second_millis)
@@ -70,6 +77,7 @@ public class ProductDocument {
     @Field(type = FieldType.Keyword)
     private String status;
 
+    @Field(type = FieldType.Text)
     private String thumbnailUrl;
 
     @Field(type = FieldType.Dense_Vector, dims = 128)

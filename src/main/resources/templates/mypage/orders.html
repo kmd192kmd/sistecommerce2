@@ -43,6 +43,7 @@
     }
 
     .status-DELIVERED { background-color: #dcfce7; color: #16a34a; }
+    .status-CANCELED { background-color: #fee2e2; color: #ef4444; }
 
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -119,6 +120,9 @@
                                     <span class="text-xs font-semibold text-slate-500" th:if="${d.completedAt != null and !d.completedAt.isEmpty()}"
                                           th:text="${'도착일 ' + d.completedAt}">-</span>
                                 </div>
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'CANCELED'}">
+                                    <span class="status-badge status-CANCELED">주문취소</span>
+                                </div>
                             </div>
 
                             <div class="flex flex-col lg:flex-row gap-8">
@@ -173,10 +177,6 @@
 									                </h4>
 									            </a>
 
-									            <span th:if="${item.itemStatus == 6}"
-									                  class="text-[11px] font-bold bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full">
-									                주문취소
-									            </span>
 									            <span th:if="${item.itemStatus == 7}"
 									                  class="text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full">
 									                반품요청
@@ -233,7 +233,7 @@
                                                 th:data-status="${d.deliveryStatus}"
                                                 th:data-order-seq="${o.orderSeq}"
                                                 th:data-company="${d.companyName}"
-                                                onclick="showDeliveryTrack(this.getAttribute('data-tracking'), this.getAttribute('data-status'))"
+                                                onclick="showDeliveryTrack(this.getAttribute('data-tracking'), this.getAttribute('data-status'), this.getAttribute('data-company'))"
                                                 class="btn-action py-2.5 border border-slate-200 text-slate-700 bg-white hover:border-amber-500 hover:text-amber-600 text-sm shadow-sm">
                                             배송조회
                                         </button>
@@ -338,7 +338,9 @@
         <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" class="font-bold text-blue-600">READY</span></p>
 
         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
-            <p class="text-xs font-bold text-slate-400 mb-1">운송장 번호</p>
+            <p class="text-xs font-bold text-slate-400 mb-1 whitespace-nowrap">
+                운송장 번호 <span id="modalCompanyName" class="font-semibold text-slate-500 ml-1"></span>
+            </p>
             <p id="modalTrackingNumber" class="text-lg font-black tracking-widest text-slate-800">-</p>
         </div>
 
@@ -490,8 +492,9 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 
 <script>
-    function showDeliveryTrack(trackingNumber, status) {
+    function showDeliveryTrack(trackingNumber, status, companyName) {
         document.getElementById('modalTrackingNumber').innerText = trackingNumber || '발급대기';
+        document.getElementById('modalCompanyName').innerText = companyName ? `(${companyName})` : '';
         
         const currentStatus = status || 'READY';
         const statusTextEl = document.getElementById('modalStatusText');
@@ -583,6 +586,8 @@
                 statusTextEl.className = "font-bold text-blue-600";
             }
             if (trackingNumEl) trackingNumEl.innerText = '-';
+            const companyNameEl = document.getElementById('modalCompanyName');
+            if (companyNameEl) companyNameEl.innerText = '';
         }, 300);
     }
 
