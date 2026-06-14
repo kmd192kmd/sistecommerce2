@@ -14,9 +14,13 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, '../src/main/resources/static/js'),
     emptyOutDir: false,          // static/js 안 다른 페이지 번들 보존
     lib: {
-      entry: path.resolve(import.meta.dirname, 'src/groupbuy-detail.jsx'),
+      entry: {
+        'groupbuy-detail': path.resolve(import.meta.dirname, 'src/groupbuy-detail.jsx'),
+        'mypage-orders': path.resolve(import.meta.dirname, 'src/mypage-orders.jsx'),
+        'mypage-returns': path.resolve(import.meta.dirname, 'src/mypage-returns.jsx'),
+      },
       formats: ['es'],           // <script type="module"> 용
-      fileName: () => 'groupbuy-detail.js',
+      fileName: (format, entryName) => `${entryName}.js`,
     },
   },
 });
