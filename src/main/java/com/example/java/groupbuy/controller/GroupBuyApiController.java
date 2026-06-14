@@ -110,6 +110,25 @@ public class GroupBuyApiController {
         }
         return ResponseEntity.ok(groupBuyService.startPromotedPayment(seq, user.getMemberSeq()));
     }
+
+    /**
+     * 결제대기 명시적 취소 (토스 결제창에서 사용자가 '취소'를 누른 경우).
+     * 예) POST /api/group-buys/7/cancel-pending
+     *
+     * 토스는 사용자의 결제창 취소를 failUrl 리다이렉트가 아니라 JS Promise reject로 알려주므로,
+     * 프론트의 catch에서 이 API를 호출해 결제대기 자리를 즉시 반납(CANCELLED + 점유 해제)한다.
+     * 결제 전이라 환불은 없다. 1인 1상품이라 optionSeq는 받지 않는다.
+     */
+    @PostMapping("/{seq}/cancel-pending")
+    public ResponseEntity<Void> cancelPending(
+            @PathVariable(name = "seq") Long seq,
+            @AuthenticationPrincipal CustomUserDetails user) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        groupBuyService.cancelPendingPaymentByMember(seq, user.getMemberSeq());
+        return ResponseEntity.ok().build();
+    }
 }
 
 /*

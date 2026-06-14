@@ -22,6 +22,7 @@ import com.example.java.orders.repository.ReturnRequestRepository;
 import com.example.java.orders.repository.ReturnsRepository;
 import com.example.java.orders.repository.RefundRepository;
 import com.example.java.orders.event.OrderPaidEvent;
+import com.example.java.orders.event.OrderPaymentFailedEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.java.product.entity.Options;
@@ -599,6 +600,21 @@ public class PaymentService {
                 .build();
 
         paymentRepository.save(payment);
+
+        /*
+            공구 주문이면 '결제 실패(취소)' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,
+            groupbuy 리스너가 이를 받아 결제대기 participation을 CANCELLED로 돌리고 점유를 반납한다.
+            (사용자가 토스 결제창에서 명시적으로 취소한 경우 — 자리를 즉시 반납해 매진 대기자에게 양보)
+            OrderPaidEvent(결제 완료)와 대칭. @EventListener 동기라 이 트랜잭션 안에서 함께 처리된다.
+         */
+        List<Long> participationSeqs = orderItemRepository.findByOrderSeq(order.getSeq()).stream()
+                .map(OrderItem::getParticipationSeq)
+                .filter(seq -> seq != null)
+                .toList();
+
+        if (!participationSeqs.isEmpty()) {
+            eventPublisher.publishEvent(new OrderPaymentFailedEvent(participationSeqs));
+        }
     }
 
     private void validateDeliveryReady(Long orderSeq) {

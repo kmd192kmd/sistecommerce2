@@ -74,7 +74,16 @@ function PurchasePanel({ id, data, toss }) {
       // PARTICIPATED → 토스 결제창으로 이동 (성공 시 /payments/success 에서 결제·참여가 확정된다)
       await requestTossPayment(participate);
     } catch (e) {
-      setMessage('결제 요청 중 오류가 발생했습니다.');
+      // 토스 결제창에서 '취소'를 누르면 failUrl이 아니라 여기로 reject된다(모달이라 URL 안 바뀜).
+      // 예약해둔 결제대기 자리를 즉시 반납한다 (안 그러면 10분 만료까지 묶임).
+      if (e && (e.code === 'USER_CANCEL' || e.code === 'PAY_PROCESS_CANCELED')) {
+        try {
+          await fetch(`/api/group-buys/${id}/cancel-pending`, { method: 'POST' });
+        } catch (_) { /* 반납 호출 실패해도 만료 스케줄러가 정리 */ }
+        setMessage('결제를 취소했어요. 예약했던 자리를 반납했습니다.');
+      } else {
+        setMessage('결제 요청 중 오류가 발생했습니다.');
+      }
     } finally {
       setSubmitting(false);
     }
