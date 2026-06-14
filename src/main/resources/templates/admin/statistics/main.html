@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>매출 추이</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+	    .chart-container {
+		    display: flex;
+		    gap: 20px;
+		}
+		.chart-box {
+		    flex: 1;
+		    min-width: 0;
+		    height: 350px;
+		}
+		.chart-box {
+		    height: 400px;
+		}
+		.pie-chart-container {
+		    display: flex;
+		    gap: 30px;
+		    justify-content: center;
+		}
+		.pie-chart-box {
+		    width: 350px;
+		    height: 400px;
+		    text-align: center;
+		}
+		.pie-chart-box canvas {
+		    width: 100% !important;
+		    height: 350px !important;
+		}
+		.chart-caption {
+		    margin-top: 10px;
+		    font-size: 18px;
+		    font-weight: 600;
+		}
+    </style>
+</head>
+<body>
+
+<div>
+	총 회원 수 : <span th:text="${dashboard.memberTotalCount}"></span>명
+	총 상품 수 : <span th:text="${dashboard.productTotalCount}"></span>개
+	총 주문 수 : <span th:text="${dashboard.ordersTotalCount}"></span>건
+</div>
+
+<h2>매출 추이</h2>
+
+<select id="salesPeriod">
+    <option value="7d" selected>최근 7일</option>
+    <option value="15d">최근 15일</option>
+    <option value="month">이번 달</option>
+    <option value="3m">최근 3개월</option>
+</select>
+
+<div style="width: 100%; max-width: 1000px;">
+    <canvas id="salesChart"></canvas>
+</div>
+
+<div class="chart-container">
+    <div class="chart-box">
+        <canvas id="productChart"></canvas>
+    </div>
+    <div class="chart-box">
+        <canvas id="categoryChart"></canvas>
+    </div>
+    <div class="chart-box">
+        <canvas id="sellerChart"></canvas>
+    </div>
+</div>
+
+<div class="pie-chart-container">
+    <div class="pie-chart-box">
+        <canvas id="productStatusChart"></canvas>
+        <h4 class="chart-caption">상품현황</h4>
+    </div>
+    <div class="pie-chart-box">
+        <canvas id="deliveryStatusChart"></canvas>
+        <h4 class="chart-caption">배송현황</h4>
+    </div>
+</div>
+
+<script th:inline="javascript">
+
+    const salesTrend = /*[[${salesTrend}]]*/ [];
+    const labels = salesTrend.map(item => item.label);
+    const salesData = salesTrend.map(item => item.sales);
+    const ctx = document.getElementById('salesChart').getContext('2d');
+	const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+	
+	gradient.addColorStop(0, 'rgba(54, 162, 235, 0.7)');
+	gradient.addColorStop(1, 'rgba(54, 162, 235, 0.1)');
+	
+	const salesChart = new Chart(ctx, {
+	    type: 'line',
+	    data: {
+	        labels: labels,
+	        datasets: [{
+	            label: '매출',
+	            data: salesData,
+	            fill: true,              // 중요
+	            backgroundColor: gradient,
+	            tension: 0.3
+	        }]
+	    },
+	    options: {
+	        responsive: true,
+	        plugins: {
+	            legend: {
+	                display: false
+	            }
+	        },
+	        scales: {
+	            y: {
+	                beginAtZero: true
+	            }
+	        }
+	    }
+	});
+
+document.getElementById('salesPeriod')
+    .addEventListener('change', async function () {
+
+        const period = this.value;
+
+        try {
+
+            const response = await fetch(
+                `/api/admin/statistics/sales-trend?period=${period}`
+            );
+
+            if (!response.ok) {
+                throw new Error('매출 통계 조회 실패');
+            }
+
+            const salesTrend = await response.json();
+
+            const labels = salesTrend.map(item => item.label);
+            const salesData = salesTrend.map(item => item.sales);
+
+            salesChart.data.labels = labels;
+            salesChart.data.datasets[0].data = salesData;
+
+            salesChart.update();
+
+        } catch (error) {
+
+            console.error(error);
+            alert('통계 조회 중 오류가 발생했습니다.');
+
+        }
+
+    });
+    
+    // 상품별 판매량 TOP5
+	const productLabels =
+	    [[${productRating.![name]}]];
+	
+	const productData =
+	    [[${productRating.![totalSales]}]];
+	
+	
+	// 카테고리별 판매량 TOP5
+	const categoryLabels =
+	    [[${categoryRating.![name]}]];
+	
+	const categoryData =
+	    [[${categoryRating.![totalSales]}]];
+	
+	
+	// 판매처별 판매량 TOP5
+	const sellerLabels =
+	    [[${sellerRating.![name]}]];
+	
+	const sellerData =
+	    [[${sellerRating.![totalSales]}]];
+
+	new Chart(document.getElementById('productChart'), {
+	    type: 'bar',
+	    data: {
+	        labels: productLabels,
+	        datasets: [{
+	            label: '판매량',
+	            data: productData
+	        }]
+	    },
+	    options: {
+	        responsive: true,
+	        maintainAspectRatio: false,
+	
+	        indexAxis: 'y', // ← 90도 회전
+	
+	        plugins: {
+	        	title: {
+			        display: true,
+			        text: '상품 판매량 TOP 5'
+			    },
+	            legend: {
+	                display: false
+	            }
+	        }
+	    }
+	});
+	
+	new Chart(document.getElementById('categoryChart'), {
+	    type: 'bar',
+	    data: {
+	        labels: categoryLabels,
+	        datasets: [{
+	            label: '판매량',
+	            data: categoryData
+	        }]
+	    },
+   	    options: {
+	       responsive: true,
+	       maintainAspectRatio: false,
+	
+	       indexAxis: 'y', // ← 90도 회전
+	
+	       plugins: {
+	       		title: {
+			        display: true,
+			        text: '카테고리 판매량 TOP 5'
+			    },
+	           legend: {
+	               display: false
+	           }
+	       }
+	   }
+	});
+	
+	new Chart(document.getElementById('sellerChart'), {
+	    type: 'bar',
+	    data: {
+	        labels: sellerLabels,
+	        datasets: [{
+	            label: '판매량',
+	            data: sellerData
+	        }]
+	    },
+	    options: {
+	        responsive: true,
+	        maintainAspectRatio: false,
+	
+	        indexAxis: 'y', // ← 90도 회전
+	
+	        plugins: {
+	        	title: {
+			        display: true,
+			        text: '판매처 판매량 TOP 5'
+			    },
+	            legend: {
+	                display: false
+	            }
+	        }
+	    }
+	});
+	
+	const productStatusLabels =
+    [[${productStatusPie.![label]}]];
+	const productStatusData =
+	    [[${productStatusPie.![value]}]];
+	const deliveryStatusLabels =
+	    [[${deliveryStatusPie.![label]}]];
+	const deliveryStatusData =
+	    [[${deliveryStatusPie.![value]}]];
+	    
+	new Chart(
+	    document.getElementById('productStatusChart'),
+	    {
+	        type: 'pie',
+	        data: {
+	            labels: productStatusLabels,
+	            datasets: [{
+	                data: productStatusData
+	            }]
+	        },
+	        options: {
+	            responsive: true,
+	            maintainAspectRatio: false,
+	            plugins: {
+	                legend: {
+	                    display: false
+	                }
+	            }
+	        }
+	    }
+	);
+	new Chart(
+	    document.getElementById('deliveryStatusChart'),
+	    {
+	        type: 'pie',
+	        data: {
+	            labels: deliveryStatusLabels,
+	            datasets: [{
+	                data: deliveryStatusData
+	            }]
+	        },
+	        options: {
+	            responsive: true,
+	            maintainAspectRatio: false,
+	            plugins: {
+	                legend: {
+	                    display: false
+	                }
+	            }
+	        }
+	    }
+	);
+
+</script>
+
+</body>
+</html>
