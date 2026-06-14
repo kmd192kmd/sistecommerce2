@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('마이페이지 | 주문상세')}"></head>
+<head th:replace="~{fragments/layout :: head('마이페이지 | 주문목록')}"></head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
@@ -14,6 +14,10 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         transition: all 0.3s ease;
     }
+    .premium-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        transform: translateY(-2px);
+    }
 
     .delivery-company-group {
         background: #ffffff;
@@ -26,8 +30,6 @@
         transition: all 0.2s;
         border-radius: 10px;
         font-weight: 600;
-        text-align: center;
-        display: inline-block;
     }
     .btn-action:hover { transform: translateY(-1px); }
     .btn-action:active { transform: translateY(0); }
@@ -55,27 +57,11 @@
     .modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
     .modal-content {
         background: white; padding: 2rem; border-radius: 24px;
-        width: 90%; max-width: 450px; text-align: center;
+        width: 90%; max-width: 400px; text-align: center;
         transform: scale(0.95); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     }
     .modal-overlay.active .modal-content { transform: scale(1); }
-
-    /* 테이블 스타일 커스터마이징 */
-    .info-table th {
-        background-color: #f8fafc;
-        width: 150px;
-        text-align: left;
-        padding: 12px 16px;
-        font-weight: 600;
-        color: #475569;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    .info-table td {
-        padding: 12px 16px;
-        color: #1e293b;
-        border-bottom: 1px solid #e2e8f0;
-    }
 </style>
 
 <div th:replace="~{fragments/header :: header}"></div>
@@ -84,285 +70,243 @@
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
         <div th:replace="~{fragments/mypage-aside :: aside('orders')}"></div>
 
-        <section class="space-y-8" th:if="${orderDetail != null}">
-            <!-- 주문 상세 상단 헤더 -->
-            <div>
-                <h1 class="text-2xl font-extrabold text-slate-900">주문상세</h1>
-                <p class="text-slate-500 mt-2 text-sm">
-                    <span class="font-bold text-slate-700" th:text="${orderDetail.orderDate}">-</span> 주문
-                    <span class="mx-2 text-slate-300">·</span>
-                    주문번호 <span class="font-semibold text-slate-800" th:text="${orderDetail.orderUid}">-</span>
-                </p>
+        <section class="space-y-6">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">주문목록 / 배송조회</h1>
+                    <p class="text-slate-500 mt-2 text-sm">하나의 주문 안에서 택배사별 상품 묶음을 확인할 수 있습니다.</p>
+                </div>
             </div>
 
-            <!-- 배송 묶음별 카드 목록 -->
-            <div class="space-y-6">
-                <div th:each="d : ${orderDetail.deliveries}"
-                     class="delivery-company-group p-6 bg-white border border-slate-200 rounded-2xl shadow-sm"
-                     th:data-order-seq="${orderDetail.orderSeq}"
-                     th:data-company-name="${d.companyName}">
-                    
-                    <!-- 배송 상태 헤더 -->
-                    <div class="mb-5 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div class="flex items-center gap-3">
-                            <!-- 배송완료 상태 -->
-                            <th:block th:if="${d.deliveryStatus == 'DELIVERED'}">
-                                <span class="status-badge status-DELIVERED">배송완료</span>
-                                <span class="text-sm font-semibold text-slate-600"
-                                      th:if="${d.completedAt != null and !d.completedAt.isEmpty()}"
-                                      th:text="${d.completedAt + ' 도착'}">-</span>
-                            </th:block>
-                            <!-- 주문취소 상태 -->
-                            <th:block th:if="${d.deliveryStatus == 'CANCELED'}">
-                                <span class="status-badge status-CANCELED">주문취소</span>
-                                <span class="text-sm font-semibold text-slate-500"
-                                      th:if="${!#strings.isEmpty(d.canceledAt)}"
-                                      th:text="${d.canceledAt + ' 취소'}">-</span>
-                            </th:block>
-                            <!-- 배송중 상태 -->
-                            <th:block th:if="${d.deliveryStatus == 'SHIPPING' or d.deliveryStatus == 'DELAYED'}">
-                                <span class="status-badge status-SHIPPING">배송중</span>
-                                <span class="text-sm font-semibold text-blue-600">상품이 배송 중입니다.</span>
-                            </th:block>
-                            <!-- 배송준비중 상태 -->
-                            <th:block th:if="${d.deliveryStatus == 'READY'}">
-                                <span class="status-badge status-READY">배송대기</span>
-                                <span class="text-sm font-semibold text-amber-600">발송을 준비하고 있습니다.</span>
-                            </th:block>
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <form th:action="@{/mypage/orders}" method="get" class="flex items-center gap-3">
+                    <input type="hidden" name="period" th:value="${period}">
+                    <div class="relative flex-1">
+                        <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" name="keyword" th:value="${orderKeyword}" placeholder="주문하신 상품명을 검색해보세요"
+                               class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
+                    </div>
+                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl text-sm font-bold transition-colors shadow-sm shadow-amber-200">검색</button>
+                </form>
+
+                <div class="flex flex-wrap gap-2 text-xs font-semibold mt-4">
+                    <a th:href="@{/mypage/orders(keyword=${orderKeyword}, period='6months')}"
+                       th:class="${period == '6months' || period == null || period == ''} ? 'px-4 py-2 bg-slate-800 text-white rounded-lg transition-all' : 'px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors'">최근 6개월</a>
+                    <a th:each="year : ${#numbers.sequence(#dates.year(#dates.createNow()), 2024, -1)}"
+                       th:href="@{/mypage/orders(keyword=${orderKeyword}, period=${year})}"
+                       th:text="${year}"
+                       th:class="${period == #strings.toString(year)} ? 'px-4 py-2 bg-slate-800 text-white rounded-lg transition-all' : 'px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors'">2024</a>
+                </div>
+            </div>
+
+            <div id="orderListContainer">
+                <div class="space-y-5" th:if="${orders != null and !orders.isEmpty()}">
+                <article th:each="o : ${orders}" class="premium-card overflow-hidden">
+                    <div class="px-6 py-4 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                        <div class="text-sm flex items-center gap-3">
+                            <span class="text-slate-500 font-medium">주문일자</span>
+                            <span class="font-bold text-slate-800" th:text="${o.orderDate}">-</span>
                         </div>
+                        <a th:href="@{/mypage/orders/{seq}(seq=${o.orderSeq})}" class="text-xs font-bold text-amber-600 hover:text-amber-700">주문 상세보기</a>
                     </div>
 
-                    <!-- 상품 정보 및 우측 버튼 영역 -->
-                    <div class="flex flex-col lg:flex-row gap-8">
-                        <div class="flex-1 space-y-4">
-                            <div th:each="item : ${d.items}"
-                                 class="cancel-item-target flex gap-5 items-center pb-4 last:pb-0 last:border-b-0 border-b border-slate-100"
-                                 th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' opacity-60' : ''"
-                                 th:data-order-item-seq="${item.orderItemSeq}"
-                                 th:data-item-status="${item.itemStatus}">
+                    <div class="bg-slate-50/60 px-3 py-4 sm:px-6 sm:py-5 space-y-4">
+                        <div th:each="d : ${o.deliveries}"
+                             class="delivery-company-group p-5 sm:p-6"
+                             th:data-order-seq="${o.orderSeq}"
+                             th:data-company-name="${d.companyName}">
+                            <div class="mb-5 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'DELIVERED'}">
+                                    <span class="status-badge status-DELIVERED">배송완료</span>
+                                    <span class="text-xs font-semibold text-slate-500" th:if="${d.completedAt != null and !d.completedAt.isEmpty()}"
+                                          th:text="${'도착일 ' + d.completedAt}">-</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'CANCELED'}">
+                                    <span class="status-badge status-CANCELED">주문취소</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'SHIPPING' or d.deliveryStatus == 'DELAYED'}">
+                                    <span class="status-badge status-SHIPPING">배송중</span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2" th:if="${d.deliveryStatus == 'READY'}">
+                                    <span class="status-badge status-READY">배송대기</span>
+                                </div>
+                            </div>
 
-                                <!-- 반품신청용 체크박스 (배송완료 'DELIVERED' 이며 취소/반품 상태가 아닌 경우에만 노출) -->
-                                <input type="checkbox"
-                                       th:if="${d.deliveryStatus == 'DELIVERED' and item.itemStatus != 6 and item.itemStatus != 7 and item.itemStatus != 8 and item.itemStatus != 9}"
-                                       class="return-item-check w-5 h-5 accent-amber-500 shrink-0"
-                                       th:data-order-item-seq="${item.orderItemSeq}">
+                            <div class="flex flex-col lg:flex-row gap-8">
+                                <div class="flex-1 space-y-4">
+									<div th:each="item : ${d.items}"
+									     class="cancel-item-target flex gap-5 items-center pb-4 last:pb-0 last:border-b-0 border-b border-slate-100"
+									     th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' opacity-60' : ''"
+									     th:data-order-item-seq="${item.orderItemSeq}"
+									     th:data-item-status="${item.itemStatus}">
 
-                                <a th:href="@{/products/{seq}(seq=${item.productSeq})}" class="shrink-0">
-                                    <div class="relative w-20 h-20 rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:opacity-90 transition-opacity">
-                                        <img th:src="${item.image}"
-                                             alt="상품 이미지"
-                                             class="w-full h-full object-cover"
-                                             th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' grayscale' : ''">
+									    <!-- 반품신청용 체크박스 (배송완료 'DELIVERED' 이며 취소/반품 상태가 아닌 경우에만 노출) -->
+									    <input type="checkbox"
+									           th:if="${d.deliveryStatus == 'DELIVERED' and item.itemStatus != 6 and item.itemStatus != 7 and item.itemStatus != 8 and item.itemStatus != 9}"
+									           class="return-item-check w-5 h-5 accent-amber-500 shrink-0"
+									           th:data-order-item-seq="${item.orderItemSeq}">
 
-                                        <!-- 이미지 내부 상태 배지 -->
-                                        <div th:if="${item.itemStatus == 6}" class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
-                                            <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">취소됨</span>
-                                        </div>
-                                        <div th:if="${item.itemStatus == 7 or item.itemStatus == 8}" class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
-                                            <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">반품대기</span>
-                                        </div>
-                                        <div th:if="${item.itemStatus == 9}" class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
-                                            <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">반품완료</span>
-                                        </div>
+									    <a th:href="@{/products/{seq}(seq=${item.productSeq})}" class="shrink-0">
+									        <div class="relative w-20 h-20 rounded-xl overflow-hidden shadow-sm border border-slate-100 hover:opacity-90 transition-opacity">
+									            <img th:src="${item.image}"
+									                 alt="상품 이미지"
+									                 class="w-full h-full object-cover"
+									                 th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' grayscale' : ''">
+
+									            <div th:if="${item.itemStatus == 6}"
+									                 class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+									                <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">
+									                    취소됨
+									                </span>
+									            </div>
+									            <div th:if="${item.itemStatus == 7 or item.itemStatus == 8}"
+									                 class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+									                <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">
+									                    반품대기
+									                </span>
+									            </div>
+									            <div th:if="${item.itemStatus == 9}"
+									                 class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+									                <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">
+									                    반품완료
+									                </span>
+									            </div>
+									        </div>
+									    </a>
+
+									    <div class="flex flex-col justify-center">
+									        <div class="flex items-center gap-2">
+									            <a th:href="@{/products/{seq}(seq=${item.productSeq})}">
+									                <h4 th:text="${item.name}"
+									                    class="font-bold text-base leading-tight transition-colors"
+									                    th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' text-slate-400 line-through' : ' text-slate-900 hover:text-amber-600'">
+									                    상품명
+									                </h4>
+									            </a>
+
+									            <span th:if="${item.itemStatus == 7}"
+									                  class="text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full">
+									                반품요청
+									            </span>
+									            <span th:if="${item.itemStatus == 8}"
+									                  class="text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full">
+									                반품진행중
+									            </span>
+									            <span th:if="${item.itemStatus == 9}"
+									                  class="text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">
+									                반품완료
+									            </span>
+									        </div>
+
+									        <div class="mt-1.5 text-sm text-slate-500 font-medium">
+									            <span th:text="${item.price != null ? #numbers.formatInteger(item.price, 0, 'COMMA') + '원' : '0원'}"
+									                  class="font-bold"
+									                  th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' text-slate-400 line-through' : ' text-slate-700'">
+									                15,000원
+									            </span>
+									            <span class="mx-1">x</span>
+									            <span th:text="${item.qty} + '개'">1개</span>
+									        </div>
+
+									        <p th:if="${item.itemStatus == 6}"
+									           class="text-xs text-red-500 font-semibold mt-1">
+									            주문 취소가 완료된 상품입니다.
+									        </p>
+									        <p th:if="${item.itemStatus == 7}"
+									           class="text-xs text-amber-600 font-semibold mt-1">
+									            반품 신청이 접수되어 상품 수거 대기 중입니다.
+									        </p>
+									        <p th:if="${item.itemStatus == 8}"
+									           class="text-xs text-amber-600 font-semibold mt-1">
+									            상품 수거 완료 후 검수가 진행 중입니다.
+									        </p>
+									        <p th:if="${item.itemStatus == 9}"
+									           class="text-xs text-slate-500 font-semibold mt-1">
+									            반품 및 환불 처리가 완료되었습니다.
+									        </p>
+
+									        <p th:if="${item.itemStatus == 0 and d.deliveryStatus != 'READY'}"
+									           class="text-xs text-slate-400 mt-1">
+									            배송대기 상태에서만 취소할 수 있습니다.
+									        </p>
+									    </div>
+									</div>
+                                </div>
+
+                                <div class="w-full lg:w-72 shrink-0 flex flex-col justify-center pl-0 lg:pl-6 border-t lg:border-t-0 lg:border-l border-slate-100 pt-5 lg:pt-0">
+                                    <div class="flex flex-col gap-2 w-full">
+                                        <button type="button"
+                                                th:data-tracking="${d.trackingNumber}"
+                                                th:data-status="${d.deliveryStatus}"
+                                                th:data-order-seq="${o.orderSeq}"
+                                                th:data-company="${d.companyName}"
+                                                onclick="showDeliveryTrack(this.getAttribute('data-tracking'), this.getAttribute('data-status'), this.getAttribute('data-company'))"
+                                                class="btn-action py-2.5 border border-slate-200 text-slate-700 bg-white hover:border-amber-500 hover:text-amber-600 text-sm shadow-sm">
+                                            배송조회
+                                        </button>
+                                        <!-- 이미 이 묶음의 모든 상품이 반품/취소 상태인 경우 -->
+                                        <button type="button"
+                                                th:if="${#lists.isEmpty(d.items.?[itemStatus != 6 and itemStatus != 7 and itemStatus != 8 and itemStatus != 9])}"
+                                                disabled
+                                                class="btn-action py-2.5 border border-slate-200 text-slate-400 bg-slate-50 text-sm shadow-sm cursor-not-allowed">
+                                            반품 불가
+                                        </button>
+
+                                        <!-- 아직 반품할 수 있는 상품이 남아있는 경우 -->
+                                        <button type="button"
+                                                th:if="${!#lists.isEmpty(d.items.?[itemStatus != 6 and itemStatus != 7 and itemStatus != 8 and itemStatus != 9])}"
+                                                th:data-order-seq="${o.orderSeq}"
+                                                th:data-company="${d.companyName}"
+                                                th:data-status="${d.deliveryStatus}"
+                                                onclick="handleOrderReturn(this)"
+                                                class="btn-action py-2.5 border text-sm shadow-sm transition-all"
+                                                th:classappend="${d.deliveryStatus == 'DELIVERED' ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}">
+                                            반품신청
+                                        </button>
+										<!-- 이미 이 묶음의 모든 상품이 취소 완료된 경우 -->
+										<button type="button"
+										        th:if="${#lists.isEmpty(d.items.?[itemStatus != 6])}"
+										        disabled
+										        class="btn-action py-2.5 border border-slate-200 text-slate-400 bg-slate-50 text-sm shadow-sm cursor-not-allowed">
+										    취소 완료
+										</button>
+
+										<!-- 아직 취소할 상품이 남아있는 경우 -->
+										<button type="button"
+										        th:if="${!#lists.isEmpty(d.items.?[itemStatus != 6])}"
+										        th:data-order-seq="${o.orderSeq}"
+										        th:data-company="${d.companyName}"
+										        th:data-status="${d.deliveryStatus}"
+										        onclick="handleOrderCancel(this)"
+										        class="btn-action py-2.5 border text-sm shadow-sm transition-all"
+										        th:classappend="${d.deliveryStatus == 'READY' ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}">
+										    주문취소
+										</button>
                                     </div>
-                                </a>
-
-                                <div class="flex flex-col justify-center">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <a th:href="@{/products/{seq}(seq=${item.productSeq})}">
-                                            <h4 th:text="${item.name}"
-                                                class="font-bold text-base leading-tight transition-colors"
-                                                th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' text-slate-400 line-through' : ' text-slate-900 hover:text-amber-600'">
-                                                상품명
-                                            </h4>
-                                        </a>
-
-                                        <span th:if="${item.itemStatus == 7}" class="text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full">반품요청</span>
-                                        <span th:if="${item.itemStatus == 8}" class="text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-full">반품진행중</span>
-                                        <span th:if="${item.itemStatus == 9}" class="text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full">반품완료</span>
-                                    </div>
-
-                                    <div class="mt-1.5 text-sm text-slate-500 font-medium">
-                                        <span th:text="${item.price != null ? #numbers.formatInteger(item.price, 0, 'COMMA') + '원' : '0원'}"
-                                              class="font-bold"
-                                              th:classappend="${item.itemStatus == 6 or item.itemStatus == 7 or item.itemStatus == 8 or item.itemStatus == 9} ? ' text-slate-400 line-through' : ' text-slate-700'">
-                                            15,000원
-                                        </span>
-                                        <span class="mx-1">x</span>
-                                        <span th:text="${item.qty} + '개'">1개</span>
-                                    </div>
-
-                                    <!-- 상세 안내 텍스트 -->
-                                    <p th:if="${item.itemStatus == 6}" class="text-xs text-red-500 font-semibold mt-1">주문 취소가 완료된 상품입니다.</p>
-                                    <p th:if="${item.itemStatus == 7}" class="text-xs text-amber-600 font-semibold mt-1">반품 신청이 접수되어 상품 수거 대기 중입니다.</p>
-                                    <p th:if="${item.itemStatus == 8}" class="text-xs text-amber-600 font-semibold mt-1">상품 수거 완료 후 검수가 진행 중입니다.</p>
-                                    <p th:if="${item.itemStatus == 9}" class="text-xs text-slate-500 font-semibold mt-1">반품 및 환불 처리가 완료되었습니다.</p>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- 우측 세로 버튼 배치 영역 (스토리보드 참고) -->
-                        <div class="w-full lg:w-48 shrink-0 flex flex-col justify-center pl-0 lg:pl-6 border-t lg:border-t-0 lg:border-l border-slate-100 pt-5 lg:pt-0">
-                            <div class="flex flex-col gap-2 w-full">
-                                <!-- 배송 조회 -->
-                                <button type="button"
-                                        th:data-tracking="${d.trackingNumber}"
-                                        th:data-status="${d.deliveryStatus}"
-                                        th:data-order-seq="${orderDetail.orderSeq}"
-                                        th:data-company="${d.companyName}"
-                                        onclick="showDeliveryTrack(this.getAttribute('data-tracking'), this.getAttribute('data-status'), this.getAttribute('data-company'))"
-                                        class="btn-action py-2.5 border border-blue-200 text-blue-600 bg-white hover:bg-blue-50 text-sm shadow-sm">
-                                    배송 조회
-                                </button>
-                                
-                                <!-- 반품 불가 처리 -->
-                                <button type="button"
-                                        th:if="${#lists.isEmpty(d.items.?[itemStatus != 6 and itemStatus != 7 and itemStatus != 8 and itemStatus != 9])}"
-                                        disabled
-                                        class="btn-action py-2.5 border border-slate-200 text-slate-400 bg-slate-50 text-sm shadow-sm cursor-not-allowed">
-                                    반품 불가
-                                </button>
-
-                                <!-- 반품 신청 버튼 -->
-                                <button type="button"
-                                        th:if="${!#lists.isEmpty(d.items.?[itemStatus != 6 and itemStatus != 7 and itemStatus != 8 and itemStatus != 9])}"
-                                        th:data-order-seq="${orderDetail.orderSeq}"
-                                        th:data-company="${d.companyName}"
-                                        th:data-status="${d.deliveryStatus}"
-                                        onclick="handleOrderReturn(this)"
-                                        class="btn-action py-2.5 border text-sm shadow-sm transition-all"
-                                        th:classappend="${d.deliveryStatus == 'DELIVERED' ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}">
-                                    반품 신청
-                                </button>
-
-                                <!-- 취소 완료 처리 -->
-                                <button type="button"
-                                        th:if="${#lists.isEmpty(d.items.?[itemStatus != 6])}"
-                                        disabled
-                                        class="btn-action py-2.5 border border-slate-200 text-slate-400 bg-slate-50 text-sm shadow-sm cursor-not-allowed">
-                                    취소 완료
-                                </button>
-
-                                <!-- 주문 취소 버튼 -->
-                                <button type="button"
-                                        th:if="${!#lists.isEmpty(d.items.?[itemStatus != 6])}"
-                                        th:data-order-seq="${orderDetail.orderSeq}"
-                                        th:data-company="${d.companyName}"
-                                        th:data-status="${d.deliveryStatus}"
-                                        onclick="handleOrderCancel(this)"
-                                        class="btn-action py-2.5 border text-sm shadow-sm transition-all"
-                                        th:classappend="${d.deliveryStatus == 'READY' ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}">
-                                    주문취소
-                                </button>
-                            </div>
-                        </div>
                     </div>
+                </article>
+            </div>
+
+            <div th:if="${orders == null or orders.isEmpty()}" class="premium-card p-12 text-center">
+                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
                 </div>
+                <h3 class="text-lg font-bold text-slate-700">주문 내역이 없습니다.</h3>
+                <p class="text-slate-500 mt-2 text-sm">새로운 상품을 둘러보고 마음에 드는 상품을 주문해보세요.</p>
+                <a th:href="@{/}" class="inline-block mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">쇼핑하러 가기</a>
             </div>
-
-            <!-- 받는사람 정보 섹션 -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b-2 border-slate-900">받는사람 정보</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full info-table text-sm">
-                        <tbody>
-                            <tr>
-                                <th>받는사람</th>
-                                <td th:text="${orderDetail.recipientName}">-</td>
-                            </tr>
-                            <tr>
-                                <th>연락처</th>
-                                <td th:text="${orderDetail.recipientPhone}">-</td>
-                            </tr>
-                            <tr>
-                                <th>받는주소</th>
-                                <td th:text="${'(' + orderDetail.zipcode + ') ' + orderDetail.address + ' ' + (orderDetail.addressDetail != null ? orderDetail.addressDetail : '')}">
-                                    -
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>배송요청사항</th>
-                                <td th:text="${orderDetail.requestMemo != null and !orderDetail.requestMemo.isEmpty() ? orderDetail.requestMemo : '없음'}">
-                                    -
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
-
-            <!-- 결제 정보 섹션 -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <h3 class="text-lg font-bold text-slate-900 mb-4 pb-2 border-b-2 border-slate-900">결제 정보</h3>
-                <div class="grid grid-cols-1 md:grid-cols-[1fr_2px_1fr] gap-6">
-                    <!-- 좌측: 결제수단 -->
-                    <div class="flex flex-col justify-center py-2">
-                        <span class="text-xs font-bold text-slate-400 mb-2">결제수단</span>
-                        <div class="text-base font-extrabold text-slate-800" th:text="${orderDetail.paymentMethod != null ? orderDetail.paymentMethod : '결제 정보 없음'}">
-                            신용카드 (toss)
-                        </div>
-                    </div>
-
-                    <!-- 구분선 -->
-                    <div class="hidden md:block bg-slate-100 self-stretch"></div>
-
-                    <!-- 우측: 금액 계산 테이블 -->
-                    <div class="space-y-3 text-sm">
-                        <div class="flex justify-between items-center text-slate-600">
-                            <span>총 상품가격</span>
-                            <span class="font-bold text-slate-800"
-                                  th:text="${#numbers.formatInteger(orderDetail.productTotalPrice != null ? orderDetail.productTotalPrice : 0, 0, 'COMMA') + ' 원'}">
-                                -
-                            </span>
-                        </div>
-                        <div class="flex justify-between items-center text-slate-600">
-                            <span>할인금액</span>
-                            <span class="font-bold text-red-500"
-                                  th:text="${'- ' + #numbers.formatInteger(orderDetail.discountPrice != null ? orderDetail.discountPrice : 0, 0, 'COMMA') + ' 원'}">
-                                --
-                            </span>
-                        </div>
-                        <div class="flex justify-between items-center text-slate-600">
-                            <span>배송비</span>
-                            <span class="font-bold text-slate-800"
-                                  th:text="${#numbers.formatInteger(orderDetail.deliveryFee != null ? orderDetail.deliveryFee : 0, 0, 'COMMA') + ' 원'}">
-                                -
-                            </span>
-                        </div>
-                        <hr class="border-slate-100 my-2">
-                        <div class="flex justify-between items-center text-slate-800 font-extrabold text-base">
-                            <span>총 결제금액</span>
-                            <span class="text-lg text-slate-900"
-                                  th:text="${#numbers.formatInteger(orderDetail.finalPrice != null ? orderDetail.finalPrice : 0, 0, 'COMMA') + ' 원'}">
-                                -
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 하단 목록으로 돌아가기 버튼 -->
-            <div class="flex justify-center pt-4">
-                <a th:href="@{/mypage/orders}" class="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-sm transition-all shadow-md">
-                    주문목록으로 돌아가기
-                </a>
-            </div>
-        </section>
-
-        <!-- 데이터가 없을 때의 폴백 -->
-        <section th:if="${orderDetail == null}" class="premium-card p-12 text-center">
-            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-            </div>
-            <h3 class="text-lg font-bold text-slate-700">존재하지 않거나 조회 권한이 없는 주문입니다.</h3>
-            <a th:href="@{/mypage/orders}" class="inline-block mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors">주문목록으로 가기</a>
         </section>
     </div>
 </main>
 
-<!-- 배송조회 모달 -->
 <div id="trackModal" class="modal-overlay">
     <div class="modal-content">
         <h3 class="text-xl font-bold text-slate-900 mb-6">배송 상태 조회</h3>
@@ -572,12 +516,14 @@
         const statusTextEl = document.getElementById('modalStatusText');
         statusTextEl.innerText = currentStatus;
 
+        // CANCELED나 FAILED일 경우 붉은색, 나머지는 파란색
         if (currentStatus === 'CANCELED' || currentStatus === 'FAILED') {
             statusTextEl.className = "font-bold text-red-600";
         } else {
             statusTextEl.className = "font-bold text-blue-600";
         }
 
+        // 엘리먼트 가져오기
         const step1Circle = document.querySelector('#step1 .step-circle');
         const step1Label = document.querySelector('#step1 .step-label');
         const step2Circle = document.querySelector('#step2 .step-circle');
@@ -586,6 +532,7 @@
         const step3Label = document.querySelector('#step3 .step-label');
         const progress = document.getElementById('stepProgress');
 
+        // 상태 초기화 함수
         const resetClasses = (circle, label) => {
             circle.className = "step-circle w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 text-slate-400 font-bold transition-all duration-300";
             label.className = "step-label text-xs font-bold text-slate-400 mt-2 transition-all";
@@ -595,12 +542,15 @@
         resetClasses(step3Circle, step3Label);
         progress.style.width = "0%";
 
+        // 활성화 설정 함수
         const activate = (circle, label) => {
             circle.className = "step-circle w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center border-2 border-blue-500 text-white font-bold transition-all duration-300 shadow-md shadow-blue-100";
             label.className = "step-label text-xs font-bold text-blue-600 mt-2 transition-all";
         };
 
+        // 상태별 분기 적용
         if (currentStatus === 'CANCELED' || currentStatus === 'FAILED') {
+            // 취소/실패 상태면 모든 스텝 비활성화 상태 유지
             progress.style.width = "0%";
         } else if (currentStatus === 'READY') {
             activate(step1Circle, step1Label);
@@ -662,6 +612,28 @@
         }, 150);
     }
 
+    async function refreshOrderList() {
+        try {
+            const currentUrl = window.location.pathname + window.location.search;
+            const response = await fetch(currentUrl);
+            if (!response.ok) throw new Error("네트워크 응답 오류");
+            
+            const htmlText = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, "text/html");
+            
+            const newContainer = doc.getElementById("orderListContainer");
+            const currentContainer = document.getElementById("orderListContainer");
+            
+            if (newContainer && currentContainer) {
+                currentContainer.innerHTML = newContainer.innerHTML;
+            }
+        } catch (error) {
+            console.error("목록 갱신 실패:", error);
+            location.reload();
+        }
+    }
+
     function showReturnAlertModal() {
         document.getElementById('returnAlertModal').classList.add('active');
     }
@@ -679,6 +651,7 @@
     }
 
     function showReturnConfirmModal(text, onConfirm) {
+        // Step 블록 보이기/숨기기 초기화
         document.getElementById('returnConfirmStep').classList.remove('hidden');
         document.getElementById('returnProcessingStep').classList.add('hidden');
         document.getElementById('returnResultStep').classList.add('hidden');
@@ -686,6 +659,7 @@
         document.getElementById('returnConfirmModalText').innerHTML = text;
         const btnExecute = document.getElementById('btnExecuteReturn');
         
+        // Remove existing listener by cloning button
         const newBtnExecute = btnExecute.cloneNode(true);
         btnExecute.parentNode.replaceChild(newBtnExecute, btnExecute);
         
@@ -741,11 +715,13 @@
         const companyName = btn.getAttribute('data-company');
         const status = btn.getAttribute('data-status');
 
+        // 반품신청은 배송이 도착하고 난 이후(DELIVERED)에만 가능하다.
         if (status !== 'DELIVERED') {
             showReturnAlertModal();
             return;
         }
 
+        // 해당 묶음(div.delivery-company-group) 안의 체크된 아이템 요소들을 검색
         const groupContainer = btn.closest('.delivery-company-group');
         if (!groupContainer) {
             showReturnResult(false, "오류", "주문 정보를 찾을 수 없습니다.");
@@ -762,6 +738,7 @@
             .map(cb => Number(cb.getAttribute('data-order-item-seq')))
             .filter(n => !isNaN(n));
 
+        // 첫 번째 체크된 상품명 추출
         const firstItemTarget = checkedBoxes[0].closest('.cancel-item-target');
         const firstItemNameEl = firstItemTarget ? firstItemTarget.querySelector('h4') : null;
         const firstItemName = firstItemNameEl ? firstItemNameEl.innerText.trim() : '상품';
@@ -806,7 +783,7 @@
 
                     const successMsg = result && result.message ? result.message : "반품 신청이 완료되었습니다.";
                     showReturnResult(true, "반품 완료", successMsg, () => {
-                        location.reload();
+                        refreshOrderList();
                     });
 
                 } catch (error) {
@@ -826,6 +803,7 @@
     }
 
     function showCancelConfirmModal(text, onConfirm) {
+        // Step 블록 보이기/숨기기 초기화
         document.getElementById('cancelConfirmStep').classList.remove('hidden');
         document.getElementById('cancelProcessingStep').classList.add('hidden');
         document.getElementById('cancelResultStep').classList.add('hidden');
@@ -833,6 +811,7 @@
         document.getElementById('confirmModalText').innerHTML = text;
         const btnExecute = document.getElementById('btnExecuteCancel');
         
+        // Remove existing listener by cloning button
         const newBtnExecute = btnExecute.cloneNode(true);
         btnExecute.parentNode.replaceChild(newBtnExecute, btnExecute);
         
@@ -888,11 +867,13 @@
         const companyName = btn.getAttribute('data-company');
         const status = btn.getAttribute('data-status');
 
+        // 배송 시작 상태 검증 (READY가 아닐 때 모달 노출)
         if (status !== 'READY') {
             showCancelAlertModal();
             return;
         }
 
+        // 해당 묶음(div.delivery-company-group) 안의 아이템 요소들을 검색
         const groupContainer = btn.closest('.delivery-company-group');
         if (!groupContainer) {
             showCancelResult(false, "오류", "주문 정보를 찾을 수 없습니다.");
@@ -910,6 +891,7 @@
             return;
         }
 
+        // 취소하려는 첫 번째 상품명 추출
         const firstItemNameEl = activeItems[0].querySelector('h4');
         const firstItemName = firstItemNameEl ? firstItemNameEl.innerText.trim() : '상품';
         
@@ -953,7 +935,7 @@
 
                     const successMsg = result && result.message ? result.message : "주문 취소가 완료되었습니다.";
                     showCancelResult(true, "취소 완료", successMsg, () => {
-                        location.reload();
+                        refreshOrderList();
                     });
 
                 } catch (error) {
@@ -964,17 +946,21 @@
         );
     }
 
-    // 모달 배경 클릭 시 닫기 핸들러들
     document.getElementById('trackModal').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
+        if (e.target === this) {
+            closeModal();
+        }
     });
 
     document.getElementById('cancelAlertModal').addEventListener('click', function(e) {
-        if (e.target === this) closeCancelAlertModal();
+        if (e.target === this) {
+            closeCancelAlertModal();
+        }
     });
 
     document.getElementById('cancelConfirmModal').addEventListener('click', function(e) {
         if (e.target === this) {
+            // 로딩 중이 아닐 때만 닫기 허용
             const processingStep = document.getElementById('cancelProcessingStep');
             if (processingStep && processingStep.classList.contains('hidden')) {
                 closeCancelConfirmModal();
@@ -983,15 +969,20 @@
     });
 
     document.getElementById('returnAlertModal').addEventListener('click', function(e) {
-        if (e.target === this) closeReturnAlertModal();
+        if (e.target === this) {
+            closeReturnAlertModal();
+        }
     });
 
     document.getElementById('returnNoSelectionModal').addEventListener('click', function(e) {
-        if (e.target === this) closeReturnNoSelectionModal();
+        if (e.target === this) {
+            closeReturnNoSelectionModal();
+        }
     });
 
     document.getElementById('returnConfirmModal').addEventListener('click', function(e) {
         if (e.target === this) {
+            // 로딩 중이 아닐 때만 닫기 허용
             const processingStep = document.getElementById('returnProcessingStep');
             if (processingStep && processingStep.classList.contains('hidden')) {
                 closeReturnConfirmModal();

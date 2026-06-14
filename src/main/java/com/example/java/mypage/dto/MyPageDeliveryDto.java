@@ -18,5 +18,7 @@ public class MyPageDeliveryDto {
     private String deliveryStatus;
     private String trackingNumber;
     private String completedAt;
+    private String canceledAt;
     private List<MyPageOrderItemDto> items;
 }
+

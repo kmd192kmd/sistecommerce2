@@ -212,9 +212,37 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
                     .deliveryStatus(DELIVERY_READY_STATUS)
                     .trackingNumber(TRACKING_PENDING)
                     .completedAt("")
+                    .canceledAt("")
                     .items(new ArrayList<>())
                     .build());
             return deliveryGroups;
+        }
+
+        List<Long> orderItemSeqs = new ArrayList<>();
+        for (List<MyPageOrderItemDto> items : companyItems.values()) {
+            if (items != null) {
+                for (MyPageOrderItemDto item : items) {
+                    if (item.getOrderItemSeq() != null) {
+                        orderItemSeqs.add(item.getOrderItemSeq());
+                    }
+                }
+            }
+        }
+
+        Map<Long, java.time.LocalDateTime> refundDates = new HashMap<>();
+        if (!orderItemSeqs.isEmpty()) {
+            List<Tuple> refundRows = queryFactory
+                    .select(com.example.java.orders.entity.QRefund.refund.orderItemSeq, com.example.java.orders.entity.QRefund.refund.completeDate)
+                    .from(com.example.java.orders.entity.QRefund.refund)
+                    .where(com.example.java.orders.entity.QRefund.refund.orderItemSeq.in(orderItemSeqs))
+                    .fetch();
+            for (Tuple row : refundRows) {
+                Long ois = row.get(com.example.java.orders.entity.QRefund.refund.orderItemSeq);
+                java.time.LocalDateTime dt = row.get(com.example.java.orders.entity.QRefund.refund.completeDate);
+                if (ois != null && dt != null) {
+                    refundDates.put(ois, dt);
+                }
+            }
         }
 
         Map<String, DeliveryInfo> safeDeliveryInfo =
@@ -227,11 +255,30 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
                     .allMatch(item -> item.getItemStatus() != null && (item.getItemStatus() == 6 || item.getItemStatus() == 9));
             String defaultStatus = allCanceledOrReturned ? "CANCELED" : DELIVERY_READY_STATUS;
 
+            String canceledAtStr = "";
+            if (allCanceledOrReturned) {
+                java.time.LocalDateTime latestCancelDate = null;
+                for (MyPageOrderItemDto item : entry.getValue()) {
+                    if (item.getItemStatus() != null && item.getItemStatus() == 6) {
+                        java.time.LocalDateTime dt = refundDates.get(item.getOrderItemSeq());
+                        if (dt != null) {
+                            if (latestCancelDate == null || dt.isAfter(latestCancelDate)) {
+                                latestCancelDate = dt;
+                            }
+                        }
+                    }
+                }
+                if (latestCancelDate != null) {
+                    canceledAtStr = latestCancelDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy. MM. dd. HH:mm"));
+                }
+            }
+
             deliveryGroups.add(MyPageDeliveryDto.builder()
                     .companyName(entry.getKey())
                     .deliveryStatus(info != null ? info.status() : defaultStatus)
                     .trackingNumber(info != null ? info.trackingNumber() : TRACKING_PENDING)
                     .completedAt(info != null ? info.completedAt() : "")
+                    .canceledAt(canceledAtStr)
                     .items(entry.getValue())
                     .build());
         }
