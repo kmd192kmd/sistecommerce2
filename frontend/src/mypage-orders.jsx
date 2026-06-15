@@ -327,6 +327,10 @@ function App() {
         if (deliveryGroup.deliveryStatus !== 'READY') {
             if (deliveryGroup.deliveryStatus === 'DELIVERED') {
                 setCancelAlertMsg('배송완료된 상품은 주문취소가 불가능합니다.');
+            } else if (deliveryGroup.deliveryStatus === 'FAILED') {
+                setCancelAlertMsg('배송 실패한 상품은 주문취소가 불가능합니다. 고객센터로 문의해 주세요.');
+            } else if (deliveryGroup.deliveryStatus === 'DELAYED') {
+                setCancelAlertMsg('배송 지연 중인 상품은 배송이 이미 진행되어 주문취소가 불가능합니다.');
             } else {
                 setCancelAlertMsg('이미 상품 배송이 시작되어 주문을 취소할 수 없습니다.');
             }
@@ -466,7 +470,9 @@ function App() {
                                                             </>
                                                         )}
                                                         {d.deliveryStatus === 'CANCELED' && <span class="status-badge status-CANCELED">주문취소</span>}
-                                                        {(d.deliveryStatus === 'SHIPPING' || d.deliveryStatus === 'DELAYED') && <span class="status-badge status-SHIPPING">배송중</span>}
+                                                        {d.deliveryStatus === 'SHIPPING' && <span class="status-badge status-SHIPPING">배송중</span>}
+                                                        {d.deliveryStatus === 'DELAYED' && <span class="status-badge status-DELAYED">배송지연</span>}
+                                                        {d.deliveryStatus === 'FAILED' && <span class="status-badge status-FAILED">배송실패</span>}
                                                         {d.deliveryStatus === 'READY' && <span class="status-badge status-READY">배송대기</span>}
                                                     </div>
                                                 </div>
@@ -659,7 +665,14 @@ function App() {
                         </div>
                     </div>
 
-                    <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" className={`font-bold ${trackModalUI.status === 'CANCELED' || trackModalUI.status === 'FAILED' ? 'text-red-600' : 'text-blue-600'}`}>{trackModalUI.status}</span></p>
+                    <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" className={`font-bold ${trackModalUI.status === 'CANCELED' || trackModalUI.status === 'FAILED' ? 'text-red-600' : trackModalUI.status === 'DELAYED' ? 'text-orange-600' : 'text-blue-600'}`}>
+                        {trackModalUI.status === 'READY' && '배송대기'}
+                        {trackModalUI.status === 'SHIPPING' && '배송중'}
+                        {trackModalUI.status === 'DELAYED' && '배송지연'}
+                        {trackModalUI.status === 'DELIVERED' && '배송완료'}
+                        {trackModalUI.status === 'CANCELED' && '주문취소'}
+                        {trackModalUI.status === 'FAILED' && '배송실패'}
+                    </span></p>
 
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
                         <p class="text-xs font-bold text-slate-400 mb-1 whitespace-nowrap">

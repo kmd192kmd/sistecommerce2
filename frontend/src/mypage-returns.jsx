@@ -22,6 +22,7 @@ function App() {
         productPrice: 0,
         quantity: 0,
         statusText: '',
+        itemStatus: 0,
         requestDate: '',
         uid: '',
         completedDate: '',
@@ -111,6 +112,7 @@ function App() {
             productPrice: cr.productPrice || 0,
             quantity: cr.quantity || 0,
             statusText: cr.statusText,
+            itemStatus: cr.itemStatus || 0,
             requestDate: cr.requestDate || '-',
             uid: cr.uid || '-',
             completedDate: cr.completedDate || '진행 중',
@@ -145,6 +147,7 @@ function App() {
                 productPrice: 0,
                 quantity: 0,
                 statusText: '',
+                itemStatus: 0,
                 requestDate: '',
                 uid: '',
                 completedDate: '',
@@ -212,7 +215,27 @@ function App() {
                                                 cr.items.map((item, itemIdx) => (
                                                     <div key={itemIdx} className="flex gap-5 items-center pb-3 last:pb-0 border-b border-slate-100/50 last:border-b-0">
                                                         <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
-                                                            <img src={item.thumbnailUrl || '/images/default-product.png'} alt="상품 이미지" className="w-full h-full object-cover" />
+                                                            <img src={item.thumbnailUrl || '/images/default-product.png'} alt="상품 이미지" className={`w-full h-full object-cover ${[6,7,8,9].includes(item.itemStatus) ? ' grayscale' : ''}`} />
+                                                            {item.itemStatus === 6 && (
+                                                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">취소됨</span>
+                                                                </div>
+                                                            )}
+                                                            {item.itemStatus === 7 && (
+                                                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품대기</span>
+                                                                </div>
+                                                            )}
+                                                            {item.itemStatus === 8 && (
+                                                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품진행</span>
+                                                                </div>
+                                                            )}
+                                                            {item.itemStatus === 9 && (
+                                                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품완료</span>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="space-y-0.5">
                                                             <h4 className="font-bold text-sm text-slate-950 leading-tight">{item.productName}</h4>
@@ -227,7 +250,27 @@ function App() {
                                             ) : (
                                                 <div className="flex gap-5 items-center">
                                                     <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm border border-slate-100 shrink-0">
-                                                        <img src={cr.thumbnailUrl || '/images/default-product.png'} alt="상품 이미지" className="w-full h-full object-cover" />
+                                                        <img src={cr.thumbnailUrl || '/images/default-product.png'} alt="상품 이미지" className={`w-full h-full object-cover ${[6,7,8,9].includes(cr.itemStatus) ? ' grayscale' : ''}`} />
+                                                        {cr.itemStatus === 6 && (
+                                                            <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">취소됨</span>
+                                                            </div>
+                                                        )}
+                                                        {cr.itemStatus === 7 && (
+                                                            <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품대기</span>
+                                                            </div>
+                                                        )}
+                                                        {cr.itemStatus === 8 && (
+                                                            <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품진행</span>
+                                                            </div>
+                                                        )}
+                                                        {cr.itemStatus === 9 && (
+                                                            <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품완료</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="space-y-0.5">
                                                         <h4 className="font-bold text-sm text-slate-950 leading-tight">{cr.productName}</h4>
@@ -308,8 +351,28 @@ function App() {
 
                     {/* 1. 상품 정보 카드 */}
                     <div className="flex gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <div className="w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-200">
-                            <img src={modalUI.thumbnailUrl} alt="상품 이미지" className="w-full h-full object-cover" />
+                        <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-200">
+                            <img src={modalUI.thumbnailUrl} alt="상품 이미지" className={`w-full h-full object-cover ${[6,7,8,9].includes(modalUI.itemStatus) ? ' grayscale' : ''}`} />
+                            {modalUI.itemStatus === 6 && (
+                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">취소됨</span>
+                                </div>
+                            )}
+                            {modalUI.itemStatus === 7 && (
+                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품대기</span>
+                                </div>
+                            )}
+                            {modalUI.itemStatus === 8 && (
+                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품진행</span>
+                                </div>
+                            )}
+                            {modalUI.itemStatus === 9 && (
+                                <div className="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                    <span className="text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded">반품완료</span>
+                                </div>
+                            )}
                         </div>
                         <div className="space-y-0.5">
                             <h4 className="font-bold text-sm text-slate-900 leading-tight">{modalUI.productName}</h4>
