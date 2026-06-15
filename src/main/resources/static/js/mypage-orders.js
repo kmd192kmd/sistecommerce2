@@ -189,7 +189,7 @@ function s() {
 		}
 	}, W = (e, t) => {
 		if (t.deliveryStatus !== "READY") {
-			t.deliveryStatus === "DELIVERED" ? S("배송완료된 상품은 주문취소가 불가능합니다.") : S("이미 상품 배송이 시작되어 주문을 취소할 수 없습니다."), b(!0);
+			t.deliveryStatus === "DELIVERED" ? S("배송완료된 상품은 주문취소가 불가능합니다.") : t.deliveryStatus === "FAILED" ? S("배송 실패한 상품은 주문취소가 불가능합니다. 고객센터로 문의해 주세요.") : t.deliveryStatus === "DELAYED" ? S("배송 지연 중인 상품은 배송이 이미 진행되어 주문취소가 불가능합니다.") : S("이미 상품 배송이 시작되어 주문을 취소할 수 없습니다."), b(!0);
 			return;
 		}
 		let n = t.items.filter((e) => e.itemStatus !== 6), r = n.map((e) => e.orderItemSeq);
@@ -347,9 +347,17 @@ function s() {
 														class: "status-badge status-CANCELED",
 														children: "주문취소"
 													}),
-													(t.deliveryStatus === "SHIPPING" || t.deliveryStatus === "DELAYED") && /* @__PURE__ */ (0, o.jsx)("span", {
+													t.deliveryStatus === "SHIPPING" && /* @__PURE__ */ (0, o.jsx)("span", {
 														class: "status-badge status-SHIPPING",
 														children: "배송중"
+													}),
+													t.deliveryStatus === "DELAYED" && /* @__PURE__ */ (0, o.jsx)("span", {
+														class: "status-badge status-DELAYED",
+														children: "배송지연"
+													}),
+													t.deliveryStatus === "FAILED" && /* @__PURE__ */ (0, o.jsx)("span", {
+														class: "status-badge status-FAILED",
+														children: "배송실패"
 													}),
 													t.deliveryStatus === "READY" && /* @__PURE__ */ (0, o.jsx)("span", {
 														class: "status-badge status-READY",
@@ -708,10 +716,17 @@ function s() {
 						}),
 						/* @__PURE__ */ (0, o.jsxs)("p", {
 							class: "text-slate-500 text-sm mb-6",
-							children: ["현재 배송 상태: ", /* @__PURE__ */ (0, o.jsx)("span", {
+							children: ["현재 배송 상태: ", /* @__PURE__ */ (0, o.jsxs)("span", {
 								id: "modalStatusText",
-								className: `font-bold ${g.status === "CANCELED" || g.status === "FAILED" ? "text-red-600" : "text-blue-600"}`,
-								children: g.status
+								className: `font-bold ${g.status === "CANCELED" || g.status === "FAILED" ? "text-red-600" : g.status === "DELAYED" ? "text-orange-600" : "text-blue-600"}`,
+								children: [
+									g.status === "READY" && "배송대기",
+									g.status === "SHIPPING" && "배송중",
+									g.status === "DELAYED" && "배송지연",
+									g.status === "DELIVERED" && "배송완료",
+									g.status === "CANCELED" && "주문취소",
+									g.status === "FAILED" && "배송실패"
+								]
 							})]
 						}),
 						/* @__PURE__ */ (0, o.jsxs)("div", {
