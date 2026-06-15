@@ -79,10 +79,6 @@
             <!-- 가격 영역 -->
             <div class="mt-6 space-y-1 border-y border-gray-100 py-5">
 
-                <p class="text-sm text-gray-400">
-                    시세가
-                </p>
-
                 <p class="flex items-baseline gap-2">
                     <span th:text="${#numbers.formatInteger(product.price, 0, 'COMMA')}"
                           class="text-3xl font-black">
@@ -382,10 +378,6 @@
 	const productHideYn = /*[[${product.hideYn}]]*/ 'N';
 	const productStatus = /*[[${product.productStatus}]]*/ 'NORMAL';
 
-	console.log('productSaleStatus =', productSaleStatus);
-	console.log('productHideYn =', productHideYn);
-	console.log('productStatus =', productStatus);
-	
 	/*
 	    구매 불가 상품 여부 확인
 
@@ -407,8 +399,6 @@
 	*/
 	function buyNow() {
 
-	    console.log('바로구매 클릭');
-
 	    if (currentMemberSeq === null) {
 	        alert('로그인이 필요합니다.');
 	        return;
@@ -421,9 +411,6 @@
 
 	    const optionsSeq = document.getElementById('optionsSeq').value;
 	    const quantity = document.getElementById('quantity').value;
-
-	    console.log('optionsSeq=', optionsSeq);
-	    console.log('quantity=', quantity);
 
 	    if (!optionsSeq) {
 	        alert('옵션을 선택해주세요.');

@@ -297,3 +297,68 @@ CHECK (options_seq > 0);
 ALTER TABLE restock_notification
 ADD CONSTRAINT chk_restock_notification_member_seq
 CHECK (member_seq > 0);
+
+
+ALTER TABLE product_wish
+ADD CONSTRAINT uk_product_wish_member_option
+UNIQUE (member_seq, options_seq);
+
+ALTER TABLE product_wish
+ADD product_seq NUMBER;
+
+ALTER TABLE product_wish
+DROP CONSTRAINT CHK_PRODUCT_WISH_OPTIONS_SEQ;
+
+ALTER TABLE product_wish
+DROP CONSTRAINT UQ_WISH_MEMBER_OPTION;
+
+ALTER TABLE product_wish
+DROP COLUMN options_seq;
+
+ALTER TABLE product_wish
+MODIFY product_seq NUMBER NOT NULL;
+
+ALTER TABLE product_wish
+ADD CONSTRAINT fk_product_wish_product
+FOREIGN KEY (product_seq)
+REFERENCES product(seq);
+
+ALTER TABLE product_wish
+ADD CONSTRAINT uk_product_wish_member_product
+UNIQUE (member_seq, product_seq);
+
+
+
+ALTER TABLE product_wish
+DROP CONSTRAINT CHK_PRODUCT_WISH_STATUS;
+
+ALTER TABLE product_wish
+MODIFY status VARCHAR2(20) DEFAULT 'NORMAL';
+
+ALTER TABLE product_wish
+MODIFY status NOT NULL;
+
+ALTER TABLE product_wish
+ADD CONSTRAINT CHK_PRODUCT_WISH_STATUS
+CHECK (status IN ('NORMAL', 'DELETED'));
+
+
+
+ALTER TABLE seller
+ADD role VARCHAR2(50);
+
+ALTER TABLE seller
+MODIFY role DEFAULT 'ROLE_SELLER';
+
+UPDATE seller
+SET role = 'ROLE_SELLER'
+WHERE role IS NULL;
+
+COMMIT;
+
+ALTER TABLE seller
+MODIFY role NOT NULL;
+
+ALTER TABLE seller
+ADD CONSTRAINT chk_seller_role
+CHECK (role = 'ROLE_SELLER');

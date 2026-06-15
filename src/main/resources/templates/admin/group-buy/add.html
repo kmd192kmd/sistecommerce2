@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -213,7 +213,23 @@
 	});
 	
 	maxCountInput.addEventListener("change", validateMaxCount);
-</script>
 
+	document.getElementById("add-form").addEventListener("submit", function(e) {
+	    e.preventDefault();
+	    const formData = new FormData(this);
+	    fetch(this.action, {
+	        method: this.method,
+	        body: new URLSearchParams(formData)
+	    }).then(res => {
+	        if(res.ok) {
+	            alert("공동구매가 성공적으로 등록되었습니다.");
+	            window.location.href = "/admin/group-buys";
+	        } else {
+	            alert("공동구매 등록에 실패했습니다.");
+	        }
+	    }).catch(() => alert("오류가 발생했습니다."));
+	});
+</script>
+<script src="/admin/admin.js"></script>
 </body>
 </html>
