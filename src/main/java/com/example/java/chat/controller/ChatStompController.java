@@ -6,13 +6,15 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate; // 👈 추가된 임포트
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 import com.example.java.chat.dto.request.ChatMessageRequest;
 import com.example.java.chat.dto.response.ChatMessageResponse;
+import com.example.java.chat.enums.SenderType;
+import com.example.java.chat.service.AiChatbotService;
 import com.example.java.chat.service.ChatService;
-import com.example.java.chat.service.AiChatbotService; // 👈 새로 추가
 import com.example.java.member.security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ChatStompController {
 
     private final ChatService chatService;
-    private final AiChatbotService aiChatbotService; // 👈 새로 추가
+    private final AiChatbotService aiChatbotService;
+    
+    // 👈 웹소켓으로 메시지를 직접 쏴줄 수 있는 메신저 템플릿 추가
+    private final SimpMessagingTemplate messagingTemplate; 
 
     @MessageMapping("/chat/{roomId}/send")
     @SendTo("/topic/chat/{roomId}")
@@ -44,11 +49,22 @@ public class ChatStompController {
             request.getSenderType()
         );
 
-        // 2. 비동기 AI 답변 생성 지시! 
-        // (사용자 화면에는 이미 위 메시지가 떴고, 백그라운드에서 AI가 생각하기 시작합니다)
-        // 챗봇용 방인지 체크하는 로직을 나중에 추가할 수 있습니다.
-        aiChatbotService.processUserMessageAndRespond(roomId, request.getContent());
+        // 2. OpenAI API 호출 및 답변 받아오기 (리턴값을 변수에 저장)
+        String aiAnswerText = aiChatbotService.processUserMessageAndRespond(roomId, memberSeq, request.getContent());
 
+        // 3. AI의 답변을 DB에 저장하고 응답 객체(DTO) 생성
+        // (발신자 ID는 AI를 뜻하는 0L이나 1L 혹은 시스템 룰에 맞게 입력, senderType은 "AI"로 고정)
+        ChatMessageResponse aiMessage = chatService.saveMessage(
+            roomId, 
+            0L, // 시스템/AI의 가상 ID (프로젝트 DB 설정에 따라 null이 안되면 0 등을 사용)
+            aiAnswerText, 
+            SenderType.AI
+        );
+
+        // 4. 🚨 [핵심] 완성된 AI 메시지를 해당 채팅방을 구독 중인 프론트엔드로 직접 발송!
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, aiMessage);
+
+        // 5. 사용자가 보낸 메시지 반환 (@SendTo 작동)
         return userMessage;
     }
 
