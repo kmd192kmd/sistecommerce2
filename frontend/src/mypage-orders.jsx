@@ -229,7 +229,7 @@ function App() {
         setConfirmModal(prev => ({ ...prev, step: 'PROCESSING' }));
         const { orderSeq, orderItemSeqList } = confirmModal.payload;
         try {
-            const response = await fetch(`/mypage/orders/${orderSeq}/cancel-items`, {
+            const response = await fetch(`/api/mypage/orders/${orderSeq}/cancel-items`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -278,7 +278,7 @@ function App() {
         setConfirmModal(prev => ({ ...prev, step: 'PROCESSING' }));
         const { orderSeq, orderItemSeqList } = confirmModal.payload;
         try {
-            const response = await fetch(`/mypage/orders/${orderSeq}/return`, {
+            const response = await fetch(`/api/mypage/orders/${orderSeq}/return`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

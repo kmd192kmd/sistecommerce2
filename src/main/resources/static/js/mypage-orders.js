@@ -106,7 +106,7 @@ function s() {
 		}));
 		let { orderSeq: e, orderItemSeqList: t } = D.payload;
 		try {
-			let n = await fetch(`/mypage/orders/${e}/cancel-items`, {
+			let n = await fetch(`/api/mypage/orders/${e}/cancel-items`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -150,7 +150,7 @@ function s() {
 		}));
 		let { orderSeq: e, orderItemSeqList: t } = D.payload;
 		try {
-			let n = await fetch(`/mypage/orders/${e}/return`, {
+			let n = await fetch(`/api/mypage/orders/${e}/return`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
