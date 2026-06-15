@@ -148,6 +148,7 @@
 	                    </th>
 	                    <th class="p-2">번호</th>
 	                    <th class="p-2">상태</th>
+	                    <th class="p-2">판매처</th>
 	                    <th class="p-2">상품명</th>
 	                    <th class="p-2">옵션</th>
 	                    <th class="p-2">수량</th>
@@ -168,6 +169,7 @@
 	
 	                    <td class="p-2" th:text="${item.seq}"></td>
 	                    <td class="p-2" th:text="${item.status}"></td>
+	                    <td class="p-2" th:text="${item.sellerName}"></td>
 	                    <td class="p-2" th:text="${item.productName}"></td>
 	                    <td class="p-2" th:text="${item.optionsName}"></td>
 	                    <td class="p-2" th:text="${item.quantity}"></td>
@@ -290,6 +292,7 @@
 	
 	                <td class="p-2">${item.seq}</td>
 	                <td class="p-2">${item.status}</td>
+	                <td class="p-2">${item.sellerName}</td>
 	                <td class="p-2">${item.productName}</td>
 	                <td class="p-2">${item.optionsName}</td>
 	                <td class="p-2">${item.quantity}</td>
