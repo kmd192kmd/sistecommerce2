@@ -515,6 +515,10 @@
                     <input type="hidden" name="orderUid" th:value="${order.orderUid}">
                     <input type="hidden" id="amount" name="amount" th:value="${priceSummary.finalPrice}">
 
+					<input type="hidden" name="directBuyYn" th:value="${directBuyYn}">
+					<input type="hidden" name="optionsSeq" th:value="${directOptionsSeq}">
+					<input type="hidden" name="quantity" th:value="${directQuantity}">
+					
                     <th:block th:each="cartSeq : ${selectedCartSeqList}">
                         <input type="hidden" name="cartSeq" th:value="${cartSeq}">
                     </th:block>

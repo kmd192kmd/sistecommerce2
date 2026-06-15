@@ -2,11 +2,12 @@ package com.example.java.orders.controller;
 
 import com.example.java.member.entity.Member;
 import com.example.java.member.repository.MemberRepository;
+import com.example.java.member.security.CustomUserDetails;
+import com.example.java.orders.dto.CheckoutItemDto;
 import com.example.java.orders.dto.CheckoutRequestDto;
 import com.example.java.orders.dto.OrderCreateResultDto;
 import com.example.java.orders.service.OrdersCommandService;
 import com.example.java.orders.service.OrdersViewService;
-import com.example.java.orders.dto.CheckoutItemDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -71,7 +72,7 @@ public class OrdersController {
                 throw new IllegalArgumentException("구매 수량은 1개 이상이어야 합니다.");
             }
 
-            List<com.example.java.orders.dto.CheckoutItemDto> items =
+            List<CheckoutItemDto> items =
                     ordersViewService.getDirectCheckoutItems(optionsSeq, quantity);
 
             model.addAttribute("cartItems", items);
@@ -102,6 +103,64 @@ public class OrdersController {
         return "order/checkout";
     }
 
+    /*
+        바로구매 결제 화면
+
+        장바구니를 거치지 않고 상품 상세 화면에서 선택한
+        optionsSeq와 quantity를 기준으로 결제 화면을 엽니다.
+
+        기존 /order/checkout 장바구니 결제 흐름은 그대로 유지하고,
+        바로구매일 때만 이 URL을 사용합니다.
+    */
+    @GetMapping("/order/checkout/direct")
+    public String directCheckout(@RequestParam("optionsSeq") Long optionsSeq,
+                                 @RequestParam("quantity") Integer quantity,
+                                 @RequestParam(value = "memberCouponSeq", required = false) Long memberCouponSeq,
+                                 Authentication authentication,
+                                 Model model) {
+
+        Long memberSeq = getLoginMemberSeq(authentication);
+
+        model.addAttribute("loginMemberSeq", memberSeq);
+
+        model.addAttribute(
+                "cartItems",
+                List.of(
+                        ordersViewService.getDirectCheckoutItem(
+                                optionsSeq,
+                                quantity
+                        )
+                )
+        );
+
+        model.addAttribute("deliveryAddresses", ordersViewService.getDeliveryAddresses(memberSeq));
+        model.addAttribute("coupons", ordersViewService.getCoupons(memberSeq));
+        model.addAttribute("selectedMemberCouponSeq", memberCouponSeq);
+
+        model.addAttribute(
+                "priceSummary",
+                ordersViewService.getDirectPriceSummary(
+                        memberSeq,
+                        memberCouponSeq,
+                        optionsSeq,
+                        quantity
+                )
+        );
+
+        model.addAttribute("order", ordersViewService.getOrderPreview());
+
+        model.addAttribute("tossClientKey", tossClientKey);
+        model.addAttribute("tossSuccessUrl", tossSuccessUrl);
+        model.addAttribute("tossFailUrl", tossFailUrl);
+
+        model.addAttribute("directBuyYn", true);
+        model.addAttribute("directBuy", true);
+        model.addAttribute("directOptionsSeq", optionsSeq);
+        model.addAttribute("directQuantity", quantity);
+
+        return "order/checkout";
+    }
+
     @PostMapping("/order/checkout")
     @ResponseBody
     public ResponseEntity<OrderCreateResultDto> prepareCheckout(CheckoutRequestDto requestDto,
@@ -118,6 +177,19 @@ public class OrdersController {
     private Long getLoginMemberSeq(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalStateException("로그인이 필요합니다.");
+        }
+
+        Object principal = authentication.getPrincipal();
+
+        /*
+            현재 프로젝트는 Spring Security 로그인 사용자 정보를
+            CustomUserDetails로 사용합니다.
+
+            상품 상세, 장바구니 쪽에서도 getMemberSeq()를 사용하고 있으므로
+            주문/결제에서도 같은 방식으로 회원번호를 가져옵니다.
+        */
+        if (principal instanceof CustomUserDetails customUserDetails) {
+            return customUserDetails.getMemberSeq();
         }
 
         String username = authentication.getName();

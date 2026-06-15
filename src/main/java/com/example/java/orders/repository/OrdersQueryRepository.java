@@ -16,7 +16,7 @@ public interface OrdersQueryRepository {
      * 로그인 회원이 발급받은 사용 가능한 쿠폰 목록 조회.
      */
     List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq);
-    
+
     /**
      * 상품 상세 화면의 바로구매용 상품 조회.
      */
@@ -26,7 +26,15 @@ public interface OrdersQueryRepository {
      * 선택한 member_coupon.seq가 실제 로그인 회원의 사용 가능한 쿠폰인지 검증 후 조회.
      */
     CouponDto findAvailableCouponByMemberSeqAndMemberCouponSeq(Long memberSeq, Long memberCouponSeq);
-    
+
+    /**
+     * 바로구매용 상품 조회.
+     *
+     * 상품 상세 화면에서 장바구니를 거치지 않고
+     * optionsSeq와 quantity를 기준으로 결제 상품 정보를 조회합니다.
+     */
+    CheckoutItemDto findDirectCheckoutItem(Long optionsSeq, Integer quantity);
+
     /**
      * 선택한 옵션 목록의 택배사 기본 배송비 합계 조회.
      * 같은 택배사는 중복 배송비를 제거하고 한 번만 계산한다.
