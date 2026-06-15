@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!prod")
+@Profile("prod")
 public class ElasticsearchIndexInitializer implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
