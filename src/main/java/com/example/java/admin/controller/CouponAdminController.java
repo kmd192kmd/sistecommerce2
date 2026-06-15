@@ -23,7 +23,7 @@ import com.example.java.member.entity.Member;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 public class CouponAdminController {	
 
@@ -37,7 +37,7 @@ public class CouponAdminController {
     	
         model.addAttribute("couponRequestDto", new CouponRequestDto());
         
-        return "coupon/create";
+        return "admin/coupon/create";
     }
     
 	@GetMapping("/coupon/list")
@@ -50,11 +50,11 @@ public class CouponAdminController {
         // 2. HTML(Thymeleaf)에서 사용할 수 있도록 'coupons'라는 이름으로 모델에 담습니다.
         model.addAttribute("coupons", couponList);
 		
-		return "coupon/list";
+		return "admin/coupon/list";
 	}
 	
 		@ResponseBody
-	    @GetMapping("/admin/coupons/search-members")
+	    @GetMapping("/coupons/search-members")
 	    public ResponseEntity<List<MemberSearchDto>> searchMembers(@RequestParam("keyword") String keyword) {
         
         // 프론트엔드(JS)에서 넘어온 keyword(예: "홍길동")를 통째로 서비스에 넘깁니다.
@@ -75,10 +75,10 @@ public class CouponAdminController {
 		
         couponAdminService.createCoupon(dto);
         
-        return "redirect:/coupon/list"; // 성공 시 리스트로 이동
+        return "redirect:/admin/coupon/list"; // 성공 시 리스트로 이동
     }
 	
-	@PostMapping("/api/admin/coupons/issue")
+	@PostMapping("/api/coupons/issue")
     public String issueCouponManually(
             @RequestParam("couponSeq") Long couponSeq,
             @RequestParam("issueType") String issueType,
@@ -88,34 +88,34 @@ public class CouponAdminController {
         couponAdminService.issueCouponManual(couponSeq, issueType, memberSeqs);
 
         // 처리가 끝나면 다시 쿠폰 리스트 화면으로 돌아갑니다.
-        return "redirect:/coupon/list";
+        return "redirect:/admin/coupon/list";
     }
 	
 	@ResponseBody
-    @org.springframework.web.bind.annotation.DeleteMapping("/api/admin/coupons/{seq}")
+    @org.springframework.web.bind.annotation.DeleteMapping("/api/coupons/{seq}")
     public org.springframework.http.ResponseEntity<String> deleteCoupon(@org.springframework.web.bind.annotation.
 PathVariable("seq") Long seq) {
         couponAdminService.deleteCoupon(seq);
         return org.springframework.http.ResponseEntity.ok("success");
     }
 	
-	@GetMapping("/admin/coupons/{seq}/edit")
+	@GetMapping("/coupons/{seq}/edit")
     public String editForm(@PathVariable("seq") Long seq, Model model) {
         Coupon coupon = couponAdminService.getCoupon(seq);
         model.addAttribute("coupon", coupon);
-        return "coupon/create"; // <--- 여기를 edit 대신 create로 변경!
+        return "admin/coupon/create"; // <--- 여기를 edit 대신 create로 변경!
     }
 
-    @org.springframework.web.bind.annotation.PutMapping("/admin/coupons/{seq}/edit")
+    @org.springframework.web.bind.annotation.PutMapping("/coupons/{seq}/edit")
     public String updateCoupon(@PathVariable("seq") Long seq, CouponRequestDto dto) {
         couponAdminService.updateCoupon(seq, dto);
-        return "redirect:/coupon/list";
+        return "redirect:/admin/coupon/list";
     }
     
-    @PostMapping("/admin/coupons/{seq}/edit")
+    @PostMapping("/coupons/{seq}/edit")
     public String updateCouponPost(@PathVariable("seq") Long seq, CouponRequestDto dto) {
         couponAdminService.updateCoupon(seq, dto);
-        return "redirect:/coupon/list";
+        return "redirect:/admin/coupon/list";
     }
 
 	
