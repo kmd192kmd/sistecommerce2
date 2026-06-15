@@ -19,6 +19,9 @@ import com.example.java.member.service.MemberSecurityService;
 import com.example.java.member.service.RememberMeTokenService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
+import com.example.java.admin.repository.AdminRepository;
+import com.example.java.admin.entity.Admin;
 
 @Configuration
 @EnableWebSecurity
@@ -61,6 +64,10 @@ public class SecurityConfig {
                 .requestMatchers("/", "/products/**", "/group-buys/**", "/hotdeals/**").permitAll()
                 // 공구 조회 REST API 허용 (비회원도 조회 가능)
                 .requestMatchers("/api/group-buys/**").permitAll()
+                
+                // 관리자 페이지는 ADMIN 권한 필요
+                .requestMatchers("/admin/**").hasAnyAuthority("ADMIN", "ROLE_ADMIN")
+
                 // 나머지는 인증 필요
                 //.anyRequest().authenticated()
 
@@ -107,6 +114,54 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new PasswordEncoder() {
+            private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
+            private final PasswordEncoder argon2 = org.springframework.security.crypto.argon2.Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+
+            @Override
+            public String encode(CharSequence rawPassword) {
+                return bcrypt.encode(rawPassword);
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                if (encodedPassword != null && encodedPassword.startsWith("$argon2")) {
+                    return argon2.matches(rawPassword, encodedPassword);
+                }
+                return bcrypt.matches(rawPassword, encodedPassword);
+            }
+        };
+    }
+
+    @Bean
+    public CommandLineRunner initAdminUser(AdminRepository adminRepository, PasswordEncoder passwordEncoder) {
+        return args -> {
+            // "admin" 계정이 없으면 새로 만들고, 있으면 비밀번호를 bcrypt로 덮어씁니다.
+            adminRepository.findByAdminId("admin").ifPresentOrElse(
+                admin -> {
+                    if (!passwordEncoder.matches("admin", admin.getPassword())) {
+                        Admin updatedAdmin = Admin.builder()
+                                .seq(admin.getSeq())
+                                .id(admin.getId())
+                                .password(passwordEncoder.encode("admin"))
+                                .admRole(admin.getAdmRole())
+                                .admStatus(admin.getAdmStatus())
+                                .role(admin.getRole())
+                                .build();
+                        adminRepository.save(updatedAdmin);
+                    }
+                },
+                () -> {
+                    Admin newAdmin = Admin.builder()
+                            .id("admin")
+                            .password(passwordEncoder.encode("admin"))
+                            .admRole(1)
+                            .admStatus(0)
+                            .role("ROLE_ADMIN")
+                            .build();
+                    adminRepository.save(newAdmin);
+                }
+            );
+        };
     }
 }

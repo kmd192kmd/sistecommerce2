@@ -13,7 +13,7 @@
 
 	        <!-- 좌측 역할별 메뉴 -->
 	        <div class="flex items-center space-x-4">
-				<a sec:authorize="hasAuthority('ROLE_ADMIN')"
+				<a sec:authorize="hasAnyAuthority('ADMIN', 'ROLE_ADMIN')"
 				   th:href="@{/admin/statistics}"
 				   class="hover:underline">
 				    관리자 페이지
