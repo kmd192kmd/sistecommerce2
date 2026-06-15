@@ -47,13 +47,16 @@ public class GroupBuyApiController {
 
     /**
      * 공구 참여 신청 (정규 참여 또는 대기열 등록).
-     * 예) POST /api/group-buys/7/participate?optionSeq=3  → "7번 공구에 3번 옵션으로 참여 신청"
+     * 예) POST /api/group-buys/7/participate?optionSeq=3  
+     * → "7번 공구에 3번 옵션으로 참여 신청"
      *
      * 조회(GET)와 달리 서버 상태(점유·참여 기록·대기열)를 바꾸므로 POST를 쓴다.
      * 참여는 "누가" 하는지가 필수라, 로그인한 회원 정보를 함께 받는다.
      *
-     * 정원이 남으면 자리를 예약(점유)하고 '결제 대기' 주문을 만들어 orderUid/amount를 함께 내려준다
-     * → 프론트가 그 값으로 토스 결제창을 띄운다(2단계). 매진이면 대기열 등록(QUEUED, 결제 정보 없음).
+     * 정원이 남으면 자리를 예약(점유)하고 '결제 대기' 
+     * 주문을 만들어 orderUid/amount를 함께 내려준다
+     * → 프론트가 그 값으로 토스 결제창을 띄운다(2단계). 
+     * 매진이면 대기열 등록(QUEUED, 결제 정보 없음).
      */
     @PostMapping("/{seq}/participate")
     public ResponseEntity<ParticipateResponse> participate(
@@ -61,17 +64,22 @@ public class GroupBuyApiController {
             @PathVariable(name = "seq") Long seq,
             // @RequestParam: 쿼리스트링 ?optionSeq=3 의 값을 꺼냄 → 회원이 고른 옵션
             @RequestParam(name = "optionSeq") Long optionSeq,
-            // @AuthenticationPrincipal: 지금 로그인한 사용자(SecurityContext의 principal)를 자동으로 주입.
-            // 타입을 CustomUserDetails로 받았으니 거기 담아둔 getMemberSeq()를 바로 쓸 수 있다.
+            // @AuthenticationPrincipal: 지금 로그인한 사용자
+            // (SecurityContext의 principal)를 자동으로 주입.
+            // 타입을 CustomUserDetails로 받았으니 거기 담아둔 
+            // getMemberSeq()를 바로 쓸 수 있다.
             @AuthenticationPrincipal CustomUserDetails user) {
         if (user == null) {
             // 비로그인이면 principal이 없어 user가 null → 401(인증 필요)로 막는다.
-            // (SecurityConfig가 현재 개발용 permitAll이라 비로그인도 들어올 수 있어 여기서 직접 방어)
+            // (SecurityConfig가 현재 개발용 permitAll이라 
+        	// 비로그인도 들어올 수 있어 여기서 직접 방어)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // 검증·점유·자리예약·주문생성·대기열은 서비스(트랜잭션)에 위임. 컨트롤러는 입력만 꺼내 넘긴다.
+        // 검증·점유·자리예약·주문생성·대기열은 서비스(트랜잭션)에 위임. 
+        // 컨트롤러는 입력만 꺼내 넘긴다.
         ParticipateResponse response = groupBuyService.participate(seq, optionSeq, user.getMemberSeq());
-        // 결과를 JSON으로 반환 → QUEUED(대기열) 또는 PARTICIPATED(+orderUid/amount로 토스 결제창)
+        // 결과를 JSON으로 반환 → QUEUED(대기열) 또는 
+        // PARTICIPATED(+orderUid/amount로 토스 결제창)
         return ResponseEntity.ok(response);
     }
 
@@ -79,8 +87,10 @@ public class GroupBuyApiController {
      * 공구 참여 취소.
      * 예) POST /api/group-buys/7/cancel  → "7번 공구 내 참여를 취소"
      *
-     * 1인 1상품이라 공구 + 로그인 회원이면 취소 대상 참여가 유일하게 특정되므로, optionSeq는 받지 않는다.
-     * 취소 → 환불 → 점유 복구 → 같은 옵션 대기열 FIFO 승격까지 서비스가 한 트랜잭션으로 처리한다.
+     * 1인 1상품이라 공구 + 로그인 회원이면 취소 대상 참여가 유일하게 특정되므로, 
+     * optionSeq는 받지 않는다.
+     * 취소 → 환불 → 점유 복구 → 같은 옵션 대기열 FIFO 승격까지 
+     * 서비스가 한 트랜잭션으로 처리한다.
      */
     @PostMapping("/{seq}/cancel")
     public ResponseEntity<Void> cancel(
@@ -95,10 +105,13 @@ public class GroupBuyApiController {
 
     /**
      * 승격자 결제 시작.
-     * 예) POST /api/group-buys/7/promotion-payment  → "7번 공구에서 승격된 내 자리를 결제 진행"
+     * 예) POST /api/group-buys/7/promotion-payment  
+     * → "7번 공구에서 승격된 내 자리를 결제 진행"
      *
-     * 대기열에서 승격(PAYMENT_PENDING)된 회원의 자리에 대해 '결제 대기' 주문을 만들어 orderUid를 내려준다.
-     * 정규 참여와 동일하게 프론트가 그 값으로 토스 결제창을 띄우고, 결제 성공 시 PARTICIPATING으로 확정된다.
+     * 대기열에서 승격(PAYMENT_PENDING)된 회원의 자리에 대해 
+     * '결제 대기' 주문을 만들어 orderUid를 내려준다.
+     * 정규 참여와 동일하게 프론트가 그 값으로 토스 결제창을 띄우고, 
+     * 결제 성공 시 PARTICIPATING으로 확정된다.
      * 점유는 승격 시 이미 잡혀 있어 변동 없다.
      */
     @PostMapping("/{seq}/promotion-payment")
@@ -115,8 +128,10 @@ public class GroupBuyApiController {
      * 결제대기 명시적 취소 (토스 결제창에서 사용자가 '취소'를 누른 경우).
      * 예) POST /api/group-buys/7/cancel-pending
      *
-     * 토스는 사용자의 결제창 취소를 failUrl 리다이렉트가 아니라 JS Promise reject로 알려주므로,
-     * 프론트의 catch에서 이 API를 호출해 결제대기 자리를 즉시 반납(CANCELLED + 점유 해제)한다.
+     * 토스는 사용자의 결제창 취소를 failUrl 리다이렉트가 아니라 
+     * JS Promise reject로 알려주므로,
+     * 프론트의 catch에서 이 API를 호출해 결제대기 자리를 
+     * 즉시 반납(CANCELLED + 점유 해제)한다.
      * 결제 전이라 환불은 없다. 1인 1상품이라 optionSeq는 받지 않는다.
      */
     @PostMapping("/{seq}/cancel-pending")

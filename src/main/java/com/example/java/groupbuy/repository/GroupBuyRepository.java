@@ -26,6 +26,9 @@ public interface GroupBuyRepository extends JpaRepository<GroupBuy, Long> {
     /** 진행 중 공구 목록 (마감 임박순) — 메인 공구 목록 화면(GB-01)용. */
     List<GroupBuy> findByStatusOrderByEndAtAsc(GroupBuyStatus status);
 
-    /** 시작 전(예정) 공구 목록 (시작 임박순) — 공구 예정 화면용. */
-    List<GroupBuy> findByStatusOrderByStartAtAsc(GroupBuyStatus status);
+    /**
+     * 공구 예정 화면용: 시작 시각이 cutoff 이전(노출 윈도우 내)인 SCHEDULED 공구, 시작 임박순.
+     * cutoff = now + N일 (일반 7일 / 멤버십 14일) → 멤버십이 더 일찍 본다.
+     */
+    List<GroupBuy> findByStatusAndStartAtBeforeOrderByStartAtAsc(GroupBuyStatus status, LocalDateTime cutoff);
 }

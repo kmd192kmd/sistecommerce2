@@ -22,7 +22,8 @@ public class MyGroupBuyController {
 
     private final MyGroupBuyService myGroupBuyService;
 
-    // 결제대기 항목의 "결제하기" 버튼이 띄울 토스 결제창 설정 (공구 상세 GroupBuyViewController와 동일).
+    // 결제대기 항목의 "결제하기" 버튼이 띄울 
+    // 토스 결제창 설정 (공구 상세 GroupBuyViewController와 동일).
     @Value("${toss.client-key}")
     private String tossClientKey;
     @Value("${toss.success-url}")
@@ -40,7 +41,8 @@ public class MyGroupBuyController {
 
         List<MyGroupBuyDto> list = myGroupBuyService.findByMember(userDetails.getMemberSeq());
         model.addAttribute("groupBuyList", list);
-        // 결제대기 → 토스 결제창 재진입에 필요한 값. customerKey는 화면에서 "member-"+seq로 조립.
+        // 결제대기 → 토스 결제창 재진입에 필요한 값. 
+        // customerKey는 화면에서 "member-"+seq로 조립.
         model.addAttribute("tossClientKey", tossClientKey);
         model.addAttribute("tossSuccessUrl", tossSuccessUrl);
         model.addAttribute("tossFailUrl", tossFailUrl);

@@ -72,6 +72,9 @@ public class GroupBuyService {
     private static final long PROMOTION_PAY_HOURS = 24;
     /** 정규 참여자의 결제 대기시간(분). 자리 예약 후 이 시간 내 미결제면 만료 스케줄러가 반납한다. */
     private static final long REGULAR_PAY_MINUTES = 10;
+    /** 공구 예정 노출 윈도우(일): 일반 회원은 시작 7일 전부터, 멤버십은 14일 전(7일 조기)부터 본다. */
+    private static final long SCHEDULED_PREVIEW_DAYS_NORMAL = 7;
+    private static final long SCHEDULED_PREVIEW_DAYS_MEMBER = 14;
 
     /**
      * 공구 등록 (관리자).
@@ -680,11 +683,17 @@ public class GroupBuyService {
                 .toList();
     }
 
-    /** 공구 예정 목록 응답 (회원용) — SCHEDULED만, 시작 임박순. 남은시간은 '시작까지' 기준. */
+    /**
+     * 공구 예정 목록 응답 (회원용) — SCHEDULED 중 노출 윈도우 내, 시작 임박순. 남은시간은 '시작까지' 기준.
+     * 멤버십(활성 구독) 회원은 시작 14일 전부터, 일반/비로그인은 7일 전부터 본다(멤버십 7일 조기 열람).
+     */
     @Transactional(readOnly = true)
-    public List<GroupBuySummaryResponse> getScheduledSummaries() {
+    public List<GroupBuySummaryResponse> getScheduledSummaries(boolean isMember) {
         LocalDateTime now = LocalDateTime.now();
-        return groupBuyRepository.findByStatusOrderByStartAtAsc(GroupBuyStatus.SCHEDULED).stream()
+        long previewDays = isMember ? SCHEDULED_PREVIEW_DAYS_MEMBER : SCHEDULED_PREVIEW_DAYS_NORMAL;
+        LocalDateTime cutoff = now.plusDays(previewDays);
+        return groupBuyRepository
+                .findByStatusAndStartAtBeforeOrderByStartAtAsc(GroupBuyStatus.SCHEDULED, cutoff).stream()
                 .map(g -> toSummary(g, now, true))
                 .toList();
     }
