@@ -13,6 +13,14 @@ public interface OrdersQueryRepository {
     List<CheckoutItemDto> findCheckoutItemsByMemberCart(Long memberSeq, List<Long> cartSeqList);
 
     /**
+     * 선택한 장바구니 상품 중 구매 수량보다 현재 재고가 부족한 상품명을 조회한다.
+     */
+    List<String> findInsufficientStockProductNames(
+            Long memberSeq,
+            List<Long> cartSeqList
+    );
+    
+    /**
      * 로그인 회원이 발급받은 사용 가능한 쿠폰 목록 조회.
      */
     List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq);
