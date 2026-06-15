@@ -123,4 +123,13 @@ public class ProductCreateRequestDto {
         private Integer safetyStock;
         private Integer additionalPrice;
     }
+    
+	 // =========================
+	 // 옵션 조합 영역
+	 // =========================
+	 private List<String> optionCombinationTypes = new ArrayList<>();
+	 private List<String> optionCombinationNames = new ArrayList<>();
+	 private List<Integer> optionCombinationPrices = new ArrayList<>();
+	 private List<Integer> optionCombinationStocks = new ArrayList<>();
+	 private List<Integer> optionCombinationSafeStocks = new ArrayList<>();
 }

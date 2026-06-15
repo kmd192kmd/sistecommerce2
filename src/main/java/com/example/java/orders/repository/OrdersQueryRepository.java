@@ -21,4 +21,11 @@ public interface OrdersQueryRepository {
      * 선택한 member_coupon.seq가 실제 로그인 회원의 사용 가능한 쿠폰인지 검증 후 조회.
      */
     CouponDto findAvailableCouponByMemberSeqAndMemberCouponSeq(Long memberSeq, Long memberCouponSeq);
+    
+    
+    
+    CheckoutItemDto findDirectCheckoutItem(
+            Long optionsSeq,
+            Integer quantity);
+    
 }

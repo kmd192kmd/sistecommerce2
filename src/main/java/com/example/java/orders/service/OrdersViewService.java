@@ -112,6 +112,93 @@ public class OrdersViewService {
         return new OrderPreviewDto("GM-" + System.currentTimeMillis());
     }
 
+    /*
+        바로구매 결제 화면에 표시할 상품 1개를 조회합니다.
+
+        장바구니를 거치지 않고 상품 상세 화면에서 선택한
+        optionsSeq와 quantity를 기준으로 결제 상품 정보를 만듭니다.
+
+        기존 장바구니 결제 흐름은 getCheckoutItems()를 그대로 사용하고,
+        바로구매 흐름에서만 이 메서드를 사용합니다.
+    */
+    public CheckoutItemDto getDirectCheckoutItem(Long optionsSeq,
+                                                 Integer quantity) {
+
+        CheckoutItemDto item =
+                ordersQueryRepository.findDirectCheckoutItem(optionsSeq, quantity);
+
+        if (item == null) {
+            throw new IllegalStateException("결제할 수 없는 상품입니다.");
+        }
+
+        return item;
+    }
+
+    /*
+        바로구매 결제 화면의 금액 요약 정보를 계산합니다.
+
+        장바구니 결제는 기존 getPriceSummary()를 그대로 사용하고,
+        바로구매 결제는 optionsSeq와 quantity 기준으로
+        상품금액, 핫딜 할인, 배송비, 쿠폰 할인, 최종 결제금액을 계산합니다.
+    */
+    public PriceSummaryDto getDirectPriceSummary(Long memberSeq,
+                                                 Long memberCouponSeq,
+                                                 Long optionsSeq,
+                                                 Integer quantity) {
+
+        CheckoutItemDto item = getDirectCheckoutItem(optionsSeq, quantity);
+
+        /*
+            상품 원가 총합.
+            핫딜 적용 전 금액이다.
+         */
+        int productTotalPrice = item.originalTotalPrice();
+
+        /*
+            핫딜 할인 총액.
+         */
+        int hotdealDiscount = item.hotdealDiscountTotal();
+
+        /*
+            핫딜 적용 후 상품금액.
+         */
+        int afterHotdealProductPrice = productTotalPrice - hotdealDiscount;
+
+        if (afterHotdealProductPrice < 0) {
+            afterHotdealProductPrice = 0;
+        }
+
+        /*
+            배송비도 핫딜 적용 후 금액 기준으로 판단.
+         */
+        int deliveryFee = afterHotdealProductPrice >= 30000 ? 0 : 3000;
+
+        CouponDto selectedCoupon =
+                ordersQueryRepository.findAvailableCouponByMemberSeqAndMemberCouponSeq(
+                        memberSeq,
+                        memberCouponSeq
+                );
+
+        /*
+            쿠폰 할인은 핫딜 적용 후 상품금액 기준으로 계산.
+         */
+        int couponDiscount = calculateCouponDiscount(afterHotdealProductPrice, selectedCoupon);
+
+        int finalPrice = afterHotdealProductPrice + deliveryFee - couponDiscount;
+
+        if (finalPrice < 0) {
+            finalPrice = 0;
+        }
+
+        return new PriceSummaryDto(
+                productTotalPrice,
+                deliveryFee,
+                couponDiscount,
+                hotdealDiscount,
+                finalPrice
+        );
+    }
+
     private DeliveryAddressDto toDeliveryAddressDto(DeliveryAddress address) {
         return new DeliveryAddressDto(
                 address.getSeq(),

@@ -43,4 +43,13 @@ public class CheckoutRequestDto {
     private Integer amount;
 
     private Boolean agreeRequired;
+    
+    
+    
+    
+    private Boolean directBuyYn;
+
+    private Long optionsSeq;
+
+    private Integer quantity;
 }

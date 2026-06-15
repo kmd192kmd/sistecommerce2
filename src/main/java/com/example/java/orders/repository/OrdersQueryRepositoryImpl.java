@@ -165,6 +165,147 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 .toList();
     }
 
+    /**
+     * 바로구매 상품을 주문/결제 화면용 DTO로 조회한다.
+     *
+     * 장바구니를 거치지 않고 상품 상세 화면에서 선택한
+     * optionsSeq와 quantity를 기준으로 결제 상품 정보를 만든다.
+     *
+     * 기존 장바구니 결제는 findCheckoutItemsByMemberCart()를 그대로 사용하고,
+     * 바로구매 결제에서만 이 메서드를 사용한다.
+     */
+    @Override
+    public CheckoutItemDto findDirectCheckoutItem(Long optionsSeq, Integer quantity) {
+        if (optionsSeq == null || quantity == null || quantity < 1) {
+            return null;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Tuple row = queryFactory
+                .select(
+                        options.seq,
+                        product.seq,
+                        product.productName,
+                        product.price,
+                        product.thumbnailUrl,
+                        options.additionalPrice,
+
+                        hotDealProduct.hotDeal.discountRate,
+                        hotDealProduct.hotDeal.discountPrice,
+
+                        options.color,
+                        options.optionsSize,
+                        options.volumeWeight,
+                        options.taste,
+                        options.storageType,
+                        options.scentIngredient,
+                        options.voltage,
+                        options.quantitySet,
+                        options.sizeSpec,
+                        options.storageCapacity,
+                        options.memory,
+                        options.switchAxis,
+                        options.connectionType,
+                        options.wearableSpec,
+                        options.materialType,
+                        options.optionsType
+                )
+                .from(options)
+                .join(options.product, product)
+
+                /*
+                    핫딜이 없는 상품도 바로구매 대상에 포함되어야 하므로 leftJoin 사용.
+                    현재 시간이 핫딜 기간 안이고, status = 1인 핫딜만 적용한다.
+                 */
+                .leftJoin(hotDealProduct).on(
+                        hotDealProduct.options.seq.eq(options.seq),
+                        hotDealProduct.hotDeal.status.eq(1),
+                        hotDealProduct.hotDeal.startDate.loe(now),
+                        hotDealProduct.hotDeal.endDate.goe(now)
+                )
+                .where(
+                        options.seq.eq(optionsSeq),
+
+                        /*
+                            구매 불가 상품 제외
+
+                            product 테이블 기준:
+                            - sale_status = SOLD_OUT : 품절
+                            - sale_status = STOPPED  : 판매중지
+                            - hide_yn = Y            : 숨김 상품
+                            - status = DELETED       : 삭제 상품
+                        */
+                        product.saleStatus.notIn("SOLD_OUT", "STOPPED"),
+                        product.hideYn.eq("N"),
+                        product.status.ne("DELETED"),
+
+                        /*
+                            바로구매 수량이 현재 옵션 재고보다 많으면 결제할 수 없게 제외한다.
+                        */
+                        options.stock.goe(quantity)
+                )
+                .fetchOne();
+
+        if (row == null) {
+            return null;
+        }
+
+        Integer productPrice = row.get(product.price);
+        Integer additionalPrice = row.get(options.additionalPrice);
+
+        int originalUnitPrice = nullToZero(productPrice) + nullToZero(additionalPrice);
+
+        Integer hotdealRate = row.get(hotDealProduct.hotDeal.discountRate);
+        Integer hotdealPrice = row.get(hotDealProduct.hotDeal.discountPrice);
+
+        int hotdealUnitDiscount =
+                calculateHotdealUnitDiscount(originalUnitPrice, hotdealRate, hotdealPrice);
+
+        int finalUnitPrice = originalUnitPrice - hotdealUnitDiscount;
+
+        if (finalUnitPrice < 0) {
+            finalUnitPrice = 0;
+        }
+
+        String optionText = buildOptionText(
+                row.get(options.color),
+                row.get(options.optionsSize),
+                row.get(options.volumeWeight),
+                row.get(options.taste),
+                row.get(options.storageType),
+                row.get(options.scentIngredient),
+                row.get(options.voltage),
+                row.get(options.quantitySet),
+                row.get(options.sizeSpec),
+                row.get(options.storageCapacity),
+                row.get(options.memory),
+                row.get(options.switchAxis),
+                row.get(options.connectionType),
+                row.get(options.wearableSpec),
+                row.get(options.materialType),
+                row.get(options.optionsType)
+        );
+
+        String imageUrl = row.get(product.thumbnailUrl);
+
+        if (imageUrl == null || imageUrl.isBlank()) {
+            imageUrl = "/images/no-image.png";
+        }
+
+        return new CheckoutItemDto(
+                row.get(options.seq),
+                row.get(product.seq),
+                row.get(product.productName),
+                imageUrl,
+                optionText,
+                originalUnitPrice,
+                hotdealUnitDiscount,
+                finalUnitPrice,
+                quantity
+        );
+    }
+
     @Override
     public List<CouponDto> findAvailableCouponsByMemberSeq(Long memberSeq) {
         if (memberSeq == null) {

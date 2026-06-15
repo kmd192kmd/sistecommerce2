@@ -406,12 +406,32 @@
 	    alert만 표시합니다.
 	*/
 	function buyNow() {
+
+	    if (currentMemberSeq === null) {
+	        alert('로그인이 필요합니다.');
+	        location.href = '/member/login';
+	        return;
+	    }
+
 	    if (isBlockedProduct()) {
 	        alert('구매할 수 없는 상품입니다.');
 	        return;
 	    }
 
-	    alert('바로구매 기능을 연결해주세요.');
+	    const optionsSeq = document.getElementById('optionsSeq').value;
+	    const quantity = document.getElementById('quantity').value;
+
+	    if (!optionsSeq) {
+	        alert('옵션을 선택해주세요.');
+	        return;
+	    }
+
+	    if (!quantity || Number(quantity) < 1) {
+	        alert('수량은 1개 이상이어야 합니다.');
+	        return;
+	    }
+
+	    location.href = `/order/checkout/direct?optionsSeq=${optionsSeq}&quantity=${quantity}`;
 	}
 	
     /*
