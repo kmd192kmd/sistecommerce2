@@ -2,7 +2,7 @@ name: EC2 Spring Boot CI/CD
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "dev" ]
 
 jobs:
   deploy:
