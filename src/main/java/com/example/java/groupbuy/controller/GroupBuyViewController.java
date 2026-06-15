@@ -31,11 +31,18 @@ public class GroupBuyViewController {
     @Value("${toss.fail-url}")
     private String tossFailUrl;
 
-    /** 공구 목록 페이지 (GB-01). */
+    /** 공구 목록 페이지 (GB-01) — 진행 중(ONGOING) 공구. */
     @GetMapping("/group-buys")
     public String list(Model model) {
         model.addAttribute("groupBuys", groupBuyService.getSummaries());
         return "groupbuy/list";
+    }
+
+    /** 공구 예정 페이지 — 시작 전(SCHEDULED) 공구 목록. */
+    @GetMapping("/group-buys/scheduled")
+    public String scheduled(Model model) {
+        model.addAttribute("groupBuys", groupBuyService.getScheduledSummaries());
+        return "groupbuy/scheduled";
     }
 
     /**

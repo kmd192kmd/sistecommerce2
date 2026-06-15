@@ -3,7 +3,7 @@ package com.example.java.groupbuy.repository;
 import com.example.java.groupbuy.entity.GroupBuy;
 import com.example.java.groupbuy.entity.GroupBuyOptions;
 import jakarta.persistence.LockModeType;
-import org.apache.ibatis.annotations.Param;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;

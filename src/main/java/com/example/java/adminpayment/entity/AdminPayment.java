@@ -2,6 +2,7 @@ package com.example.java.adminpayment.entity;
 
 
 import com.example.java.adminpayment.enums.PaymentType;
+import com.example.java.product.entity.Seller;
 import com.example.java.purchaseorder.entity.PurchaseOrder;
 
 import jakarta.persistence.Column;
@@ -13,6 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
@@ -49,10 +51,9 @@ public class AdminPayment {
     @JoinColumn(name = "purchase_order_seq")
     private PurchaseOrder purchaseOrder;
 
-    // TODO 판매처 엔티티 생기면 추가
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "seller_seq")
-//    private Seller seller;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_seq")
+    private Seller seller;
 
     public void changeStatus(Integer status) {
         this.status = status;

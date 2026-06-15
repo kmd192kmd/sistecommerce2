@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('공구 예정 | 목록')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 공구 예정 화면 — 시작 전(SCHEDULED) 공구 목록 -->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+
+    <div class="flex items-center gap-3 mb-6">
+        <h2 class="text-2xl font-black flex items-center gap-2"><i data-lucide="calendar-clock" class="w-6 h-6 text-amber-500"></i> 공구 예정</h2>
+        <span class="text-xs text-gray-500">곧 시작하는 공동구매예요. 시작까지 남은 시간을 확인하세요.</span>
+    </div>
+
+    <!-- 목록 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5" th:if="${not #lists.isEmpty(groupBuys)}">
+        <a th:each="g : ${groupBuys}" th:href="@{/group-buys/{seq}(seq=${g.seq})}"
+           class="bg-white border border-gray-200 overflow-hidden group hover:border-amber-400 transition-colors">
+            <div class="aspect-video bg-gray-50 relative overflow-hidden">
+                <img th:src="${g.image}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                <!-- 시작까지 남은 시간 (오른쪽 위) -->
+                <span th:text="'시작까지 ' + ${g.remainText}"
+                      class="absolute top-2 right-2 bg-slate-900/85 text-amber-400 text-[11px] font-bold px-2 py-1">시작까지</span>
+            </div>
+            <div class="p-4 space-y-2">
+                <h4 th:text="${g.productName}" class="text-sm font-semibold line-clamp-2 group-hover:text-amber-600">공구 상품명</h4>
+                <div>
+                    <span class="text-[11px] text-gray-400 line-through"
+                          th:text="${#numbers.formatInteger(g.originalPrice, 0, 'COMMA')} + '원'">정가</span>
+                    <div class="flex items-baseline gap-1">
+                        <span th:text="${g.discountRate} + '%'" class="text-red-500 font-black text-sm">35%</span>
+                        <span th:text="${#numbers.formatInteger(g.finalPrice, 0, 'COMMA')}" class="text-amber-700 font-extrabold text-lg">0</span>
+                        <span class="text-xs font-bold">원</span>
+                    </div>
+                </div>
+                <!-- 시작 전이라 참여 인원 대신 목표 인원 안내 -->
+                <div class="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 pt-1">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    <span th:text="'최소 ' + ${g.minCount} + '명 목표'">최소 100명 목표</span>
+                    <span class="ml-auto text-gray-400 font-medium">시작 예정</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- 빈 상태 -->
+    <div class="text-center py-24 text-gray-400" th:if="${#lists.isEmpty(groupBuys)}">
+        <i data-lucide="calendar-x" class="w-12 h-12 mx-auto mb-3 text-gray-300"></i>
+        <p class="font-semibold">예정된 공동구매가 없어요</p>
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

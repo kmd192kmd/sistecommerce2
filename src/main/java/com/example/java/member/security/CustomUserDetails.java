@@ -33,6 +33,8 @@ public class CustomUserDetails implements UserDetails, OidcUser {
     private final Map<String, Object> attributes;
     private final OidcIdToken idToken;
     private final OidcUserInfo userInfo;
+    private final String loginType;
+    private final Integer admRole;
 
     /** 일반 로그인용 */
     public CustomUserDetails(Member member) {
@@ -41,6 +43,8 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         this.password   = member.getPassword();
         this.role       = member.getRole();
         this.status     = member.getStatus();
+        this.loginType  = "MEMBER";
+        this.admRole    = 0;
         this.attributes = Collections.emptyMap();
         this.idToken    = null;
         this.userInfo   = null;
@@ -54,6 +58,8 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         this.password   = member.getPassword();
         this.role       = member.getRole();
         this.status     = member.getStatus();
+        this.loginType  = "MEMBER";
+        this.admRole    = 0;
         this.attributes = attributes;
         this.idToken    = idToken;
         this.userInfo   = userInfo;
@@ -66,6 +72,8 @@ public class CustomUserDetails implements UserDetails, OidcUser {
         this.password   = user.getPassword();
         this.role       = user.getRole();
         this.status     = user.getStatus();
+        this.loginType  = user.getLoginType();
+        this.admRole    = user.getAdmRole();
         this.attributes = Collections.emptyMap();
         this.idToken    = null;
         this.userInfo   = null;

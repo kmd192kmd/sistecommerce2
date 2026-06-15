@@ -79,10 +79,6 @@
             <!-- 가격 영역 -->
             <div class="mt-6 space-y-1 border-y border-gray-100 py-5">
 
-                <p class="text-sm text-gray-400">
-                    시세가
-                </p>
-
                 <p class="flex items-baseline gap-2">
                     <span th:text="${#numbers.formatInteger(product.price, 0, 'COMMA')}"
                           class="text-3xl font-black">
@@ -382,10 +378,6 @@
 	const productHideYn = /*[[${product.hideYn}]]*/ 'N';
 	const productStatus = /*[[${product.productStatus}]]*/ 'NORMAL';
 
-	console.log('productSaleStatus =', productSaleStatus);
-	console.log('productHideYn =', productHideYn);
-	console.log('productStatus =', productStatus);
-	
 	/*
 	    구매 불가 상품 여부 확인
 
@@ -409,7 +401,6 @@
 
 	    if (currentMemberSeq === null) {
 	        alert('로그인이 필요합니다.');
-	        location.href = '/member/login';
 	        return;
 	    }
 
@@ -431,63 +422,22 @@
 	        return;
 	    }
 
-		function buyNow() {
+	    const selectEl = document.getElementById('optionsSeq');
+	    const optionEl = selectEl.options[selectEl.selectedIndex];
+	    const stock = Number(optionEl.dataset.stock || 0);
 
-		    if (currentMemberSeq === null) {
-		        alert('로그인이 필요합니다.');
-		        location.href = '/member/login';
-		        return;
-		    }
+	    if (stock <= 0) {
+	        alert('재고가 없습니다.');
+	        return;
+	    }
 
-		    if (isBlockedProduct()) {
-		        alert('구매할 수 없는 상품입니다.');
-		        return;
-		    }
+	    if (Number(quantity) > stock) {
+	        alert(`재고(${stock}개)를 초과할 수 없습니다.`);
+	        return;
+	    }
 
-		    const optionsSeq = document.getElementById('optionsSeq').value;
-		    const quantity = document.getElementById('quantity').value;
-
-		    if (!optionsSeq) {
-		        alert('옵션을 선택해주세요.');
-		        return;
-		    }
-
-		    if (!quantity || Number(quantity) < 1) {
-		        alert('수량은 1개 이상이어야 합니다.');
-		        return;
-		    }
-
-		    /*
-		        선택한 옵션의 재고를 확인합니다.
-
-		        재고가 없거나 구매 수량이 재고보다 많으면
-		        바로구매 화면으로 이동하지 않습니다.
-		    */
-		    const selectEl = document.getElementById('optionsSeq');
-		    const optionEl = selectEl.options[selectEl.selectedIndex];
-		    const stock = Number(optionEl.dataset.stock || 0);
-
-		    if (stock <= 0) {
-		        alert('재고가 없는 상품입니다.');
-		        return;
-		    }
-
-		    if (Number(quantity) > stock) {
-		        alert(`재고(${stock}개)를 초과할 수 없습니다.`);
-		        return;
-		    }
-
-		    /*
-		        바로구매 전용 결제 화면으로 이동합니다.
-
-		        /order/checkout/direct는 장바구니를 거치지 않고
-		        optionsSeq와 quantity만으로 결제 화면을 여는 URL입니다.
-		    */
-		    location.href =
-		        `/order/checkout/direct`
-		        + `?optionsSeq=${encodeURIComponent(optionsSeq)}`
-		        + `&quantity=${encodeURIComponent(quantity)}`;
-		}
+	    location.href =
+	        `/order/checkout/direct?optionsSeq=${optionsSeq}&quantity=${quantity}`;
 	}
 	
     /*
