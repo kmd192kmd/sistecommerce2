@@ -15,8 +15,16 @@ import com.example.java.product.repository.SellerRepository;
 import com.example.java.delivery.entity.Delivery;
 import com.example.java.delivery.entity.DeliveryCompany;
 import com.example.java.delivery.repository.DeliveryRepository;
+import com.example.java.orders.entity.ReturnRequest;
+import com.example.java.orders.entity.Returns;
+import com.example.java.orders.entity.Refund;
+import com.example.java.orders.repository.ReturnRequestRepository;
+import com.example.java.orders.repository.ReturnsRepository;
+import com.example.java.orders.repository.RefundRepository;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import com.example.java.mypage.service.MyPageOrderListService;
+import com.example.java.mypage.dto.MyPageOrderListDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
@@ -50,6 +58,18 @@ public class TestDataCreatorTest {
     @Autowired
     private DeliveryRepository deliveryRepository;
 
+    @Autowired
+    private ReturnRequestRepository returnRequestRepository;
+
+    @Autowired
+    private ReturnsRepository returnsRepository;
+
+    @Autowired
+    private RefundRepository refundRepository;
+
+    @Autowired
+    private MyPageOrderListService myPageOrderListService;
+
     @Test
     @Transactional
     @Rollback(false) // Commit the created test data to the database
@@ -63,8 +83,25 @@ public class TestDataCreatorTest {
                 .filter(o -> o.getOrderUid() != null && o.getOrderUid().startsWith("TEST-ORD-"))
                 .toList();
         for (Orders o : oldOrders) {
+            List<OrderItem> items = orderItemRepository.findByOrderSeq(o.getSeq());
+            for (OrderItem item : items) {
+                List<ReturnRequest> reqs = returnRequestRepository.findAll().stream()
+                        .filter(r -> r.getOrderItemSeq().equals(item.getSeq()))
+                        .toList();
+                for (ReturnRequest req : reqs) {
+                    List<Returns> rets = returnsRepository.findAll().stream()
+                            .filter(ret -> ret.getReturnRequest() != null && ret.getReturnRequest().getSeq().equals(req.getSeq()))
+                            .toList();
+                    returnsRepository.deleteAll(rets);
+                    returnRequestRepository.delete(req);
+                }
+                List<Refund> refs = refundRepository.findAll().stream()
+                        .filter(ref -> ref.getOrderItemSeq().equals(item.getSeq()))
+                        .toList();
+                refundRepository.deleteAll(refs);
+            }
             deliveryRepository.deleteAll(deliveryRepository.findByOrders_Seq(o.getSeq()));
-            orderItemRepository.deleteAll(orderItemRepository.findByOrderSeq(o.getSeq()));
+            orderItemRepository.deleteAll(items);
             List<Payment> oldPayments = paymentRepository.findAll().stream()
                     .filter(p -> p.getOrderSeq().equals(o.getSeq()))
                     .toList();
@@ -93,7 +130,14 @@ public class TestDataCreatorTest {
         for (int i = 1; i <= 5; i++) {
             String uid = "TEST-ORD-" + System.currentTimeMillis() + "-" + i;
 
-            // 1. Orders 생성 (orderStatus=6: 배송완료, paymentStatus=2: 결제완료)
+            String devStatus = "DELIVERED";
+            int ordStatus = 6;
+            if (i == 1) { devStatus = "READY"; ordStatus = 5; }
+            else if (i == 2) { devStatus = "SHIPPING"; ordStatus = 5; }
+            else if (i == 3) { devStatus = "DELAYED"; ordStatus = 5; }
+            else if (i == 4) { devStatus = "FAILED"; ordStatus = 5; }
+
+            // 1. Orders 생성
             Orders order = Orders.builder()
                     .memberSeq(member.getSeq())
                     .orderUid(uid)
@@ -103,13 +147,13 @@ public class TestDataCreatorTest {
                     .finalPrice(50000)
                     .totalRefundPrice(0)
                     .remainPrice(50000)
-                    .orderStatus(6) // 6: 배송완료
+                    .orderStatus(ordStatus)
                     .paymentStatus(2) // 2: 결제완료
-                    .orderDate(LocalDateTime.now().minusDays(1))
-                    .regdate(LocalDateTime.now().minusDays(1))
+                    .orderDate(LocalDateTime.now().minusDays(i))
+                    .regdate(LocalDateTime.now().minusDays(i))
                     .zipcode("12345")
                     .address("테스트 주소")
-                    .addressDetail("테스트 상세주소 " + i)
+                    .addressDetail("테스트 상세주소 (" + devStatus + ")")
                     .currLatitude(37.5665)
                     .currLongitude(126.978)
                     .build();
@@ -141,33 +185,33 @@ public class TestDataCreatorTest {
                     .pgProvider("TOSS")
                     .status(2) // 2: 결제완료
                     .amount(50000)
-                    .requestDate(LocalDateTime.now().minusDays(1))
-                    .payDate(LocalDateTime.now().minusDays(1))
-                    .updateDate(LocalDateTime.now().minusDays(1))
+                    .requestDate(LocalDateTime.now().minusDays(i))
+                    .payDate(LocalDateTime.now().minusDays(i))
+                    .updateDate(LocalDateTime.now().minusDays(i))
                     .build();
 
             paymentRepository.save(payment);
 
-            // 4. Delivery 생성 (status='DELIVERED')
+            // 4. Delivery 생성
             String trackingNumber = "TEST-TRK-" + System.currentTimeMillis() + "-" + i;
             Delivery delivery = Delivery.builder()
                     .tracking_number(trackingNumber)
                     .recipient_name(member.getName() != null ? member.getName() : "테스터")
                     .recipient_phone(member.getPhone() != null ? member.getPhone() : "010-1234-5678")
-                    .status("DELIVERED") // 배송완료
+                    .status(devStatus)
                     .request_memo("조심히 배송해 주세요.")
-                    .dispatch_at(LocalDateTime.now().minusDays(2))
-                    .estimated_date(LocalDateTime.now().minusDays(1))
-                    .completed_at(LocalDateTime.now().minusDays(1))
+                    .dispatch_at(LocalDateTime.now().minusDays(i + 1))
+                    .estimated_date(LocalDateTime.now().minusDays(i))
+                    .completed_at("DELIVERED".equals(devStatus) ? LocalDateTime.now().minusDays(i) : null)
                     .distance_surcharge(0)
                     .total_delivery_fee(3000)
                     .deliveryCompany(company)
                     .orders(savedOrder)
-                    .delayHours(0)
+                    .delayHours(i == 3 ? 24 : 0)
                     .build();
 
             deliveryRepository.save(delivery);
-            System.out.println("주문 데이터 생성 완료 (" + i + "/5): OrderUid=" + uid);
+            System.out.println("주문 데이터 생성 완료 (" + i + "/5): OrderUid=" + uid + " Status=" + devStatus);
         }
         System.out.println("=== qazwsx123 회원 테스트 데이터 생성 완료 ===");
     }
@@ -183,27 +227,15 @@ public class TestDataCreatorTest {
             return;
         }
 
-        List<Orders> ordersList = ordersRepository.findAll().stream()
-                .filter(o -> o.getMemberSeq().equals(member.getSeq()))
-                .toList();
-
-        System.out.println("qazwsx123 회원의 주문 개수: " + ordersList.size());
-        for (Orders order : ordersList) {
-            System.out.println("주문 UID: " + order.getOrderUid() + ", Seq: " + order.getSeq() + ", Status: " + order.getOrderStatus());
-            
-            // Payment 조회 테스트
-            Payment payment = paymentRepository.findTopByOrderSeqAndStatusOrderBySeqDesc(order.getSeq(), 2).orElse(null);
-            if (payment != null) {
-                System.out.println("  -> 결제 정보 발견: Seq=" + payment.getSeq() + ", PaymentUid=" + payment.getPaymentUid() + ", Status=" + payment.getStatus());
-            } else {
-                System.out.println("  -> 결제 정보 없음!");
-            }
-
-            // Delivery 조회 테스트
-            List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(order.getSeq());
-            System.out.println("  -> 배송 개수: " + deliveries.size());
-            for (Delivery d : deliveries) {
-                System.out.println("     -> 배송 Seq: " + d.getSeq() + ", Status: " + d.getStatus() + ", Carrier: " + (d.getDeliveryCompany() != null ? d.getDeliveryCompany().getName() : "None"));
+        List<MyPageOrderListDto> orderDtos = myPageOrderListService.getOrders(member.getSeq(), null, "6months");
+        System.out.println("myPageOrderListService.getOrders 개수: " + orderDtos.size());
+        for (MyPageOrderListDto o : orderDtos) {
+            System.out.println("주문 Seq: " + o.getOrderSeq() + ", allDelivered: " + o.isAllDelivered());
+            for (var d : o.getDeliveries()) {
+                System.out.println("  -> Delivery Group: Company=" + d.getCompanyName() + ", Status=" + d.getDeliveryStatus() + ", CompletedAt=" + d.getCompletedAt());
+                for (var item : d.getItems()) {
+                    System.out.println("     -> Item: Name=" + item.getName() + ", itemStatus=" + item.getItemStatus());
+                }
             }
         }
         System.out.println("=== [END] DB 테스트 데이터 조회 검증 ===");

@@ -56,7 +56,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 // 정적 리소스 허용 (/src/** : static/src/images/... 로컬 이미지)
-                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/src/**").permitAll()
+                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/src/**", "/api/**").permitAll()
                 // 회원 관련 허용
                 .requestMatchers("/member/login", "/member/**",
                                  "/member/signup/**", "/member/signup").permitAll()

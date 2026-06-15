@@ -257,4 +257,14 @@ public class OrdersViewService {
 
         return ordersQueryRepository.findBaseDeliveryFeeByOptionsSeqList(optionsSeqList);
     }
+    
+    public List<String> getInsufficientStockProductNames(
+            Long memberSeq,
+            List<Long> cartSeqList
+    ) {
+        return ordersQueryRepository.findInsufficientStockProductNames(
+                memberSeq,
+                cartSeqList
+        );
+    }
 }

@@ -14,6 +14,8 @@ function App() {
         const params = new URLSearchParams(window.location.search);
         return params.get('period') || '6months';
     });
+    const [hasMore, setHasMore] = useState(true);
+    const pageSize = 5;
 
     // 배송조회 모달 상태
     const [isTrackOpen, setIsTrackOpen] = useState(false);
@@ -37,7 +39,9 @@ function App() {
 
     // 경고 모달 상태
     const [isCancelAlertOpen, setIsCancelAlertOpen] = useState(false);
+    const [cancelAlertMsg, setCancelAlertMsg] = useState('이미 상품 배송이 시작되어 주문을 취소할 수 없습니다.');
     const [isReturnNoSelectionOpen, setIsReturnNoSelectionOpen] = useState(false);
+    const [isReturnAlertOpen, setIsReturnAlertOpen] = useState(false);
 
     // 취소/반품 확인 모달 상태
     const [confirmModal, setConfirmModal] = useState({
@@ -54,19 +58,38 @@ function App() {
 
     // 다중 선택 상태 (반품용 체크박스)
     const [selectedItems, setSelectedItems] = useState({});
+    
+    // 무한스크롤 자동 활성화 여부
+    const [isInfiniteScrollEnabled, setIsInfiniteScrollEnabled] = useState(false);
+
+    // 취소/반품 사유 입력 상태
+    const [reasonText, setReasonText] = useState('');
 
     // API 호출을 통해 데이터 가져오기
-    const fetchOrders = async (currentKeyword, currentPeriod) => {
+    const fetchOrders = async (currentKeyword, currentPeriod, offset = 0, size = 5, isAppend = false) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (currentKeyword) params.append('keyword', currentKeyword);
             if (currentPeriod) params.append('period', currentPeriod);
+            params.append('offset', offset.toString());
+            params.append('size', size.toString());
             
             const response = await fetch(`/api/mypage/orders?${params.toString()}`);
             if (!response.ok) throw new Error("데이터 수집 실패");
             const data = await response.json();
-            setOrders(data);
+            
+            if (isAppend) {
+                setOrders(prev => [...prev, ...data]);
+            } else {
+                setOrders(data);
+            }
+            
+            if (data.length < size) {
+                setHasMore(false);
+            } else {
+                setHasMore(true);
+            }
         } catch (error) {
             console.error("주문목록 로드 중 에러: ", error);
         } finally {
@@ -75,8 +98,26 @@ function App() {
     };
 
     useEffect(() => {
-        fetchOrders(keyword, period);
+        fetchOrders(keyword, period, 0, 5, false);
     }, []);
+
+    // 무한스크롤 이벤트 리스너 (첫번째 더보기 클릭 이후부터는 자동 스크롤 로딩 활성화)
+    useEffect(() => {
+        const handleScroll = () => {
+            if (loading || !hasMore || !isInfiniteScrollEnabled) return;
+
+            const scrollHeight = document.documentElement.scrollHeight;
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const clientHeight = document.documentElement.clientHeight;
+
+            if (scrollHeight - scrollTop - clientHeight < 200) {
+                fetchOrders(keyword, period, orders.length, 5, true);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [loading, hasMore, isInfiniteScrollEnabled, orders.length, keyword, period]);
 
     // 검색 실행
     const handleSearchSubmit = (e) => {
@@ -88,7 +129,8 @@ function App() {
         params.set('period', period);
         window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
         
-        fetchOrders(keyword, period);
+        setIsInfiniteScrollEnabled(false);
+        fetchOrders(keyword, period, 0, 5, false);
     };
 
     // 기간 변경
@@ -100,7 +142,14 @@ function App() {
         else params.delete('keyword');
         window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
         
-        fetchOrders(keyword, newPeriod);
+        setIsInfiniteScrollEnabled(false);
+        fetchOrders(keyword, newPeriod, 0, 5, false);
+    };
+
+    // 더보기 버튼 클릭
+    const handleLoadMore = () => {
+        setIsInfiniteScrollEnabled(true);
+        fetchOrders(keyword, period, orders.length, 5, true);
     };
 
     // 배송조회 모달 열기
@@ -188,7 +237,7 @@ function App() {
                 },
                 body: JSON.stringify({
                     orderItemSeqList,
-                    cancelReason: "고객 주문 취소 (택배사 묶음 전체)"
+                    cancelReason: reasonText || "고객 주문 취소 (택배사 묶음 전체)"
                 })
             });
 
@@ -237,7 +286,7 @@ function App() {
                 },
                 body: JSON.stringify({
                     orderItemSeqList,
-                    cancelReason: "고객 반품 신청"
+                    cancelReason: reasonText || "고객 반품 신청"
                 })
             });
 
@@ -276,6 +325,15 @@ function App() {
     // 주문 취소 버튼 클릭 시 모달 띄우기
     const handleOrderCancelClick = (orderSeq, deliveryGroup) => {
         if (deliveryGroup.deliveryStatus !== 'READY') {
+            if (deliveryGroup.deliveryStatus === 'DELIVERED') {
+                setCancelAlertMsg('배송완료된 상품은 주문취소가 불가능합니다.');
+            } else if (deliveryGroup.deliveryStatus === 'FAILED') {
+                setCancelAlertMsg('배송 실패한 상품은 주문취소가 불가능합니다. 고객센터로 문의해 주세요.');
+            } else if (deliveryGroup.deliveryStatus === 'DELAYED') {
+                setCancelAlertMsg('배송 지연 중인 상품은 배송이 이미 진행되어 주문취소가 불가능합니다.');
+            } else {
+                setCancelAlertMsg('이미 상품 배송이 시작되어 주문을 취소할 수 없습니다.');
+            }
             setIsCancelAlertOpen(true);
             return;
         }
@@ -292,6 +350,7 @@ function App() {
             ? `[${firstItemName} 외 ${orderItemSeqList.length - 1}건]` 
             : `[${firstItemName}]`;
 
+        setReasonText('단순 변심');
         setConfirmModal({
             isOpen: true,
             type: 'CANCEL',
@@ -307,6 +366,11 @@ function App() {
 
     // 반품 신청 버튼 클릭 시 모달 띄우기
     const handleOrderReturnClick = (orderSeq, deliveryGroup) => {
+        if (deliveryGroup.deliveryStatus !== 'DELIVERED') {
+            setIsReturnAlertOpen(true);
+            return;
+        }
+
         // 이 묶음에서 체크된 항목 추출
         const orderItemSeqList = deliveryGroup.items
             .map(item => item.orderItemSeq)
@@ -323,11 +387,12 @@ function App() {
             ? `[${firstItemName} 외 ${orderItemSeqList.length - 1}건]` 
             : `[${firstItemName}]`;
 
+        setReasonText('단순 변심 (반품)');
         setConfirmModal({
             isOpen: true,
             type: 'RETURN',
             title: '반품 신청 확인',
-            text: `${displayTitle}을 정말 반품 신청하시겠습니까?<br/><br/><span class="text-xs text-amber-500 font-bold">※ 반품 신청 완료 후 택배 수거 및 검수가 진행됩니다.</span>`,
+            text: `${displayTitle}을 정말 반품 신청하시겠습니까?<br/><br/><span class="text-xs text-amber-500 font-bold">※ 반품은 배송 완료 후 7일 이내에만 신청이 가능합니다.</span><br/><span class="text-xs text-amber-500 font-bold">※ 반품 신청 완료 후 택배 수거 및 검수가 진행됩니다.</span>`,
             step: 'CONFIRM',
             isSuccess: false,
             resultTitle: '',
@@ -372,11 +437,7 @@ function App() {
 
             {/* 주문 목록 카드 영역 */}
             <div id="orderListContainer">
-                {loading ? (
-                    <div class="bg-white p-12 text-center border border-slate-200 rounded-2xl shadow-sm">
-                        <p class="text-slate-500 text-sm">주문 정보를 불러오는 중입니다...</p>
-                    </div>
-                ) : orders && orders.length > 0 ? (
+                {orders && orders.length > 0 ? (
                     <div class="space-y-5">
                         {orders.map(o => (
                             <article key={o.orderSeq} class="premium-card overflow-hidden">
@@ -409,7 +470,9 @@ function App() {
                                                             </>
                                                         )}
                                                         {d.deliveryStatus === 'CANCELED' && <span class="status-badge status-CANCELED">주문취소</span>}
-                                                        {(d.deliveryStatus === 'SHIPPING' || d.deliveryStatus === 'DELAYED') && <span class="status-badge status-SHIPPING">배송중</span>}
+                                                        {d.deliveryStatus === 'SHIPPING' && <span class="status-badge status-SHIPPING">배송중</span>}
+                                                        {d.deliveryStatus === 'DELAYED' && <span class="status-badge status-DELAYED">배송지연</span>}
+                                                        {d.deliveryStatus === 'FAILED' && <span class="status-badge status-FAILED">배송실패</span>}
                                                         {d.deliveryStatus === 'READY' && <span class="status-badge status-READY">배송대기</span>}
                                                     </div>
                                                 </div>
@@ -437,9 +500,14 @@ function App() {
                                                                                 <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">취소됨</span>
                                                                             </div>
                                                                         )}
-                                                                        {[7, 8].includes(item.itemStatus) && (
+                                                                        {item.itemStatus === 7 && (
                                                                             <div class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
                                                                                 <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">반품대기</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {item.itemStatus === 8 && (
+                                                                            <div class="absolute inset-0 bg-slate-900/45 flex items-center justify-center">
+                                                                                <span class="text-[11px] font-black text-white border border-white/60 px-2 py-1 rounded">반품진행</span>
                                                                             </div>
                                                                         )}
                                                                         {item.itemStatus === 9 && (
@@ -505,7 +573,13 @@ function App() {
                                                             ) : (
                                                                 <button type="button"
                                                                         onClick={() => handleOrderCancelClick(o.orderSeq, d)}
-                                                                        className={`btn-action py-2.5 border text-sm shadow-sm transition-all ${d.deliveryStatus === 'READY' ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}`}>
+                                                                        className={`btn-action py-2.5 border text-sm shadow-sm transition-all ${
+                                                                            d.deliveryStatus === 'READY'
+                                                                                ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100'
+                                                                                : d.deliveryStatus === 'DELIVERED'
+                                                                                    ? 'border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed'
+                                                                                    : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'
+                                                                        }`}>
                                                                     주문취소
                                                                 </button>
                                                             )}
@@ -518,6 +592,25 @@ function App() {
                                 </div>
                             </article>
                         ))}
+                        {hasMore && isInfiniteScrollEnabled && loading && (
+                            <div className="text-center pt-4 text-slate-500 font-bold text-sm">
+                                로딩 중...
+                            </div>
+                        )}
+                        {hasMore && !isInfiniteScrollEnabled && (
+                            <div className="text-center pt-4">
+                                <button type="button"
+                                        disabled={loading}
+                                        onClick={handleLoadMore}
+                                        className="px-8 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {loading ? '로딩 중...' : '더보기'} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ) : loading ? (
+                    <div class="bg-white p-12 text-center border border-slate-200 rounded-2xl shadow-sm">
+                        <p class="text-slate-500 text-sm">주문 정보를 불러오는 중입니다...</p>
                     </div>
                 ) : (
                     <div class="premium-card p-12 text-center border border-slate-200 rounded-2xl shadow-sm bg-white">
@@ -572,7 +665,14 @@ function App() {
                         </div>
                     </div>
 
-                    <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" className={`font-bold ${trackModalUI.status === 'CANCELED' || trackModalUI.status === 'FAILED' ? 'text-red-600' : 'text-blue-600'}`}>{trackModalUI.status}</span></p>
+                    <p class="text-slate-500 text-sm mb-6">현재 배송 상태: <span id="modalStatusText" className={`font-bold ${trackModalUI.status === 'CANCELED' || trackModalUI.status === 'FAILED' ? 'text-red-600' : trackModalUI.status === 'DELAYED' ? 'text-orange-600' : 'text-blue-600'}`}>
+                        {trackModalUI.status === 'READY' && '배송대기'}
+                        {trackModalUI.status === 'SHIPPING' && '배송중'}
+                        {trackModalUI.status === 'DELAYED' && '배송지연'}
+                        {trackModalUI.status === 'DELIVERED' && '배송완료'}
+                        {trackModalUI.status === 'CANCELED' && '주문취소'}
+                        {trackModalUI.status === 'FAILED' && '배송실패'}
+                    </span></p>
 
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
                         <p class="text-xs font-bold text-slate-400 mb-1 whitespace-nowrap">
@@ -596,8 +696,24 @@ function App() {
                         </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-2">취소 불가 안내</h3>
-                    <p class="text-slate-500 text-sm mb-6 leading-relaxed">이미 상품 배송이 시작되어<br/>주문을 취소할 수 없습니다.</p>
+                    <p class="text-slate-500 text-sm mb-6 leading-relaxed">{cancelAlertMsg}</p>
                     <button onClick={() => setIsCancelAlertOpen(false)} class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition-colors text-sm">확인</button>
+                </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* 2-2. 경고 모달: 배송완료 전 반품 신청 시도 */}
+            {/* ========================================================================= */}
+            <div id="returnAlertModal" className={`modal-overlay ${isReturnAlertOpen ? 'active' : ''}`} onClick={(e) => e.target.id === 'returnAlertModal' && setIsReturnAlertOpen(false)}>
+                <div class="modal-content">
+                    <div class="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-amber-100">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">반품신청 불가</h3>
+                    <p class="text-slate-500 text-sm mb-6 leading-relaxed">반품 신청은 배송이 완료된 이후에만<br/>가능합니다.</p>
+                    <button onClick={() => setIsReturnAlertOpen(false)} class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition-colors text-sm">확인</button>
                 </div>
             </div>
 
@@ -638,6 +754,19 @@ function App() {
                             <h3 class="text-xl font-bold text-slate-900 mb-2">{confirmModal.title}</h3>
                             <p class="text-slate-500 text-sm mb-6 leading-relaxed" dangerouslySetInnerHTML={{ __html: confirmModal.text }}></p>
                             
+                            {/* 사유 입력 UI 추가 */}
+                            <div class="mb-6 text-left">
+                                <label class="block text-xs font-bold text-slate-500 mb-2">
+                                    {confirmModal.type === 'CANCEL' ? '취소 사유' : '반품 사유'}
+                                </label>
+                                <textarea 
+                                    value={reasonText}
+                                    onChange={(e) => setReasonText(e.target.value)}
+                                    placeholder={confirmModal.type === 'CANCEL' ? '취소 사유를 적어주세요.' : '반품 사유를 적어주세요.'}
+                                    class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all resize-none h-20"
+                                />
+                            </div>
+
                             <div class="flex gap-3">
                                 <button onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-xl transition-colors text-sm">아니오</button>
                                 <button onClick={confirmModal.type === 'CANCEL' ? executeOrderCancel : executeOrderReturn} 

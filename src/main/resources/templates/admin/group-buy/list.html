@@ -215,7 +215,6 @@
   </div>
 </div>
 
-<script src="/admin/admin-common.js"></script>
 <script>
 let page = 1;
 const loadMoreBtn = document.getElementById("loadMoreBtn");
@@ -306,7 +305,19 @@ btnBatchStop.addEventListener("click", function() {
         return;
     }
     if (confirm("선택한 공동구매를 강제 중지하시겠습니까? 관련 참가자 결제가 취소됩니다.")) {
-        document.getElementById("batchStopForm").submit();
+        const form = document.getElementById("batchStopForm");
+        const formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            body: new URLSearchParams(formData)
+        }).then(res => {
+            if(res.ok) {
+                alert("성공적으로 중지되었습니다.");
+                location.reload();
+            } else {
+                alert("처리에 실패했습니다.");
+            }
+        }).catch(() => alert("오류가 발생했습니다."));
     }
 });
 
@@ -346,5 +357,6 @@ function setDateRange(type, targetFromId, targetToId) {
     fromInput.value = formatDate(fromDate);
 }
 </script>
+<script src="/admin/admin.js"></script>
 </body>
 </html>

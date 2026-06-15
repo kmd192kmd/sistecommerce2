@@ -23,8 +23,16 @@ public class MyPageOrderListService {
         return myPageOrderListRepository.findOrdersByMemberSeq(memberSeq, keyword, period);
     }
 
+    public List<MyPageOrderListDto> getOrders(Long memberSeq, String keyword, String period, long offset, int size) {
+        return myPageOrderListRepository.findOrdersByMemberSeq(memberSeq, keyword, period, offset, size);
+    }
+
     public List<MyPageCancelReturnDto> getCancelReturns(Long memberSeq) {
         return myPageOrderListRepository.findCancelReturnsByMemberSeq(memberSeq);
+    }
+
+    public List<MyPageCancelReturnDto> getCancelReturns(Long memberSeq, long offset, int size) {
+        return myPageOrderListRepository.findCancelReturnsByMemberSeq(memberSeq, offset, size);
     }
 
     public MyPageOrderDetailDto getOrderDetail(Long orderSeq) {
