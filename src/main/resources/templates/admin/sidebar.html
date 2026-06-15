@@ -60,11 +60,9 @@
                   
                   <!-- CS관리자(2) + 최고관리자(1) -->
                   <a th:if="${role == 1 or role == 2}" href="/admin/member/list" class="submenu-link">회원 관리</a>
-                  <a th:if="${role == 1 or role == 2}" href="/admin/coupon/list" class="submenu-link">쿠폰 목록</a>
-                  <a th:if="${role == 1 or role == 2}" href="/admin/coupon/create" class="submenu-link">쿠폰 생성</a>
-                  <a th:if="${role == 1 or role == 2}" href="/admin/hotdeal/list" class="submenu-link">핫딜 목록</a>
-                  <a th:if="${role == 1 or role == 2}" href="/admin/hotdeal/create" class="submenu-link">핫딜 생성</a>
-                  <a th:if="${role == 1 or role == 2}" href="/admin/group-buys" class="submenu-link">공동구매 목록</a>
+                  <a th:if="${role == 1 or role == 2}" href="/admin/coupon/list" class="submenu-link">쿠폰 관리</a>
+                  <a th:if="${role == 1 or role == 2}" href="/admin/hotdeal/list" class="submenu-link">핫딜 관리</a>
+                  <a th:if="${role == 1 or role == 2}" href="/admin/group-buys" class="submenu-link">공동구매 관리</a>
                   <a th:if="${role == 1 or role == 2}" href="/admin/group-buys/select" class="submenu-link">공동구매 추천상품</a>
                 </div>
             </li>
