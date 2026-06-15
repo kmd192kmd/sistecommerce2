@@ -25,7 +25,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping
+@RequestMapping("/admin")
 @RequiredArgsConstructor
 public class HotDealAdminController {
 
@@ -37,7 +37,7 @@ public class HotDealAdminController {
     @GetMapping("/hotdeal/create")
     public String createForm() {
         
-        return "hotdeal/create"; 
+        return "admin/hotdeal/create"; 
     }
 
     /**
@@ -47,11 +47,11 @@ public class HotDealAdminController {
     public String createHotDeal(@Valid @ModelAttribute HotDealRequestDto requestDto, RedirectAttributes rttr) {
     	 try {
              hotDealAdminService.createHotDeal(requestDto);
-             return "redirect:/hotdeal/list";
+             return "redirect:/admin/hotdeal/list";
          } catch (IllegalArgumentException e) {
              // 재고 부족 등의 에러가 터지면 에러 메시지를 담아서 다시 생성 폼으로 쫓아냄
              rttr.addFlashAttribute("errorMessage", e.getMessage());
-             return "redirect:/hotdeal/create";
+             return "redirect:/admin/hotdeal/create";
          }
 
      }
@@ -61,12 +61,12 @@ public class HotDealAdminController {
     public String listForm(Model model) {
         List<HotDeal> hotdeals = hotDealAdminService.getAllHotDeals();
         model.addAttribute("hotdeals", hotdeals);
-        return "hotdeal/list";
+        return "admin/hotdeal/list";
     }
     
     
     @ResponseBody
-    @GetMapping("/admin/hot-deals/search-options")
+    @GetMapping("/hot-deals/search-options")
     public ResponseEntity<List<Map<String, Object>>> searchOptions(@RequestParam("keyword") String keyword) {
         List<Map<String, Object>> result = hotDealAdminService.searchOptionsSafely(keyword);
         return ResponseEntity.ok(result);
@@ -75,14 +75,14 @@ public class HotDealAdminController {
     @PostMapping("/hotdeal/delete")
     public String deleteHotDeal(@RequestParam("seq") Long seq) {
         hotDealAdminService.deleteHotDeal(seq);
-        return "redirect:/hotdeal/list";
+        return "redirect:/admin/hotdeal/list";
     }
     
     @GetMapping("/hotdeal/edit")
     public String editForm(@RequestParam("seq") Long seq, Model model) {
         HotDeal hotDeal = hotDealAdminService.getHotDeal(seq);
         if (hotDeal.getStatus() != 0) {
-            return "redirect:/hotdeal/list";
+            return "redirect:/admin/hotdeal/list";
         }
 
         // 다건 조회로 여러 개를 리스트로 가져옵니다!
@@ -99,7 +99,7 @@ public class HotDealAdminController {
         // 프론트엔드로 여러 개의 상품 배열을 던져줍니다!
         model.addAttribute("hotDealProducts", products);
         model.addAttribute("hotDealDto", dto);
-        return "hotdeal/edit";
+        return "admin/hotdeal/edit";
     }
 
     /**
@@ -109,11 +109,11 @@ public class HotDealAdminController {
     public String updateHotDeal(@Valid @ModelAttribute HotDealRequestDto requestDto, RedirectAttributes rttr) {
     	 try {
              hotDealAdminService.updateHotDeal(requestDto);
-             return "redirect:/hotdeal/list";
+             return "redirect:/admin/hotdeal/list";
          } catch (Exception e) { // IllegalArgumentException, IllegalStateException 모두 잡음
              // 에러가 터지면 다시 수정 폼으로 쫓아냄 (seq 유지)
              rttr.addFlashAttribute("errorMessage", e.getMessage());
-             return "redirect:/hotdeal/edit?seq=" + requestDto.getSeq();
+             return "redirect:/admin/hotdeal/edit?seq=" + requestDto.getSeq();
          }
     }
     

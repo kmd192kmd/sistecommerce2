@@ -22,4 +22,10 @@ public interface GroupBuyRepository extends JpaRepository<GroupBuy, Long> {
      *   And StartAtBefore   → AND start_at < ?     (시작 시각 도래)
      */
     List<GroupBuy> findByStatusAndStartAtBefore(GroupBuyStatus status, LocalDateTime startAt);
+
+    /** 진행 중 공구 목록 (마감 임박순) — 메인 공구 목록 화면(GB-01)용. */
+    List<GroupBuy> findByStatusOrderByEndAtAsc(GroupBuyStatus status);
+
+    /** 시작 전(예정) 공구 목록 (시작 임박순) — 공구 예정 화면용. */
+    List<GroupBuy> findByStatusOrderByStartAtAsc(GroupBuyStatus status);
 }
