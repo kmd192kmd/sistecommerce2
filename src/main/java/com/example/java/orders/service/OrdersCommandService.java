@@ -43,16 +43,23 @@ public class OrdersCommandService {
 
         /*
             체크한 장바구니 상품만 조회한다.
+
+            바로구매일 경우에는 장바구니를 조회하지 않고,
+            상품 상세 화면에서 넘어온 optionsSeq와 quantity 기준으로
+            결제 상품 정보를 조회한다.
          */
         List<CheckoutItemDto> items = getCheckoutItemsByRequest(requestDto, memberSeq);
 
         if (items.isEmpty()) {
-            throw new IllegalStateException("선택한 장바구니 상품이 없습니다.");
+            throw new IllegalStateException("선택한 상품이 없습니다.");
         }
 
         /*
             서버에서 핫딜, 쿠폰, 배송비를 다시 계산한다.
             화면에서 넘어온 amount는 신뢰하지 않는다.
+
+            장바구니 결제와 바로구매 결제 모두
+            위에서 만든 items 기준으로 금액을 다시 계산한다.
          */
         PriceSummaryDto priceSummary =
                 ordersViewService.getPriceSummaryByItems(
@@ -74,7 +81,9 @@ public class OrdersCommandService {
         String recipientName = requestDto.getRecipientName() != null ? requestDto.getRecipientName().trim() : "";
         String recipientPhone = requestDto.getRecipientPhone() != null ? requestDto.getRecipientPhone().trim() : "";
         String requestMemo = requestDto.getRequestMemo() != null ? requestDto.getRequestMemo().trim() : "";
-        String fieldData = recipientName + "|" + recipientPhone + "|" + requestMemo;
+        String orderSource = Boolean.TRUE.equals(requestDto.getDirectBuyYn()) ? "DIRECT" : "CART";
+
+        String fieldData = orderSource + "|" + recipientName + "|" + recipientPhone + "|" + requestMemo;
         if (fieldData.length() > 255) {
             fieldData = fieldData.substring(0, 255);
         }
@@ -83,7 +92,6 @@ public class OrdersCommandService {
                 .memberSeq(memberSeq)
                 .memberCouponSeq(requestDto.getMemberCouponSeq())
                 .orderUid(orderUid)
-                .field(Boolean.TRUE.equals(requestDto.getDirectBuy()) ? "DIRECT" : "CART")
                 .productTotalPrice(productTotalPrice)
                 .couponDiscount(totalCouponDiscount)
                 .hotdealDiscount(hotdealDiscount)
@@ -113,19 +121,32 @@ public class OrdersCommandService {
                 orderName
         );
     }
-    
-    private List<CheckoutItemDto> getCheckoutItemsByRequest(CheckoutRequestDto requestDto,
-            Long memberSeq) {
 
-		if (Boolean.TRUE.equals(requestDto.getDirectBuy())) {
-		return ordersViewService.getDirectCheckoutItems(
-		requestDto.getOptionsSeq(),
-		requestDto.getQuantity()
-		);
-		}
-		
-		return ordersViewService.getCheckoutItems(memberSeq, requestDto.getCartSeq());
-	}
+    /*
+        결제 요청 방식에 따라 주문 상품 목록을 조회한다.
+
+        장바구니 결제:
+        - 기존 cartSeq 목록 기준으로 장바구니 상품을 조회한다.
+
+        바로구매:
+        - cartSeq를 사용하지 않는다.
+        - 상품 상세 화면에서 넘어온 optionsSeq와 quantity 기준으로
+          결제 상품 1개를 조회해서 List 형태로 반환한다.
+    */
+    private List<CheckoutItemDto> getCheckoutItemsByRequest(CheckoutRequestDto requestDto,
+                                                            Long memberSeq) {
+
+        if (Boolean.TRUE.equals(requestDto.getDirectBuyYn())) {
+            return List.of(
+                    ordersViewService.getDirectCheckoutItem(
+                            requestDto.getOptionsSeq(),
+                            requestDto.getQuantity()
+                    )
+            );
+        }
+
+        return ordersViewService.getCheckoutItems(memberSeq, requestDto.getCartSeq());
+    }
 
     /**
      * 공구 참여용 단건 '결제대기' 주문 생성. (장바구니 기반 createOrderFromCheckout과 별개 —
@@ -238,7 +259,7 @@ public class OrdersCommandService {
             throw new IllegalArgumentException("로그인 회원 번호가 없습니다.");
         }
 
-        if (Boolean.TRUE.equals(requestDto.getDirectBuy())) {
+        if (Boolean.TRUE.equals(requestDto.getDirectBuyYn())) {
             if (requestDto.getOptionsSeq() == null) {
                 throw new IllegalArgumentException("바로구매할 상품 옵션을 선택해야 합니다.");
             }
