@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+﻿    <!DOCTYPE html>
     <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
     <head>
@@ -30,7 +30,7 @@
           <h4 class="text-title mb-6">핫딜 기본 정보 수정</h4>
 
           <!-- th:object를 사용해 컨트롤러에서 보낸 dto와 바인딩 -->
-          <form th:action="@{/hotdeal/edit}" method="post" th:object="${hotDealDto}" class="space-y-6">
+          <form th:action="@{/admin/hotdeal/edit}" method="post" th:object="${hotDealDto}" class="space-y-6">
 
             <!-- 수정 식별을 위한 hidden seq 값 -->
             <input type="hidden" th:field="*{seq}">

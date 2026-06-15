@@ -13,4 +13,5 @@ public class LoginUserDto {
     private String role;
     private Integer status;
     private String loginType;
+    private Integer admRole;
 }

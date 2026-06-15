@@ -44,18 +44,26 @@ public class FormLoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandl
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
-        // 휴면(status=2) 계정이면 로그인(본인인증) 성공 시점에 자동 복원. 휴면이 아니면 no-op.
-        dormantService.restore(userDetails.getMemberSeq());
+        if ("MEMBER".equals(userDetails.getLoginType())) {
+            // 휴면(status=2) 계정이면 로그인(본인인증) 성공 시점에 자동 복원. 휴면이 아니면 no-op.
+            dormantService.restore(userDetails.getMemberSeq());
 
-        // 마지막 접속일시 갱신(휴면 판정 기준)
-        loginLogService.recordLastLogin(userDetails.getMemberSeq());
+            // 마지막 접속일시 갱신(휴면 판정 기준)
+            loginLogService.recordLastLogin(userDetails.getMemberSeq());
 
-        sessionManagementService.register(request, request.getSession(), userDetails.getUsername());
+            sessionManagementService.register(request, request.getSession(), userDetails.getUsername());
 
-        memberRepository.findById(userDetails.getMemberSeq()).ifPresent(member ->
-                loginLogService.logSuccess(member, request, LoginLog.TYPE_FORM));
+            memberRepository.findById(userDetails.getMemberSeq()).ifPresent(member ->
+                    loginLogService.logSuccess(member, request, LoginLog.TYPE_FORM));
 
-        log.debug("일반 로그인 성공: {}", userDetails.getUsername());
-        super.onAuthenticationSuccess(request, response, authentication);
+            log.debug("일반 로그인 성공: {}", userDetails.getUsername());
+            super.onAuthenticationSuccess(request, response, authentication);
+        } else if ("ADMIN".equals(userDetails.getLoginType())) {
+            log.debug("관리자 로그인 성공: {}", userDetails.getUsername());
+            super.onAuthenticationSuccess(request, response, authentication);
+        } else {
+            log.debug("판매처 로그인 성공: {}", userDetails.getUsername());
+            super.onAuthenticationSuccess(request, response, authentication);
+        }
     }
 }

@@ -138,9 +138,25 @@ public class PurchaseOrderService {
 	        contents.remove(contents.size() - 1);
 	    }
 
+	    // 추가: N+1 문제를 방지하기 위해 화면에 보여질 상품의 판매자 번호를 추출하여 한 번에 조회
+	    List<Long> sellerSeqs = contents.stream()
+	            .map(po -> po.getOptions().getProduct().getSellerSeq())
+	            .distinct()
+	            .toList();
+
+	    java.util.Map<Long, String> sellerNameMap = sellerRepository.findAllById(sellerSeqs).stream()
+	            .collect(java.util.stream.Collectors.toMap(
+	            		com.example.java.product.entity.Seller::getSeq,
+	            		com.example.java.product.entity.Seller::getName
+	            ));
+
 	    List<PurchaseOrderListDTO> dtoList =
 	            contents.stream()
-	                    .map(PurchaseOrderListDTO::from)
+	                    .map(po -> {
+	                    	Long sellerSeq = po.getOptions().getProduct().getSellerSeq();
+	                    	String sellerName = sellerNameMap.getOrDefault(sellerSeq, "알 수 없음");
+	                    	return PurchaseOrderListDTO.from(po, sellerName);
+	                    })
 	                    .toList();
 
 	    return new SliceImpl<>(

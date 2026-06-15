@@ -58,7 +58,8 @@ public class MemberSecurityService implements UserDetailsService {
                     username,
                     password,
                     role,
-                    status
+                    status,
+                    0 AS adm_role
                 FROM member
                 WHERE username = :username
                 """;
@@ -74,7 +75,8 @@ public class MemberSecurityService implements UserDetailsService {
                     id AS username,
                     password,
                     role,
-                    status
+                    status,
+                    0 AS adm_role
                 FROM seller
                 WHERE id = :username
                 """;
@@ -90,7 +92,8 @@ public class MemberSecurityService implements UserDetailsService {
                     id AS username,
                     password,
                     role,
-                    adm_status AS status
+                    adm_status AS status,
+                    adm_role
                 FROM admin
                 WHERE id = :username
                 """;
@@ -114,7 +117,8 @@ public class MemberSecurityService implements UserDetailsService {
                     rs.getString("password"),
                     rs.getString("role"),
                     rs.getInt("status"),
-                    loginType
+                    loginType,
+                    rs.getInt("adm_role")
             ));
         });
     }
