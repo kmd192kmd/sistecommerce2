@@ -2,7 +2,7 @@ select * from options where seq = 1;
 
 
 
-select * from PRODUCT where SEQ = 1;
+select * from PRODUCT order by seq desc;
 
 select * from COUPON;
 

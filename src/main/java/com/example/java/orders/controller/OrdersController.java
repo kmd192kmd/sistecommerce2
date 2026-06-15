@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,21 +42,42 @@ public class OrdersController {
     private String tossFailUrl;
 
     @GetMapping("/order/checkout")
-    public String checkout(@RequestParam(value = "cartSeq", required = false) List<Long> cartSeqList,
-                           @RequestParam(value = "memberCouponSeq", required = false) Long memberCouponSeq,
-                           @RequestParam(value = "directBuy", required = false, defaultValue = "false") Boolean directBuy,
-                           @RequestParam(value = "optionsSeq", required = false) Long optionsSeq,
-                           @RequestParam(value = "quantity", required = false) Integer quantity,
-                           Authentication authentication,
-                           Model model) {
+    public String checkout(
+            @RequestParam(value = "cartSeq", required = false)
+            List<Long> cartSeqList,
 
+            @RequestParam(value = "memberCouponSeq", required = false)
+            Long memberCouponSeq,
+
+            @RequestParam(
+                    value = "directBuy",
+                    required = false,
+                    defaultValue = "false"
+            )
+            Boolean directBuy,
+
+            @RequestParam(value = "optionsSeq", required = false)
+            Long optionsSeq,
+
+            @RequestParam(value = "quantity", required = false)
+            Integer quantity,
+
+            Authentication authentication,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ) {
         Long memberSeq = getLoginMemberSeq(authentication);
-
         boolean isDirectBuy = Boolean.TRUE.equals(directBuy);
 
         model.addAttribute("loginMemberSeq", memberSeq);
-        model.addAttribute("deliveryAddresses", ordersViewService.getDeliveryAddresses(memberSeq));
-        model.addAttribute("coupons", ordersViewService.getCoupons(memberSeq));
+        model.addAttribute(
+                "deliveryAddresses",
+                ordersViewService.getDeliveryAddresses(memberSeq)
+        );
+        model.addAttribute(
+                "coupons",
+                ordersViewService.getCoupons(memberSeq)
+        );
         model.addAttribute("selectedMemberCouponSeq", memberCouponSeq);
         model.addAttribute("order", ordersViewService.getOrderPreview());
 
@@ -63,21 +85,38 @@ public class OrdersController {
         model.addAttribute("tossSuccessUrl", tossSuccessUrl);
         model.addAttribute("tossFailUrl", tossFailUrl);
 
+        /*
+         * 바로구매 결제 화면 진입
+         */
         if (isDirectBuy) {
             if (optionsSeq == null) {
-                throw new IllegalArgumentException("바로구매할 상품 옵션을 선택해야 합니다.");
+                throw new IllegalArgumentException(
+                        "바로구매할 상품 옵션을 선택해야 합니다."
+                );
             }
 
             if (quantity == null || quantity < 1) {
-                throw new IllegalArgumentException("구매 수량은 1개 이상이어야 합니다.");
+                throw new IllegalArgumentException(
+                        "구매 수량은 1개 이상이어야 합니다."
+                );
             }
 
             List<CheckoutItemDto> items =
-                    ordersViewService.getDirectCheckoutItems(optionsSeq, quantity);
+                    ordersViewService.getDirectCheckoutItems(
+                            optionsSeq,
+                            quantity
+                    );
 
             model.addAttribute("cartItems", items);
-            model.addAttribute("priceSummary",
-                    ordersViewService.getPriceSummaryByItems(memberSeq, memberCouponSeq, items));
+
+            model.addAttribute(
+                    "priceSummary",
+                    ordersViewService.getPriceSummaryByItems(
+                            memberSeq,
+                            memberCouponSeq,
+                            items
+                    )
+            );
 
             model.addAttribute("selectedCartSeqList", List.of());
             model.addAttribute("directBuy", true);
@@ -87,13 +126,60 @@ public class OrdersController {
             return "order/checkout";
         }
 
+        /*
+         * 장바구니 결제 화면 진입
+         */
         if (cartSeqList == null || cartSeqList.isEmpty()) {
-            throw new IllegalArgumentException("결제할 장바구니 상품을 선택해야 합니다.");
+            throw new IllegalArgumentException(
+                    "결제할 장바구니 상품을 선택해야 합니다."
+            );
         }
 
-        model.addAttribute("cartItems", ordersViewService.getCheckoutItems(memberSeq, cartSeqList));
-        model.addAttribute("priceSummary",
-                ordersViewService.getPriceSummary(memberSeq, memberCouponSeq, cartSeqList));
+        /*
+         * 선택한 장바구니 상품 중 재고가 부족한 상품을 조회한다.
+         */
+        List<String> insufficientStockProductNames =
+                ordersViewService.getInsufficientStockProductNames(
+                        memberSeq,
+                        cartSeqList
+                );
+
+        /*
+         * 재고 부족 상품이 하나라도 존재하면 상품명을 알리고
+         * 결제 화면 대신 장바구니 화면으로 돌아간다.
+         */
+        if (!insufficientStockProductNames.isEmpty()) {
+            String stockAlertMessage =
+                    "다음 상품의 재고가 부족합니다.\n- "
+                            + String.join(
+                                    "\n- ",
+                                    insufficientStockProductNames
+                            );
+
+            redirectAttributes.addFlashAttribute(
+                    "stockAlertMessage",
+                    stockAlertMessage
+            );
+
+            return "redirect:/cart";
+        }
+
+        List<CheckoutItemDto> items =
+                ordersViewService.getCheckoutItems(
+                        memberSeq,
+                        cartSeqList
+                );
+
+        model.addAttribute("cartItems", items);
+
+        model.addAttribute(
+                "priceSummary",
+                ordersViewService.getPriceSummaryByItems(
+                        memberSeq,
+                        memberCouponSeq,
+                        items
+                )
+        );
 
         model.addAttribute("selectedCartSeqList", cartSeqList);
         model.addAttribute("directBuy", false);
@@ -104,21 +190,22 @@ public class OrdersController {
     }
 
     /*
-        바로구매 결제 화면
-
-        장바구니를 거치지 않고 상품 상세 화면에서 선택한
-        optionsSeq와 quantity를 기준으로 결제 화면을 엽니다.
-
-        기존 /order/checkout 장바구니 결제 흐름은 그대로 유지하고,
-        바로구매일 때만 이 URL을 사용합니다.
-    */
+     * 기존 별도 바로구매 결제 화면
+     */
     @GetMapping("/order/checkout/direct")
-    public String directCheckout(@RequestParam("optionsSeq") Long optionsSeq,
-                                 @RequestParam("quantity") Integer quantity,
-                                 @RequestParam(value = "memberCouponSeq", required = false) Long memberCouponSeq,
-                                 Authentication authentication,
-                                 Model model) {
+    public String directCheckout(
+            @RequestParam("optionsSeq")
+            Long optionsSeq,
 
+            @RequestParam("quantity")
+            Integer quantity,
+
+            @RequestParam(value = "memberCouponSeq", required = false)
+            Long memberCouponSeq,
+
+            Authentication authentication,
+            Model model
+    ) {
         Long memberSeq = getLoginMemberSeq(authentication);
 
         model.addAttribute("loginMemberSeq", memberSeq);
@@ -133,8 +220,16 @@ public class OrdersController {
                 )
         );
 
-        model.addAttribute("deliveryAddresses", ordersViewService.getDeliveryAddresses(memberSeq));
-        model.addAttribute("coupons", ordersViewService.getCoupons(memberSeq));
+        model.addAttribute(
+                "deliveryAddresses",
+                ordersViewService.getDeliveryAddresses(memberSeq)
+        );
+
+        model.addAttribute(
+                "coupons",
+                ordersViewService.getCoupons(memberSeq)
+        );
+
         model.addAttribute("selectedMemberCouponSeq", memberCouponSeq);
 
         model.addAttribute(
@@ -163,13 +258,17 @@ public class OrdersController {
 
     @PostMapping("/order/checkout")
     @ResponseBody
-    public ResponseEntity<OrderCreateResultDto> prepareCheckout(CheckoutRequestDto requestDto,
-                                                                Authentication authentication) {
-
+    public ResponseEntity<OrderCreateResultDto> prepareCheckout(
+            CheckoutRequestDto requestDto,
+            Authentication authentication
+    ) {
         Long memberSeq = getLoginMemberSeq(authentication);
 
         OrderCreateResultDto result =
-                ordersCommandService.createOrderFromCheckout(requestDto, memberSeq);
+                ordersCommandService.createOrderFromCheckout(
+                        requestDto,
+                        memberSeq
+                );
 
         return ResponseEntity.ok(result);
     }
@@ -181,13 +280,6 @@ public class OrdersController {
 
         Object principal = authentication.getPrincipal();
 
-        /*
-            현재 프로젝트는 Spring Security 로그인 사용자 정보를
-            CustomUserDetails로 사용합니다.
-
-            상품 상세, 장바구니 쪽에서도 getMemberSeq()를 사용하고 있으므로
-            주문/결제에서도 같은 방식으로 회원번호를 가져옵니다.
-        */
         if (principal instanceof CustomUserDetails customUserDetails) {
             return customUserDetails.getMemberSeq();
         }
@@ -195,7 +287,10 @@ public class OrdersController {
         String username = authentication.getName();
 
         Member member = memberRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalStateException("로그인 회원 정보를 찾을 수 없습니다. username=" + username));
+                .orElseThrow(() -> new IllegalStateException(
+                        "로그인 회원 정보를 찾을 수 없습니다. username="
+                                + username
+                ));
 
         return member.getSeq();
     }
