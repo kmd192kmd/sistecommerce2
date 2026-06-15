@@ -1,4 +1,4 @@
-﻿ <!DOCTYPE html>
+ <!DOCTYPE html>
     <html lang="ko" xmlns:th="http://www.thymeleaf.org">
     <head>
       <meta charset="UTF-8">
@@ -38,7 +38,9 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr th:each="hotdeal : ${hotdeals}" class="border-b border-gray-700/50 hover:bg-black/10">
+                    <tr th:each="hotdeal, stat : ${hotdeals}" 
+                        class="hotdeal-row border-b border-gray-700/50 hover:bg-black/10"
+                        th:classappend="${stat.index >= 10} ? 'hidden' : ''">
                       <td class="px-6 py-4 text-value font-medium" th:text="${hotdeal.seq}"></td>
                       <td class="px-6 py-4 text-value font-bold" th:text="${hotdeal.name}"></td>
                       <td class="px-6 py-4 text-indigo-400 font-medium">
@@ -71,14 +73,32 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(hotdeals)}">
-                      <td colspan="7" class="px-6 py-8 text-center text-gray-500 font-medium">등록된 핫딜이 없습니다.
-  </td>
+                      <td colspan="7" class="px-6 py-8 text-center text-gray-500 font-medium">등록된 핫딜이 없습니다.</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              <div class="p-4 text-center border-t border-gray-700/50" th:if="${hotdeals.size() > 10}">
+                <button type="button" id="loadMoreHotdealBtn" class="btn btn-outline text-sm px-6 py-2">
+                  더보기 (10개씩)
+                </button>
+              </div>
             </div>
           </main>
+          <script>
+            const loadMoreHotdealBtn = document.getElementById('loadMoreHotdealBtn');
+            if (loadMoreHotdealBtn) {
+                loadMoreHotdealBtn.addEventListener('click', () => {
+                    const hiddenRows = document.querySelectorAll('.hotdeal-row.hidden');
+                    for (let i = 0; i < 10 && i < hiddenRows.length; i++) {
+                        hiddenRows[i].classList.remove('hidden');
+                    }
+                    if (document.querySelectorAll('.hotdeal-row.hidden').length === 0) {
+                        loadMoreHotdealBtn.style.display = 'none';
+                    }
+                });
+            }
+          </script>
           <script src="/admin/admin.js"></script>
         </div>
       </div>

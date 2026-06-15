@@ -251,7 +251,7 @@
                                         th:data-status="${d.deliveryStatus}"
                                         onclick="handleOrderCancel(this)"
                                         class="btn-action py-2.5 border text-sm shadow-sm transition-all"
-                                        th:classappend="${d.deliveryStatus == 'READY' ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50'}">
+                                        th:classappend="${d.deliveryStatus == 'READY' ? 'border-red-200 text-red-600 bg-red-50 hover:bg-red-100' : (d.deliveryStatus == 'DELIVERED' ? 'border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed' : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50')}">
                                     주문취소
                                 </button>
                             </div>
@@ -423,7 +423,7 @@
             </svg>
         </div>
         <h3 class="text-lg font-bold text-slate-900 mb-2">주문취소 불가</h3>
-        <p class="text-slate-500 text-sm mb-6 leading-relaxed">배송이 이미 시작되어서<br>주문취소가 불가능합니다.</p>
+        <p id="cancelAlertModalText" class="text-slate-500 text-sm mb-6 leading-relaxed">배송이 이미 시작되어서<br>주문취소가 불가능합니다.</p>
         <button onclick="closeCancelAlertModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors">확인</button>
     </div>
 </div>
@@ -773,6 +773,7 @@
 
         showReturnConfirmModal(
             `${displayTitle}을 정말 반품 신청하시겠습니까?<br><br>` +
+            `<span class="text-xs text-amber-500 font-bold">※ 반품은 배송 완료 후 7일 이내에만 신청이 가능합니다.</span><br>` +
             `<span class="text-xs text-amber-500 font-bold">※ 반품 신청 완료 후 택배 수거 및 검수가 진행됩니다.</span>`,
             async () => {
                 showReturnProcessing();
@@ -889,6 +890,12 @@
         const status = btn.getAttribute('data-status');
 
         if (status !== 'READY') {
+            const textEl = document.getElementById('cancelAlertModalText');
+            if (status === 'DELIVERED') {
+                textEl.innerHTML = '배송완료된 상품은<br>주문취소가 불가능합니다.';
+            } else {
+                textEl.innerHTML = '배송이 이미 시작되어서<br>주문취소가 불가능합니다.';
+            }
             showCancelAlertModal();
             return;
         }

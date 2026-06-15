@@ -168,6 +168,34 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 })
                 .toList();
     }
+    
+    @Override
+    public List<String> findInsufficientStockProductNames(
+            Long memberSeq,
+            List<Long> cartSeqList
+    ) {
+        if (memberSeq == null || cartSeqList == null || cartSeqList.isEmpty()) {
+            return List.of();
+        }
+
+        return queryFactory
+                .select(product.productName)
+                .distinct()
+                .from(cart)
+                .join(cart.options, options)
+                .join(options.product, product)
+                .where(
+                        cart.member.seq.eq(memberSeq),
+                        cart.seq.in(cartSeqList),
+
+                        /*
+                         * 장바구니 구매 수량보다 현재 옵션 재고가 적은 상품만 조회한다.
+                         */
+                        options.stock.lt(cart.quantity)
+                )
+                .orderBy(product.productName.asc())
+                .fetch();
+    }
 
     /**
      * 상품 상세 화면의 바로구매용 상품 조회.

@@ -31,6 +31,9 @@ public class MyPageOrderApiController {
     public List<MyPageOrderListDto> getOrders(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "period", required = false) String period,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "5") int size,
+            @RequestParam(value = "offset", required = false) Long offset,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
         Long memberSeq = userDetails.getMemberSeq();
@@ -39,7 +42,8 @@ public class MyPageOrderApiController {
             period = "6months";
         }
         
-        return myPageOrderListService.getOrders(memberSeq, keyword, period);
+        long queryOffset = (offset != null) ? offset : (long) page * size;
+        return myPageOrderListService.getOrders(memberSeq, keyword, period, queryOffset, size);
     }
 
     /**
@@ -47,9 +51,13 @@ public class MyPageOrderApiController {
      */
     @GetMapping("/returns")
     public List<MyPageCancelReturnDto> getCancelReturns(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "5") int size,
+            @RequestParam(value = "offset", required = false) Long offset,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
         Long memberSeq = userDetails.getMemberSeq();
-        return myPageOrderListService.getCancelReturns(memberSeq);
+        long queryOffset = (offset != null) ? offset : (long) page * size;
+        return myPageOrderListService.getCancelReturns(memberSeq, queryOffset, size);
     }
 }

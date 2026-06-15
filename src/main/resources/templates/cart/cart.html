@@ -2,7 +2,12 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('장바구니')}"></head>
 <body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+<script th:if="${stockAlertMessage != null}" th:inline="javascript">
+    alert(/*[[${stockAlertMessage}]]*/ "");
+</script>
 
+	<!-- 기존 장바구니 화면 코드 -->
+	
 <div th:replace="~{fragments/header :: header}"></div>
 
 <main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">

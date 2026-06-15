@@ -30,7 +30,8 @@ public class ReturnDeliveryScheduler {
     @Scheduled(cron = "0 0 18 * * *") // 매일 저녁 6시(18시) 정각에 실행
     @Transactional
     public void autoCompleteReturnDeliveries() {
-        LocalDateTime threshold = LocalDateTime.now().minusHours(48);
+        LocalDateTime thresholdComplete = LocalDateTime.now().minusHours(48);
+        LocalDateTime thresholdProgress = LocalDateTime.now().minusHours(24);
         
         // RETURNING 상태인 모든 반품 배송 조회
         List<Returns> shippingReturns = returnsRepository.findByStatus("RETURNING");
@@ -44,22 +45,22 @@ public class ReturnDeliveryScheduler {
             ReturnRequest req = ret.getReturnRequest();
             if (req == null) continue;
 
-            // 반품 신청 시간(requestDate) 기준 48시간 경과 확인
-            if (req.getRequestDate() != null && req.getRequestDate().isBefore(threshold)) {
+            // 1. 반품 신청 시간(requestDate) 기준 48시간 경과 건 -> 반품 완료(9) 처리
+            if (req.getRequestDate() != null && req.getRequestDate().isBefore(thresholdComplete)) {
                 LocalDateTime now = LocalDateTime.now();
 
-                // 1. returns 테이블 상태 변경 및 완료일 설정
+                // returns 테이블 상태 변경 및 완료일 설정
                 ret.setStatus("RETURNED");
                 ret.setCompletedDate(now);
                 returnsRepository.save(ret);
 
-                // 2. return_request 테이블 상태(9: 완료) 및 완료일 설정
+                // return_request 테이블 상태(9: 완료) 및 완료일 설정
                 req.setStatus(9);
                 req.setCompletedDate(now);
                 req.setDecisionDate(now);
                 returnRequestRepository.save(req);
 
-                // 3. order_item 테이블 상태(9: 반품완료)로 변경
+                // order_item 테이블 상태(9: 반품완료)로 변경
                 OrderItem item = orderItemRepository.findById(req.getOrderItemSeq()).orElse(null);
                 if (item != null) {
                     item.setItemStatus(9);
@@ -67,6 +68,15 @@ public class ReturnDeliveryScheduler {
                 }
 
                 log.info("[ReturnScheduler] Auto-completed return for returnRequestSeq={}, trackingNumber={}", req.getSeq(), ret.getTrackingNumber());
+            } 
+            // 2. 반품 신청 시간(requestDate) 기준 24시간 경과 건 -> 반품 진행중(8) 처리
+            else if (req.getRequestDate() != null && req.getRequestDate().isBefore(thresholdProgress)) {
+                OrderItem item = orderItemRepository.findById(req.getOrderItemSeq()).orElse(null);
+                if (item != null && item.getItemStatus() == 7) {
+                    item.setItemStatus(8);
+                    orderItemRepository.save(item);
+                    log.info("[ReturnScheduler] Auto-progressed return to IN_PROGRESS (8) for returnRequestSeq={}", req.getSeq());
+                }
             }
         }
     }
