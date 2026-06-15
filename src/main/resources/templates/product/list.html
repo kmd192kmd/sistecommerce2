@@ -17,7 +17,7 @@
                     <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='salesDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == null or sort == 'salesDesc' or sort == ''} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
-                        <span th:if="${sort == null or sort == 'salesDesc' or sort == ''}">✓ </span>판매량순
+                        <span th:if="${sort == null or sort == 'salesDesc' or sort == ''}">✓ </span>인기순
                     </a>
                 </li>
                 <li>
@@ -329,10 +329,10 @@
 
     <aside class="hidden xl:flex w-52 flex-col gap-6 flex-shrink-0">
         <div class="bg-white p-4 border border-gray-200 shadow-sm">
-            <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">🔥 추천 상품 목록</h3>
+            <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">📊 인기 상품 목록</h3>
             <ul class="space-y-3">
                 <li th:each="r, stat : ${recommendedList}">
-                    <a th:href="@{/products/{seq}(seq=${r.seq})}" class="group flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
+                    <a th:href="@{/products/{seq}(seq=${r.seq})}" th:title="${r.name}" class="group flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
                         <!-- 순위 및 순위 변동 배지 -->
                         <div class="flex flex-col items-center justify-center w-8 shrink-0">
                             <span th:text="${stat.count}" class="text-sm font-extrabold text-slate-800 leading-none">1</span>
@@ -342,15 +342,20 @@
                                   th:text="${r.rankChange}"
                                   th:class="${r.rankChange == 'NEW'} ? 'text-[8px] text-emerald-500 font-black mt-1 leading-none' :
                                             (${#strings.startsWith(r.rankChange, '▲')} ? 'text-[8px] text-red-500 font-bold mt-1 leading-none' :
-                                            (${#strings.startsWith(r.rankChange, '▼')} ? 'text-[8px] text-blue-500 font-bold mt-1 leading-none' :
-                                            'text-[8px] text-slate-400 font-bold mt-1 leading-none'))">-</span>
+                                             (${#strings.startsWith(r.rankChange, '▼')} ? 'text-[8px] text-blue-500 font-bold mt-1 leading-none' :
+                                             'text-[8px] text-slate-400 font-bold mt-1 leading-none'))">-</span>
                             <!-- 캐시 정보가 아직 없는 경우 기본값 표시 -->
                             <span th:if="${r.rankChange == null}" class="text-[8px] text-slate-400 font-bold mt-1 leading-none">-</span>
                         </div>
                         
+                        <!-- 상품 썸네일 이미지 추가 -->
+                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0">
+                            <img th:src="${r.thumbnailUrl}" alt="상품 이미지" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                        </div>
+                        
                         <!-- 상품명 및 가격 -->
                         <div class="min-w-0 flex-1">
-                            <h4 th:text="${r.name}" class="text-[11px] text-gray-700 truncate group-hover:text-amber-600 group-hover:underline">추천상품명</h4>
+                            <h4 th:text="${r.name}" class="text-[11px] text-gray-700 truncate group-hover:text-amber-600 group-hover:underline">인기상품명</h4>
                             <div class="flex justify-between items-baseline mt-0.5">
                                 <span th:text="${#numbers.formatInteger(r.price, 0, 'COMMA')} + '원'" class="text-xs font-bold text-slate-900">0원</span>
                                 <span th:if="${r.hot}" class="text-[9px] bg-red-500 text-white font-bold px-1 rounded-sm flex items-center animate-pulse">HOT</span>

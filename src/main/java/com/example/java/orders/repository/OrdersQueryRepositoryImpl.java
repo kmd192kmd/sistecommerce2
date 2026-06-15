@@ -2,10 +2,13 @@ package com.example.java.orders.repository;
 
 import static com.example.java.admin.hotdeal.Entity.QHotDealProduct.hotDealProduct;
 import static com.example.java.cart.entity.QCart.cart;
+import static com.example.java.delivery.entity.QDeliveryCompany.deliveryCompany;
 import static com.example.java.member.entity.QCoupon.coupon;
 import static com.example.java.member.entity.QMemberCoupon.memberCoupon;
+import static com.example.java.member.entity.QMemberships.memberships;
 import static com.example.java.product.entity.QOptions.options;
 import static com.example.java.product.entity.QProduct.product;
+import static com.example.java.product.entity.QSeller.seller;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,6 +16,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
+import com.example.java.member.entity.Memberships;
 import com.example.java.orders.dto.CheckoutItemDto;
 import com.example.java.orders.dto.CouponDto;
 import com.querydsl.core.Tuple;
@@ -78,7 +82,7 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 /*
                     핫딜이 없는 상품도 결제 대상에 포함되어야 하므로 leftJoin 사용.
                     현재 시간이 핫딜 기간 안이고, status = 1인 핫딜만 적용한다.
-                 */
+                */
                 .leftJoin(hotDealProduct).on(
                         hotDealProduct.options.seq.eq(options.seq),
                         hotDealProduct.hotDeal.status.eq(1),
@@ -166,6 +170,16 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
     }
 
     /**
+     * 상품 상세 화면의 바로구매용 상품 조회.
+     *
+     * 기존에 사용하던 메서드명을 유지하기 위해 남겨둡니다.
+     */
+    @Override
+    public CheckoutItemDto findCheckoutItemByOptionsSeq(Long optionsSeq, Integer quantity) {
+        return findDirectCheckoutItem(optionsSeq, quantity);
+    }
+
+    /**
      * 바로구매 상품을 주문/결제 화면용 DTO로 조회한다.
      *
      * 장바구니를 거치지 않고 상품 상세 화면에서 선택한
@@ -217,7 +231,7 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 /*
                     핫딜이 없는 상품도 바로구매 대상에 포함되어야 하므로 leftJoin 사용.
                     현재 시간이 핫딜 기간 안이고, status = 1인 핫딜만 적용한다.
-                 */
+                */
                 .leftJoin(hotDealProduct).on(
                         hotDealProduct.options.seq.eq(options.seq),
                         hotDealProduct.hotDeal.status.eq(1),
@@ -226,6 +240,11 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                 )
                 .where(
                         options.seq.eq(optionsSeq),
+
+                        /*
+                            바로구매 수량이 현재 옵션 재고보다 많으면 결제할 수 없게 제외한다.
+                        */
+                        options.stock.goe(quantity),
 
                         /*
                             구매 불가 상품 제외
@@ -238,12 +257,7 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
                         */
                         product.saleStatus.notIn("SOLD_OUT", "STOPPED"),
                         product.hideYn.eq("N"),
-                        product.status.ne("DELETED"),
-
-                        /*
-                            바로구매 수량이 현재 옵션 재고보다 많으면 결제할 수 없게 제외한다.
-                        */
-                        options.stock.goe(quantity)
+                        product.status.ne("DELETED")
                 )
                 .fetchOne();
 
@@ -397,6 +411,60 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
         );
     }
 
+    @Override
+    public int findBaseDeliveryFeeByOptionsSeqList(List<Long> optionsSeqList) {
+        if (optionsSeqList == null || optionsSeqList.isEmpty()) {
+            return 0;
+        }
+
+        List<Tuple> rows = queryFactory
+                .select(
+                        deliveryCompany.seq,
+                        deliveryCompany.base_delivery_fee
+                )
+                .from(options)
+                .join(options.product, product)
+                .join(seller).on(product.sellerSeq.eq(seller.seq))
+                .join(seller.deliveryCompany, deliveryCompany)
+                .where(
+                        options.seq.in(optionsSeqList)
+                )
+                .groupBy(
+                        deliveryCompany.seq,
+                        deliveryCompany.base_delivery_fee
+                )
+                .fetch();
+
+        return rows.stream()
+                .mapToInt(row -> nullToZero(row.get(deliveryCompany.base_delivery_fee)))
+                .sum();
+    }
+
+    @Override
+    public boolean existsUsableMembership(Long memberSeq) {
+        if (memberSeq == null) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Integer result = queryFactory
+                .selectOne()
+                .from(memberships)
+                .where(
+                        memberships.member.seq.eq(memberSeq),
+                        memberships.status.in(
+                                Memberships.STATUS_ACTIVE,
+                                Memberships.STATUS_CANCELED
+                        ),
+                        memberships.expireAt.isNull()
+                                .or(memberships.expireAt.goe(now))
+                )
+                .fetchFirst();
+
+        return result != null;
+    }
+
     private int calculateHotdealUnitDiscount(int originalUnitPrice,
                                              Integer discountRate,
                                              Integer discountPrice) {
@@ -409,7 +477,7 @@ public class OrdersQueryRepositoryImpl implements OrdersQueryRepository {
         /*
             discount_price가 있으면 정액 할인 우선 적용.
             discount_price가 없고 discount_rate가 있으면 정률 할인 적용.
-         */
+        */
         if (discountPrice != null && discountPrice > 0) {
             discount = discountPrice;
         } else if (discountRate != null && discountRate > 0) {

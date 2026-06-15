@@ -22,7 +22,7 @@ function formatRemain(sec) {
  *
  * useState = "화면이 기억하는 값". 값이 바뀌면 React가 그 부분만 다시 그린다.
  */
-function PurchasePanel({ id, data }) {
+function PurchasePanel({ id, data, toss }) {
   const [selectedOption, setSelectedOption] = useState(''); // 사용자가 고른 옵션 seq
   const [remain, setRemain] = useState(data.remainSeconds);  // 남은 초 (1초마다 줄임)
   const [submitting, setSubmitting] = useState(false);       // 참여 요청 중인지
@@ -65,18 +65,47 @@ function PurchasePanel({ id, data }) {
         setMessage('참여 처리에 실패했습니다.');
         return;
       }
-      // 서버가 "PARTICIPATED"(정규 참여) 또는 "QUEUED"(매진→대기열)를 돌려준다
-      const result = await res.text();
-      setMessage(
-        result.includes('QUEUED')
-          ? '매진되어 대기열에 등록되었습니다.'
-          : '공동구매 참여가 완료되었습니다!'
-      );
+      // 서버 응답(ParticipateResponse): QUEUED(매진→대기열) / PARTICIPATED(자리 예약 + 결제대기 주문 생성)
+      const participate = await res.json();
+      if (participate.result === 'QUEUED') {
+        setMessage('매진되어 대기열에 등록되었습니다.');
+        return;
+      }
+      // PARTICIPATED → 토스 결제창으로 이동 (성공 시 /payments/success 에서 결제·참여가 확정된다)
+      await requestTossPayment(participate);
     } catch (e) {
-      setMessage('네트워크 오류가 발생했습니다.');
+      // 토스 결제창에서 '취소'를 누르면 failUrl이 아니라 여기로 reject된다(모달이라 URL 안 바뀜).
+      // 예약해둔 결제대기 자리를 즉시 반납한다 (안 그러면 10분 만료까지 묶임).
+      if (e && (e.code === 'USER_CANCEL' || e.code === 'PAY_PROCESS_CANCELED')) {
+        try {
+          await fetch(`/api/group-buys/${id}/cancel-pending`, { method: 'POST' });
+        } catch (_) { /* 반납 호출 실패해도 만료 스케줄러가 정리 */ }
+        setMessage('결제를 취소했어요. 예약했던 자리를 반납했습니다.');
+      } else {
+        setMessage('결제 요청 중 오류가 발생했습니다.');
+      }
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // PARTICIPATED 응답(orderUid/amount/orderName)으로 토스 결제창을 띄운다.
+  // requestPayment가 성공하면 브라우저가 토스로 이동하고, 결제 후 successUrl로 돌아온다.
+  async function requestTossPayment(order) {
+    if (!toss || !toss.clientKey) {
+      setMessage('결제 설정을 불러오지 못했습니다.');
+      return;
+    }
+    const tossPayments = window.TossPayments(toss.clientKey);
+    const payment = tossPayments.payment({ customerKey: `member-${toss.memberSeq}` });
+    await payment.requestPayment({
+      method: 'CARD',
+      amount: { currency: 'KRW', value: Number(order.amount) },
+      orderId: order.orderUid,
+      orderName: order.orderName,
+      successUrl: toss.successUrl,
+      failUrl: toss.failUrl,
+    });
   }
 
   return (
@@ -155,7 +184,7 @@ function PurchasePanel({ id, data }) {
  * 최상위: 마운트되면 공구 데이터를 fetch해서 패널에 넘긴다.
  * data가 아직 없으면(로딩 중) "불러오는 중…"만 보여준다.
  */
-function App({ id }) {
+function App({ id, toss }) {
   const [data, setData] = useState(null);
   useEffect(() => {
     fetch(`/api/group-buys/${id}`)
@@ -163,12 +192,19 @@ function App({ id }) {
       .then(setData);
   }, [id]);
   if (!data) return <p className="text-gray-400">불러오는 중…</p>;
-  return <PurchasePanel id={id} data={data} />;
+  return <PurchasePanel id={id} data={data} toss={toss} />;
 }
 
-// HTML의 <div id="gb-detail-root" data-gb-id="7"> 자리에 React를 끼워넣는다.
+// HTML의 <div id="gb-detail-root" data-...> 자리에 React를 끼워넣는다.
 const el = document.getElementById('gb-detail-root');
 if (el) {
   const id = el.dataset.gbId; // data-gb-id → dataset.gbId (camelCase 자동 변환)
-  createRoot(el).render(<App id={id} />);
+  // 서버가 심어준 토스 결제 설정 (data-toss-* / data-member-seq)
+  const toss = {
+    clientKey: el.dataset.tossClientKey,
+    successUrl: el.dataset.tossSuccessUrl,
+    failUrl: el.dataset.tossFailUrl,
+    memberSeq: el.dataset.memberSeq,
+  };
+  createRoot(el).render(<App id={id} toss={toss} />);
 }

@@ -48,65 +48,13 @@ public class OrdersViewService {
     }
 
     public PriceSummaryDto getPriceSummary(Long memberSeq,
-                                           Long memberCouponSeq,
-                                           List<Long> cartSeqList) {
+        Long memberCouponSeq,
+        List<Long> cartSeqList) {
 
-        List<CheckoutItemDto> items = getCheckoutItems(memberSeq, cartSeqList);
-
-        /*
-            상품 원가 총합.
-            핫딜 적용 전 금액이다.
-         */
-        int productTotalPrice = items.stream()
-                .mapToInt(CheckoutItemDto::originalTotalPrice)
-                .sum();
-
-        /*
-            핫딜 할인 총액.
-         */
-        int hotdealDiscount = items.stream()
-                .mapToInt(CheckoutItemDto::hotdealDiscountTotal)
-                .sum();
-
-        /*
-            핫딜 적용 후 상품금액.
-         */
-        int afterHotdealProductPrice = productTotalPrice - hotdealDiscount;
-
-        if (afterHotdealProductPrice < 0) {
-            afterHotdealProductPrice = 0;
-        }
-
-        /*
-            배송비도 핫딜 적용 후 금액 기준으로 판단.
-         */
-        int deliveryFee = afterHotdealProductPrice >= 30000 ? 0 : 3000;
-
-        CouponDto selectedCoupon =
-                ordersQueryRepository.findAvailableCouponByMemberSeqAndMemberCouponSeq(
-                        memberSeq,
-                        memberCouponSeq
-                );
-
-        /*
-            쿠폰 할인은 핫딜 적용 후 상품금액 기준으로 계산.
-         */
-        int couponDiscount = calculateCouponDiscount(afterHotdealProductPrice, selectedCoupon);
-
-        int finalPrice = afterHotdealProductPrice + deliveryFee - couponDiscount;
-
-        if (finalPrice < 0) {
-            finalPrice = 0;
-        }
-
-        return new PriceSummaryDto(
-                productTotalPrice,
-                deliveryFee,
-                couponDiscount,
-                hotdealDiscount,
-                finalPrice
-        );
-    }
+    	List<CheckoutItemDto> items = getCheckoutItems(memberSeq, cartSeqList);
+	
+		return getPriceSummaryByItems(memberSeq, memberCouponSeq, items);
+	}
 
     public OrderPreviewDto getOrderPreview() {
         return new OrderPreviewDto("GM-" + System.currentTimeMillis());
@@ -234,5 +182,79 @@ public class OrdersViewService {
         }
 
         return 0;
+    }
+    
+    public List<CheckoutItemDto> getDirectCheckoutItems(Long optionsSeq, Integer quantity) {
+        CheckoutItemDto item =
+                ordersQueryRepository.findCheckoutItemByOptionsSeq(optionsSeq, quantity);
+
+        if (item == null) {
+            throw new IllegalStateException("바로구매할 수 없는 상품이거나 재고가 부족합니다.");
+        }
+
+        return List.of(item);
+    }
+
+    public PriceSummaryDto getPriceSummaryByItems(Long memberSeq,
+                                                  Long memberCouponSeq,
+                                                  List<CheckoutItemDto> items) {
+
+        int productTotalPrice = items.stream()
+                .mapToInt(CheckoutItemDto::originalTotalPrice)
+                .sum();
+
+        int hotdealDiscount = items.stream()
+                .mapToInt(CheckoutItemDto::hotdealDiscountTotal)
+                .sum();
+
+        int afterHotdealProductPrice = productTotalPrice - hotdealDiscount;
+
+        if (afterHotdealProductPrice < 0) {
+            afterHotdealProductPrice = 0;
+        }
+
+        int deliveryFee = calculateDeliveryFee(memberSeq, items);
+
+        CouponDto selectedCoupon =
+                ordersQueryRepository.findAvailableCouponByMemberSeqAndMemberCouponSeq(
+                        memberSeq,
+                        memberCouponSeq
+                );
+
+        int couponDiscount = calculateCouponDiscount(afterHotdealProductPrice, selectedCoupon);
+
+        int finalPrice = afterHotdealProductPrice + deliveryFee - couponDiscount;
+
+        if (finalPrice < 0) {
+            finalPrice = 0;
+        }
+
+        return new PriceSummaryDto(
+                productTotalPrice,
+                deliveryFee,
+                couponDiscount,
+                hotdealDiscount,
+                finalPrice
+        );
+    }
+    
+    private int calculateDeliveryFee(Long memberSeq, List<CheckoutItemDto> items) {
+        boolean usableMembership = ordersQueryRepository.existsUsableMembership(memberSeq);
+
+        if (usableMembership) {
+            return 0;
+        }
+
+        List<Long> optionsSeqList = items.stream()
+                .map(CheckoutItemDto::optionsSeq)
+                .filter(optionsSeq -> optionsSeq != null)
+                .distinct()
+                .toList();
+
+        if (optionsSeqList.isEmpty()) {
+            return 0;
+        }
+
+        return ordersQueryRepository.findBaseDeliveryFeeByOptionsSeqList(optionsSeqList);
     }
 }

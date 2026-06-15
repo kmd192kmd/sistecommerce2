@@ -10,7 +10,6 @@
    MSA(마이크로서비스) 지향적으로 아키텍처를 고도화했습니다.
 ========================================================================= */
 
-/*
 package com.example.java.delivery.batch;
 
 import org.springframework.batch.core.Job;
@@ -48,4 +47,3 @@ public class DeliveryJobScheduler {
         }
     }
 }
-*/

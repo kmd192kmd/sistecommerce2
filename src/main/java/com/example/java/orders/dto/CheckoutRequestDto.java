@@ -43,11 +43,10 @@ public class CheckoutRequestDto {
     private Integer amount;
 
     private Boolean agreeRequired;
-    
-    
-    
-    
+
     private Boolean directBuyYn;
+
+    private Boolean directBuy;
 
     private Long optionsSeq;
 

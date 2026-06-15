@@ -256,6 +256,73 @@ public class ProductDetailRepository {
         eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
     }
 
+    /*
+        상품 목록 전체 개수 조회
+    */
+    public int countProducts() {
+        String sql = """
+                SELECT COUNT(*)
+                FROM product
+                WHERE status = 'NORMAL'
+                  AND approval_status = 'APPROVED'
+                  AND hide_yn = 'N'
+                """;
+
+        Integer count = jdbcTemplate.queryForObject(
+                sql,
+                new MapSqlParameterSource(),
+                Integer.class
+        );
+
+        return count == null ? 0 : count;
+    }
+
+    /*
+        상품 목록 페이징 조회
+    */
+    public List<ProductDto> findProductsByPaging(int offset, int size) {
+        String sql = """
+                SELECT
+                    p.seq,
+                    p.seller_seq,
+                    p.category_seq,
+                    p.product_name,
+                    p.price,
+                    p.content,
+                    p.sale_status,
+                    p.approval_status,
+                    p.hide_yn,
+                    p.view_count,
+                    p.avg_rating,
+                    p.review_count,
+                    p.sales_count,
+                    p.created_date,
+                    p.updated_date,
+                    p.status,
+                    (
+                        SELECT pi.image_url
+                        FROM product_image pi
+                        WHERE pi.product_seq = p.seq
+                          AND pi.thumbnail_yn = 'Y'
+                          AND pi.status = 'NORMAL'
+                        ORDER BY pi.image_order
+                        FETCH FIRST 1 ROWS ONLY
+                    ) AS thumbnail_url
+                FROM product p
+                WHERE p.status = 'NORMAL'
+                  AND p.approval_status = 'APPROVED'
+                  AND p.hide_yn = 'N'
+                ORDER BY p.seq DESC
+                OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("offset", offset)
+                .addValue("size", size);
+
+        return jdbcTemplate.query(sql, params, this::mapProductDetail);
+    }
+
     private ProductDto mapProductDetail(ResultSet rs, int rowNum) throws SQLException {
 
         ProductDto dto = new ProductDto();

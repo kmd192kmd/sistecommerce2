@@ -32,6 +32,7 @@ public class ProductEventListener {
                         .sellerSeq(product.getSellerSeq())
                         .categorySeq(product.getCategorySeq())
                         .productName(product.getProductName())
+                        .productNameChosung(com.example.java.product.util.ChosungUtil.getChosung(product.getProductName()))
                         .price(product.getPrice())
                         .saleStatus(product.getSaleStatus())
                         .approvalStatus(product.getApprovalStatus())
@@ -43,6 +44,7 @@ public class ProductEventListener {
                         .createdDate(product.getCreatedDate())
                         .status(product.getStatus())
                         .thumbnailUrl(product.getThumbnailUrl())
+                        .embedding(com.example.java.product.util.EmbeddingUtil.getEmbedding(product.getProductName()))
                         .build();
 
                 productSearchRepository.save(doc);

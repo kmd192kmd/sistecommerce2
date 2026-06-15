@@ -40,21 +40,48 @@ public class PurchaseOrderService {
 	private final GroupBuyOptionsRepository groupBuyOptionsRepository;
 	private final AdminPaymentService adminPaymentService;
 	private final StockHistoryService stockHistoryService;
+	private final com.example.java.product.repository.SellerRepository sellerRepository;
 	
 	@Transactional(readOnly = true)
 	public PurchaseOrder findById(Long seq) {
 		return getPurchaseOrder(seq);
 	}
 	
+	@Transactional(readOnly = true)
+	public java.util.Map<String, Object> getCreateFormData(Long optionsSeq) {
+		Options options = getOptions(optionsSeq);
+		com.example.java.product.entity.Product product = options.getProduct();
+		com.example.java.product.entity.Seller seller = sellerRepository.findById(product.getSellerSeq())
+				.orElseThrow(() -> new IllegalArgumentException("Seller not found"));
+
+		long totalOptionPrice = product.getPrice() + options.getAdditionalPrice();
+		long supplyPrice = (long) (totalOptionPrice * (seller.getSupplyRate() / 100.0));
+
+		java.util.Map<String, Object> map = new java.util.HashMap<>();
+		map.put("options", options);
+		map.put("product", product);
+		map.put("seller", seller);
+		map.put("supplyPrice", supplyPrice);
+		return map;
+	}
+
 	public Long create(PurchaseOrderCreateDTO dto) {
 		Options options = getOptions(dto.getOptionsSeq());
 		GroupBuyOptions group = getGroupBuyOptions(dto.getGroupBuyOptionsSeq());
 
+		com.example.java.product.entity.Product product = options.getProduct();
+		com.example.java.product.entity.Seller seller = sellerRepository.findById(product.getSellerSeq())
+				.orElseThrow(() -> new IllegalArgumentException("Seller not found"));
+
+		long totalOptionPrice = product.getPrice() + options.getAdditionalPrice();
+		long calculatedSupplyPrice = (long) (totalOptionPrice * (seller.getSupplyRate() / 100.0));
+		long calculatedTotalPrice = calculatedSupplyPrice * dto.getQuantity();
+
 	    PurchaseOrder order = PurchaseOrder.builder()
 	    		.status(PurchaseOrderStatus.발주요청)
 	            .quantity(dto.getQuantity())
-	            .supplyPrice(dto.getSupplyPrice())
-	            .totalPrice(dto.getTotalPrice())
+	            .supplyPrice(calculatedSupplyPrice)
+	            .totalPrice(calculatedTotalPrice)
 	            .orderDate(dto.getOrderDate())
 	            .expectedDate(dto.getExpectedDate())
 	            .receivedDate(null)

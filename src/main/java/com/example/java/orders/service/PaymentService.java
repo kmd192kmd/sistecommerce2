@@ -13,8 +13,16 @@ import com.example.java.orders.entity.Refund;
 import com.example.java.orders.repository.OrderItemRepository;
 import com.example.java.orders.repository.OrdersRepository;
 import com.example.java.orders.repository.PaymentRepository;
+import com.example.java.delivery.entity.DeliveryCompany;
+import com.example.java.orders.entity.RefundReason;
+import com.example.java.orders.entity.ReturnRequest;
+import com.example.java.orders.entity.Returns;
+import com.example.java.orders.repository.RefundReasonRepository;
+import com.example.java.orders.repository.ReturnRequestRepository;
+import com.example.java.orders.repository.ReturnsRepository;
 import com.example.java.orders.repository.RefundRepository;
 import com.example.java.orders.event.OrderPaidEvent;
+import com.example.java.orders.event.OrderPaymentFailedEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.java.product.entity.Options;
@@ -25,6 +33,7 @@ import com.example.java.stockhistory.entity.StockHistory;
 import com.example.java.stockhistory.enums.StockHistorySourceType;
 import com.example.java.stockhistory.enums.StockHistoryType;
 import com.example.java.stockhistory.repository.StockHistoryRepository;
+import com.example.java.orders.repository.OrdersQueryRepository;
 
 import java.util.LinkedHashMap;
 
@@ -73,7 +82,12 @@ public class PaymentService {
     private final DeliveryService deliveryService;
     private final StockHistoryRepository stockHistoryRepository;
     private final ApplicationEventPublisher eventPublisher;
-
+    private final RefundReasonRepository refundReasonRepository;
+    private final ReturnRequestRepository returnRequestRepository;
+    private final ReturnsRepository returnsRepository;
+    private final com.example.java.common.util.SnowflakeIdGenerator snowflakeIdGenerator;
+    private final OrdersQueryRepository ordersQueryRepository;
+    
     @Value("${toss.secret-key}")
     private String tossSecretKey;
 
@@ -417,7 +431,15 @@ public class PaymentService {
             }
         }
 
-        int cancelAmount = calculateCancelAmount(cancelItems);
+        boolean allItemsCanceled = isAllItemsCanceled(allOrderItems, distinctOrderItemSeqSet);
+        
+        int cancelAmount = calculateOrderCancelAmount(
+                order,
+                allOrderItems,
+                cancelItems,
+                distinctOrderItemSeqSet,
+                allItemsCanceled
+        );
 
         if (cancelAmount <= 0) {
             throw new IllegalStateException("취소할 금액이 없습니다.");
@@ -489,7 +511,7 @@ public class PaymentService {
         order.setTotalRefundPrice(newTotalRefundPrice);
         order.setRemainPrice(newRemainPrice);
 
-        boolean allItemsCanceled = isAllItemsCanceled(allOrderItems, distinctOrderItemSeqSet);
+		
 
         if (allItemsCanceled) {
             /*
@@ -578,6 +600,21 @@ public class PaymentService {
                 .build();
 
         paymentRepository.save(payment);
+
+        /*
+            공구 주문이면 '결제 실패(취소)' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,
+            groupbuy 리스너가 이를 받아 결제대기 participation을 CANCELLED로 돌리고 점유를 반납한다.
+            (사용자가 토스 결제창에서 명시적으로 취소한 경우 — 자리를 즉시 반납해 매진 대기자에게 양보)
+            OrderPaidEvent(결제 완료)와 대칭. @EventListener 동기라 이 트랜잭션 안에서 함께 처리된다.
+         */
+        List<Long> participationSeqs = orderItemRepository.findByOrderSeq(order.getSeq()).stream()
+                .map(OrderItem::getParticipationSeq)
+                .filter(seq -> seq != null)
+                .toList();
+
+        if (!participationSeqs.isEmpty()) {
+            eventPublisher.publishEvent(new OrderPaymentFailedEvent(participationSeqs));
+        }
     }
 
     private void validateDeliveryReady(Long orderSeq) {
@@ -599,6 +636,51 @@ public class PaymentService {
         return cancelItems.stream()
                 .mapToInt(item -> nullToZero(item.getSubTotalPrice()) - nullToZero(item.getRefundPrice()))
                 .sum();
+    }
+    
+    /**
+     * 주문취소 환불금액 계산.
+     *
+     * 주문취소는 배송 시작 전 취소이므로,
+     * 취소 대상 택배사 묶음이 완전히 취소되는 경우 배송비도 환불한다.
+     *
+     * 반품은 이 메서드를 쓰면 안 된다.
+     * 반품은 배송 완료 후 환불이므로 배송비를 제외하고 calculateCancelAmount()만 사용한다.
+     */
+    private int calculateOrderCancelAmount(Orders order,
+                                           List<OrderItem> allOrderItems,
+                                           List<OrderItem> cancelItems,
+                                           Set<Long> currentCancelItemSeqSet,
+                                           boolean allItemsCanceled) {
+
+        /*
+            전체 주문취소라면 remainPrice 전액 환불.
+            remainPrice에는 실제 결제된 남은 금액이 들어 있으므로
+            배송비, 쿠폰 배분 오차, 이전 부분환불까지 가장 안전하게 반영된다.
+         */
+        if (allItemsCanceled) {
+            return getRemainPrice(order);
+        }
+
+        int productCancelAmount = calculateCancelAmount(cancelItems);
+
+        /*
+            멤버십 회원은 결제 시 배송비가 0원이므로
+            부분 주문취소에서도 배송비를 추가 환불하면 안 된다.
+         */
+        boolean usableMembership = ordersQueryRepository.existsUsableMembership(order.getMemberSeq());
+
+        if (usableMembership) {
+            return productCancelAmount;
+        }
+
+        int deliveryFeeRefundAmount = calculateCancelableDeliveryFee(
+                allOrderItems,
+                cancelItems,
+                currentCancelItemSeqSet
+        );
+
+        return productCancelAmount + deliveryFeeRefundAmount;
     }
 
     private Refund createRefundEntity(OrderItem item,
@@ -678,6 +760,11 @@ public class PaymentService {
 
 
     private void deleteOrderedCartItems(Orders order) {
+    	
+    	if ("DIRECT".equals(order.getField())) {
+            return;
+        }
+    	
         List<Long> orderedOptionsSeqList = orderItemRepository.findByOrderSeq(order.getSeq())
                 .stream()
                 .map(OrderItem::getOptionsSeq)
@@ -697,6 +784,15 @@ public class PaymentService {
     private JsonNode requestTossConfirm(String paymentKey,
                                         String orderId,
                                         Integer amount) {
+
+        if (paymentKey != null && paymentKey.startsWith("mock_")) {
+            log.info("[MOCK CONFIRM] Bypassing Toss API confirm for mock key: {}", paymentKey);
+            com.fasterxml.jackson.databind.node.ObjectNode mockNode = objectMapper.createObjectNode();
+            mockNode.put("status", "DONE");
+            mockNode.put("method", "계좌이체");
+            mockNode.put("approvedAt", java.time.OffsetDateTime.now().toString());
+            return mockNode;
+        }
 
         try {
             Map<String, Object> body = new HashMap<>();
@@ -753,6 +849,13 @@ public class PaymentService {
                                        String cancelReason,
                                        Integer cancelAmount) {
 
+        if (paymentKey != null && paymentKey.startsWith("mock_")) {
+            log.info("[MOCK CANCEL] Bypassing Toss API cancel for mock key: {}", paymentKey);
+            com.fasterxml.jackson.databind.node.ObjectNode mockNode = objectMapper.createObjectNode();
+            mockNode.put("status", "CANCELED");
+            return mockNode;
+        }
+
         try {
             Map<String, Object> body = new HashMap<>();
             body.put("cancelReason", cancelReason);
@@ -788,6 +891,7 @@ public class PaymentService {
                         errorMessage
                 );
             }
+
 
             return responseBody;
 
@@ -986,7 +1090,7 @@ public class PaymentService {
     }
 
     /**
-     * 선택한 주문상품들을 반품 요청 상태(7)로 변경한다.
+     * 선택한 주문상품들을 반품 요청 상태(7)로 변경하고 즉시 환불 처리 및 반품 배송 접수한다.
      */
     @Transactional
     public void requestReturnItems(Long orderSeq,
@@ -1021,6 +1125,7 @@ public class PaymentService {
             throw new IllegalArgumentException("선택한 상품 중 해당 주문에 포함되지 않은 상품이 있습니다.");
         }
 
+        // 1. 검증: 이미 취소되거나 반품 진행 중인 상품인지 확인
         for (OrderItem item : targetItems) {
             if (item.getItemStatus() != null) {
                 if (item.getItemStatus() == 6) {
@@ -1032,9 +1137,233 @@ public class PaymentService {
             }
         }
 
+        // 2. 백엔드 방어 로직: 해당 상품의 배송 상태가 실제로 완료(DELIVERED)인지 검증
+        List<Delivery> deliveries = deliveryRepository.findByOrders_Seq(order.getSeq());
         for (OrderItem item : targetItems) {
-            item.setItemStatus(7);
+            Options opt = optionsRepository.findById(item.getOptionsSeq())
+                    .orElseThrow(() -> new IllegalArgumentException("상품 옵션 정보를 찾을 수 없습니다."));
+            Seller sel = sellerRepository.findById(opt.getProduct().getSellerSeq())
+                    .orElseThrow(() -> new IllegalArgumentException("판매자 정보를 찾을 수 없습니다."));
+            DeliveryCompany company = sel.getDeliveryCompany();
+            if (company == null) {
+                throw new IllegalStateException("해당 상품의 배송 택배사 정보가 없습니다.");
+            }
+
+            // 판매자 택배사와 일치하는 배송 건 조회
+            List<Delivery> itemDeliveries = deliveries.stream()
+                    .filter(d -> d.getDeliveryCompany() != null && d.getDeliveryCompany().getSeq().equals(company.getSeq()))
+                    .toList();
+
+            if (itemDeliveries.isEmpty()) {
+                throw new IllegalStateException("배송 완료 후 반품 신청이 가능합니다. (배송 데이터 없음)");
+            }
+
+            boolean isDelivered = itemDeliveries.stream()
+                    .anyMatch(d -> "DELIVERED".equals(d.getStatus()));
+
+            if (!isDelivered) {
+                throw new IllegalStateException("배송이 완료된 상품만 반품 신청이 가능합니다.");
+            }
+        }
+
+        // 3. 결제완료 정보 및 Toss 결제 취소 가능 여부 조회
+        Payment payment = paymentRepository.findTopByOrderSeqAndStatusOrderBySeqDesc(order.getSeq(), 2)
+                .orElseThrow(() -> new IllegalStateException("결제완료 정보를 찾을 수 없습니다. orderSeq=" + order.getSeq()));
+
+        if (payment.getExternalPaymentId() == null || payment.getExternalPaymentId().isBlank()) {
+            throw new IllegalStateException("토스 paymentKey가 없어 결제를 취소할 수 없습니다.");
+        }
+
+        int cancelAmount = calculateCancelAmount(targetItems);
+        if (cancelAmount <= 0) {
+            throw new IllegalStateException("취소할 금액이 없습니다.");
+        }
+
+        int remainPrice = getRemainPrice(order);
+        if (cancelAmount > remainPrice) {
+            throw new IllegalStateException(
+                    "취소 금액이 남은 결제금액보다 큽니다. cancelAmount="
+                            + cancelAmount
+                            + ", remainPrice="
+                            + remainPrice
+            );
+        }
+
+        // 4. 토스 취소 API 호출 및 즉시 환불 처리
+        String cancelReason = reason != null && !reason.isBlank() ? reason : "고객 반품 신청";
+        requestTossCancel(payment.getExternalPaymentId(), cancelReason, cancelAmount);
+
+        // 5. 재고 복원 처리
+        increaseStockForOrderItems(targetItems, order.getSeq());
+
+        // 6. 환불 기록(Refund) 저장
+        LocalDateTime now = LocalDateTime.now();
+        List<Refund> refunds = targetItems.stream()
+                .map(item -> createRefundEntity(item, payment, now))
+                .toList();
+        refundRepository.saveAll(refunds);
+
+        // 7. 반품 사유(RefundReason) 조회 및 생성
+        RefundReason refundReason = refundReasonRepository.findByReason(cancelReason)
+                .orElseGet(() -> {
+                    RefundReason rr = RefundReason.builder()
+                            .reason(cancelReason)
+                            .build();
+                    return refundReasonRepository.save(rr);
+                });
+
+        // 8. 주문 상품 상태 수정 및 반품 신청서(ReturnRequest) & 반품 배송(Returns) 생성
+        for (OrderItem item : targetItems) {
+            item.setRefundQuantity(item.getQuantity());
+            item.setRefundPrice(item.getSubTotalPrice());
+            item.setItemStatus(7); // 7: 반품요청
+
+            // ReturnRequest 생성
+            String returnUid = "RET-REQ-" + snowflakeIdGenerator.nextId();
+            ReturnRequest rr = ReturnRequest.builder()
+                    .orderItemSeq(item.getSeq())
+                    .refundReason(refundReason)
+                    .returnUid(returnUid)
+                    .returnName(item.getProductName())
+                    .returnQuantity(item.getQuantity())
+                    .status(0) // 0: 반품신청
+                    .requestDate(now)
+                    .zipCode(order.getZipcode())
+                    .roadAddress(order.getAddress())
+                    .detailAddress(order.getAddressDetail())
+                    .build();
+            ReturnRequest savedRr = returnRequestRepository.save(rr);
+
+            // 해당 상품의 판매자 택배사 정보 획득
+            Options opt = optionsRepository.findById(item.getOptionsSeq()).orElse(null);
+            Seller sel = opt != null ? sellerRepository.findById(opt.getProduct().getSellerSeq()).orElse(null) : null;
+            DeliveryCompany company = sel != null ? sel.getDeliveryCompany() : null;
+
+            // Returns 생성 (반품 배송)
+            String trackingNumber = "RET-TRK-" + snowflakeIdGenerator.nextId();
+            Returns ret = Returns.builder()
+                    .returnRequest(savedRr)
+                    .deliveryCompany(company)
+                    .status("RETURNING") // 반품 배송 중
+                    .trackingNumber(trackingNumber)
+                    .build();
+            returnsRepository.save(ret);
         }
         orderItemRepository.saveAll(targetItems);
+
+        // 9. 주문(Orders) 및 결제(Payment) 잔액 및 상태 업데이트
+        int newTotalRefundPrice = nullToZero(order.getTotalRefundPrice()) + cancelAmount;
+        int newRemainPrice = nullToZero(order.getFinalPrice()) - newTotalRefundPrice;
+        if (newRemainPrice < 0) {
+            newRemainPrice = 0;
+        }
+
+        order.setTotalRefundPrice(newTotalRefundPrice);
+        order.setRemainPrice(newRemainPrice);
+
+        boolean allCanceledOrReturned = allOrderItems.stream()
+                .allMatch(item -> {
+                    if (targetSeqs.contains(item.getSeq())) {
+                        return true;
+                    }
+                    return item.getItemStatus() != null && (item.getItemStatus() == 6 || item.getItemStatus() == 7 || item.getItemStatus() == 8 || item.getItemStatus() == 9);
+                });
+
+        if (allCanceledOrReturned) {
+            order.setOrderStatus(8); // 전체환불
+            order.setPaymentStatus(5); // 전체환불
+            payment.setStatus(4); // 환불완료
+            payment.setFailReason(cancelReason);
+            restoreCouponIfExists(order);
+        } else {
+            order.setOrderStatus(7); // 부분환불
+            order.setPaymentStatus(4); // 부분환불
+        }
+
+        payment.setUpdateDate(now);
+        ordersRepository.save(order);
+        paymentRepository.save(payment);
+    }
+    
+    /**
+     * 선택 취소된 상품들이 속한 택배사 묶음 중,
+     * 해당 택배사의 남은 상품이 모두 취소되는 경우에만 배송비를 환불한다.
+     *
+     * 예)
+     * - CJ대한통운 상품 2개 중 2개 모두 취소 → CJ 배송비 환불
+     * - CJ대한통운 상품 2개 중 1개만 취소 → CJ 배송비 환불 안 함
+     *
+     * 현재 화면 정책상 주문취소는 같은 택배사 상품을 한 번에 묶어서 취소하므로
+     * 보통 선택한 택배사 배송비가 함께 환불된다.
+     */
+    private int calculateCancelableDeliveryFee(List<OrderItem> allOrderItems,
+                                               List<OrderItem> cancelItems,
+                                               Set<Long> currentCancelItemSeqSet) {
+
+        Map<Long, DeliveryCompany> selectedCompanyMap = new LinkedHashMap<>();
+
+        for (OrderItem item : cancelItems) {
+            DeliveryCompany company = getDeliveryCompanyByOrderItem(item);
+
+            if (company != null && company.getSeq() != null) {
+                selectedCompanyMap.put(company.getSeq(), company);
+            }
+        }
+
+        int deliveryFeeRefundAmount = 0;
+
+        for (Map.Entry<Long, DeliveryCompany> entry : selectedCompanyMap.entrySet()) {
+            Long companySeq = entry.getKey();
+            DeliveryCompany company = entry.getValue();
+
+            boolean allRemainingItemsOfCompanyCanceled = allOrderItems.stream()
+                    .filter(item -> !isAlreadyCanceledOrReturned(item))
+                    .filter(item -> {
+                        DeliveryCompany itemCompany = getDeliveryCompanyByOrderItem(item);
+                        return itemCompany != null
+                                && itemCompany.getSeq() != null
+                                && itemCompany.getSeq().equals(companySeq);
+                    })
+                    .allMatch(item -> currentCancelItemSeqSet.contains(item.getSeq()));
+
+            if (allRemainingItemsOfCompanyCanceled) {
+                deliveryFeeRefundAmount += nullToZero(company.getBase_delivery_fee());
+            }
+        }
+
+        return deliveryFeeRefundAmount;
+    }
+    
+    private DeliveryCompany getDeliveryCompanyByOrderItem(OrderItem item) {
+        if (item == null || item.getOptionsSeq() == null) {
+            return null;
+        }
+
+        Options options = optionsRepository.findById(item.getOptionsSeq())
+                .orElse(null);
+
+        if (options == null || options.getProduct() == null || options.getProduct().getSellerSeq() == null) {
+            return null;
+        }
+
+        Seller seller = sellerRepository.findById(options.getProduct().getSellerSeq())
+                .orElse(null);
+
+        if (seller == null) {
+            return null;
+        }
+
+        return seller.getDeliveryCompany();
+    }
+    
+    private boolean isAlreadyCanceledOrReturned(OrderItem item) {
+        if (item == null || item.getItemStatus() == null) {
+            return false;
+        }
+
+        return item.getItemStatus() == 6
+                || item.getItemStatus() == 7
+                || item.getItemStatus() == 8
+                || item.getItemStatus() == 9;
     }
 }

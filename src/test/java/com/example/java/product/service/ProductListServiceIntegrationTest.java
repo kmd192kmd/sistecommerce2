@@ -194,4 +194,17 @@ class ProductListServiceIntegrationTest {
         System.out.println("평균 소요 시간: " + String.format("%.4f", averageTimeMs) + " ms");
         System.out.println("==========================================\n");
     }
+
+    @Test
+    void 키워드_검색_통합_테스트() {
+        // 일반 키워드 검색 검증
+        org.springframework.data.domain.Page<ProductDto> resultNormal = 
+            productListService.getProductList(null, "노트북", "popularity", 0);
+        assertNotNull(resultNormal);
+
+        // 초성 키워드 검색 검증
+        org.springframework.data.domain.Page<ProductDto> resultChosung = 
+            productListService.getProductList(null, "ㄴㅌㅂ", "popularity", 0);
+        assertNotNull(resultChosung);
+    }
 }

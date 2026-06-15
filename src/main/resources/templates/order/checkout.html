@@ -522,6 +522,20 @@
                     <th:block th:each="cartSeq : ${selectedCartSeqList}">
                         <input type="hidden" name="cartSeq" th:value="${cartSeq}">
                     </th:block>
+					
+					<input type="hidden"
+					       name="directBuy"
+					       th:value="${directBuy}">
+
+					<input type="hidden"
+					       name="optionsSeq"
+					       th:if="${directBuy}"
+					       th:value="${directOptionsSeq}">
+
+					<input type="hidden"
+					       name="quantity"
+					       th:if="${directBuy}"
+					       th:value="${directQuantity}">
 
                     <input type="hidden" id="baseProductTotalPrice" th:value="${priceSummary.productTotalPrice}">
                     <input type="hidden" id="baseDeliveryFee" th:value="${priceSummary.deliveryFee}">

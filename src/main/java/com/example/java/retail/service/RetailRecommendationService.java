@@ -3,7 +3,7 @@ package com.example.java.retail.service;
 import com.example.java.cart.entity.CartLog;
 import com.example.java.cart.repository.CartLogRepository;
 import com.example.java.product.dto.ProductDto;
-import com.example.java.product.repository.ProductRepository;
+import com.example.java.product.repository.ProductDetailRepository;
 import com.google.cloud.retail.v2.PredictRequest;
 import com.google.cloud.retail.v2.PredictResponse;
 import com.google.cloud.retail.v2.PredictionServiceClient;
@@ -26,7 +26,7 @@ public class RetailRecommendationService {
 
     private final PredictionServiceClient predictionServiceClient;
     private final CartLogRepository cartLogRepository;
-    private final ProductRepository productRepository;
+    private final ProductDetailRepository productDetailRepository;
 
     @Value("${google.cloud.project-id}")
     private String projectId;
@@ -49,7 +49,7 @@ public class RetailRecommendationService {
     public List<ProductDto> recommendProducts(Long memberSeq) {
         if (memberSeq == null) {
             log.info("로그인하지 않은 사용자이므로 기본 추천(최신 상품)을 제공합니다.");
-            return productRepository.findProductsByPaging(0, 4);
+            return productDetailRepository.findProductsByPaging(0, 4);
         }
 
         // 1. 사용자의 최근 장바구니/구매 로그 조회 (최대 10건)
@@ -57,7 +57,7 @@ public class RetailRecommendationService {
         
         if (recentLogs.isEmpty()) {
             log.info("사용자 {}의 최근 활동 로그가 없어 기본 추천(최신 상품)을 제공합니다.", memberSeq);
-            return productRepository.findProductsByPaging(0, 4);
+            return productDetailRepository.findProductsByPaging(0, 4);
         }
 
         // 2. UserEvent 구성 (Retail AI에 전달할 사용자의 현재 Context)
@@ -99,7 +99,7 @@ public class RetailRecommendationService {
                 String recommendedProductId = result.getId();
                 try {
                     Long prodSeq = Long.parseLong(recommendedProductId);
-                    Optional<ProductDto> productOpt = productRepository.findProductDetail(prodSeq);
+                    Optional<ProductDto> productOpt = productDetailRepository.findProductDetail(prodSeq);
                     productOpt.ifPresent(recommendedProducts::add);
                 } catch (NumberFormatException e) {
                     log.warn("Retail AI로부터 받은 잘못된 상품 ID 포맷: {}", recommendedProductId);
@@ -112,7 +112,7 @@ public class RetailRecommendationService {
         // 5. 추천된 상품이 없거나 API 실패 시 기본 추천 상품(최신 상품 4개) 제공
         if (recommendedProducts.isEmpty()) {
             log.info("API 추천 결과가 없어 기본 추천(최신 상품)을 제공합니다.");
-            return productRepository.findProductsByPaging(0, 4);
+            return productDetailRepository.findProductsByPaging(0, 4);
         }
 
         log.info("✨ Google Cloud Retail API 맞춤 추천 성공! (조회된 상품 수: {})", recommendedProducts.size());
