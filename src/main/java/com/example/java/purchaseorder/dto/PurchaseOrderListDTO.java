@@ -16,8 +16,8 @@ public class PurchaseOrderListDTO {
 	private Long seq;
     private PurchaseOrderStatus status;
     
-    // TODO seller 엔티티 생기면 추가
-//    private String sellerName;
+    // 판매처 정보 추가 (엔티티 변경 없이 Service에서 주입)
+    private String sellerName;
     private String productName;
     private String optionsName;
     
@@ -28,13 +28,14 @@ public class PurchaseOrderListDTO {
     private LocalDate expectedDate;
     private LocalDate receivedDate;
 
-    public static PurchaseOrderListDTO from(PurchaseOrder entity) {
+    public static PurchaseOrderListDTO from(PurchaseOrder entity, String sellerName) {
 
         Options options = entity.getOptions();
 
         return PurchaseOrderListDTO.builder()
                 .seq(entity.getSeq())
                 .status(entity.getStatus())
+                .sellerName(sellerName)
                 .productName(options.getProduct().getProductName())
                 .optionsName(options.getDisplayName())
                 .quantity(entity.getQuantity())

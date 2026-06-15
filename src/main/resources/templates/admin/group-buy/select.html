@@ -26,10 +26,15 @@
 
 </head>
 
-<body class="bg-body text-main">
-
-<div class="p-6 space-y-6">
-
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+        
     <h4 class="text-title mb-4">공동구매 상품 선택</h4>
 
     <!-- ================= 상품 테이블 ================= -->
@@ -113,8 +118,11 @@
 
         </form>
     </div>
+    </main>
+  </div>
 </div>
 
+<script src="/admin/admin-common.js"></script>
 <script>
     let currentPage = /*[[${page}]]*/ 0;
 

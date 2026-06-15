@@ -406,6 +406,14 @@
 	    alert만 표시합니다.
 	*/
 	function buyNow() {
+
+	    console.log('바로구매 클릭');
+
+	    if (currentMemberSeq === null) {
+	        alert('로그인이 필요합니다.');
+	        return;
+	    }
+
 	    if (isBlockedProduct()) {
 	        alert('구매할 수 없는 상품입니다.');
 	        return;
@@ -413,6 +421,9 @@
 
 	    const optionsSeq = document.getElementById('optionsSeq').value;
 	    const quantity = document.getElementById('quantity').value;
+
+	    console.log('optionsSeq=', optionsSeq);
+	    console.log('quantity=', quantity);
 
 	    if (!optionsSeq) {
 	        alert('옵션을 선택해주세요.');
@@ -429,7 +440,7 @@
 	    const stock = Number(optionEl.dataset.stock || 0);
 
 	    if (stock <= 0) {
-	        alert('재고가 없는 상품입니다.');
+	        alert('재고가 없습니다.');
 	        return;
 	    }
 
@@ -439,9 +450,7 @@
 	    }
 
 	    location.href =
-	        `/order/checkout?directBuy=true`
-	        + `&optionsSeq=${encodeURIComponent(optionsSeq)}`
-	        + `&quantity=${encodeURIComponent(quantity)}`;
+	        `/order/checkout/direct?optionsSeq=${optionsSeq}&quantity=${quantity}`;
 	}
 	
     /*

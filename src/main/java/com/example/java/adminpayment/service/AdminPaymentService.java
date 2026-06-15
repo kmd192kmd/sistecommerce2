@@ -10,7 +10,6 @@ import com.example.java.adminpayment.entity.AdminPayment;
 import com.example.java.adminpayment.enums.PaymentType;
 import com.example.java.adminpayment.repository.AdminPaymentRepository;
 import com.example.java.purchaseorder.entity.PurchaseOrder;
-import com.example.java.product.entity.Product;
 import com.example.java.product.entity.Seller;
 import com.example.java.product.repository.SellerRepository;
 
@@ -27,6 +26,8 @@ public class AdminPaymentService {
 	@Transactional
 	public void createPurchasePayment(PurchaseOrder order) {
 
+	    // CHECK 제약: purchase_order_seq와 seller_seq 중 하나만 들어가야 함
+	    // 발주 대금은 purchase_order_seq만 저장, seller_seq는 NULL
 	    AdminPayment payment = AdminPayment.builder()
 	            .type(PaymentType.발주)
 	            .status(0)
@@ -41,8 +42,21 @@ public class AdminPaymentService {
             .stream()
             .map(payment -> {
                 PurchaseOrder po = payment.getPurchaseOrder();
-                String sellerName = "-";
-                String sellerAccount = "-";
+
+                // CHECK 제약 구조:
+                // - 발주 대금: purchase_order_seq 있음, seller_seq NULL → po에서 seller 조회
+                // - 월배송비 대금: seller_seq 있음, purchase_order_seq NULL → 엔티티에서 직접 접근
+                Seller seller = payment.getSeller();
+                if (seller == null && po != null
+                        && po.getOptions() != null
+                        && po.getOptions().getProduct() != null) {
+                    seller = sellerRepository
+                            .findById(po.getOptions().getProduct().getSellerSeq())
+                            .orElse(null);
+                }
+
+                String sellerName = seller != null ? seller.getName() : "-";
+                String sellerAccount = seller != null ? seller.getAccountNumber() : "-";
                 String productName = "-";
                 Integer quantity = 0;
                 Long supplyPrice = 0L;
@@ -56,14 +70,7 @@ public class AdminPaymentService {
                     totalPrice = po.getTotalPrice();
 
                     if (po.getOptions() != null && po.getOptions().getProduct() != null) {
-                        Product product = po.getOptions().getProduct();
-                        productName = product.getProductName();
-                        
-                        Seller seller = sellerRepository.findById(product.getSellerSeq()).orElse(null);
-                        if (seller != null) {
-                            sellerName = seller.getName();
-                            sellerAccount = seller.getAccountNumber();
-                        }
+                        productName = po.getOptions().getProduct().getProductName();
                     }
                 }
 

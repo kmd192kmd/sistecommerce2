@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Admin {
+public class Admin implements java.io.Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "admin_seq")
