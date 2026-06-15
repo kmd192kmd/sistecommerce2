@@ -1158,11 +1158,17 @@ public class PaymentService {
                 throw new IllegalStateException("배송 완료 후 반품 신청이 가능합니다. (배송 데이터 없음)");
             }
 
-            boolean isDelivered = itemDeliveries.stream()
-                    .anyMatch(d -> "DELIVERED".equals(d.getStatus()));
+            Delivery deliveredDetail = itemDeliveries.stream()
+                    .filter(d -> "DELIVERED".equals(d.getStatus()))
+                    .findFirst()
+                    .orElse(null);
 
-            if (!isDelivered) {
+            if (deliveredDetail == null) {
                 throw new IllegalStateException("배송이 완료된 상품만 반품 신청이 가능합니다.");
+            }
+
+            if (deliveredDetail.getCompleted_at() != null && deliveredDetail.getCompleted_at().isBefore(LocalDateTime.now().minusDays(7))) {
+                throw new IllegalStateException("배송 완료 후 7일이 지난 상품은 반품 신청이 불가능합니다.");
             }
         }
 

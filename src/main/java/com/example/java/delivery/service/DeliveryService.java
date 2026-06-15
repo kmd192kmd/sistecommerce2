@@ -175,7 +175,8 @@ public class DeliveryService {
         double distMidToDest = kakaoMapService.getDrivingDistanceMeters(optimalMidHub.getLatitude(), optimalMidHub.getLongitude(), order.getCurrLatitude(), order.getCurrLongitude());
         double totalDistance = distHQToMid + distMidToDest;
 
-        int distanceSurcharge = calculateDistanceSurcharge(totalDistance);
+        // int distanceSurcharge = calculateDistanceSurcharge(totalDistance);
+        int distanceSurcharge = 0;
         LocalDateTime dispatchAt = paymentDateToDispatchAt(LocalDateTime.now());
         double hours = (distHQToMid / 60000.0) + (distMidToDest / 40000.0);
         LocalDateTime estimatedDate = dispatchAt.plusHours((int) Math.ceil(hours));
