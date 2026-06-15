@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -117,8 +117,9 @@
               </thead>
               <tbody id="couponTableBody">
 
-                <!-- Thymeleaf: th:each="coupon : ${coupons}" -->
-                <tr th:each="coupon, stat : ${coupons}" class="coupon-row border-b border-gray-700/50 hover:bg-black/10 transition-colors"
+                <tr th:each="coupon, stat : ${coupons}" 
+                    class="coupon-row border-b border-gray-700/50 hover:bg-black/10 transition-colors"
+                    th:classappend="${stat.index >= 10} ? 'hidden' : ''"
                     th:data-status="${coupon.status == 0 ? 'pending' : 'issued'}">
                   <td class="px-6 py-4 text-value font-medium" th:text="${coupon.seq}"></td>
                   <td class="px-6 py-4 text-value font-bold" th:text="${coupon.name}"></td>
@@ -147,6 +148,11 @@
 
               </tbody>
             </table>
+          </div>
+          <div class="p-4 text-center border-t border-gray-700/50" th:if="${coupons.size() > 10}">
+            <button type="button" id="loadMoreCouponBtn" class="btn btn-outline text-sm px-6 py-2">
+              더보기 (10개씩)
+            </button>
           </div>
         </div>
 
@@ -242,6 +248,21 @@
       fetch(`/admin/api/coupons/${id}`, { method: 'DELETE' })
         .then(res => res.ok ? location.reload() : alert('삭제에 실패했습니다.'))
         .catch(() => alert('오류가 발생했습니다.'));
+    }
+
+    // ── 1.5. 더보기 로직 ──
+    let couponVisibleCount = 10;
+    const loadMoreCouponBtn = document.getElementById('loadMoreCouponBtn');
+    if (loadMoreCouponBtn) {
+        loadMoreCouponBtn.addEventListener('click', () => {
+            const hiddenRows = document.querySelectorAll('.coupon-row.hidden');
+            for (let i = 0; i < 10 && i < hiddenRows.length; i++) {
+                hiddenRows[i].classList.remove('hidden');
+            }
+            if (document.querySelectorAll('.coupon-row.hidden').length === 0) {
+                loadMoreCouponBtn.style.display = 'none';
+            }
+        });
     }
 
     // ── 2. 발급 대상 라디오 버튼 토글 로직 ──

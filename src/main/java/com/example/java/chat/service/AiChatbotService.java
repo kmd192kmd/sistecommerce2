@@ -1,64 +1,120 @@
 package com.example.java.chat.service;
 
-import com.example.java.chat.dto.response.ChatMessageResponse;
-import com.example.java.chat.enums.SenderType;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import com.example.java.delivery.entity.Delivery;
+import com.example.java.delivery.repository.DeliveryRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Slf4j
+@org.springframework.context.annotation.PropertySource("classpath:application-secret.yml")
 public class AiChatbotService {
 
-    private final ChatService chatService;
-    // 특정 구독자(채팅방)에게 메시지를 쏴주는 스프링 내장 객체
-    private final SimpMessagingTemplate messagingTemplate;
+    private final DeliveryRepository deliveryRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * 사용자의 메시지를 받아 백그라운드에서 AI API를 호출하고 답변을 전송합니다.
-     */
-    @Async // 이 메서드는 기존 흐름을 방해하지 않고 별도의 스레드에서 백그라운드로 실행됩니다.
-    public void processUserMessageAndRespond(Long roomId, String userMessage) {
-        try {
-            log.info("[방 번호: {}] AI가 답변을 생성 중입니다... (사용자 메시지: {})", roomId, userMessage);
-            
-            // 1. AI API 호출 대기 시간 시뮬레이션 (1.5초 대기)
-            // 실제 연동 시에는 이 부분을 진짜 API 호출 로직으로 바꿉니다.
-            Thread.sleep(1500); 
+    // 🚨 환경변수 'OPENAI_API_KEY'를 최우선으로 읽고, 
+    // 없으면 application-secret.yml의 값을 읽도록 설정합니다.
+    @Value("${openai.api.key}")
+    private String apiKey;
 
-            // 2. AI 응답 생성
-            String aiResponse = generateAiResponse(userMessage);
+    @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}")
+    private String apiUrl;
 
-            // 3. AI의 답변을 DB에 저장 (AI는 특정 회원이 아니므로 senderId는 null로 처리)
-            ChatMessageResponse savedAiMessage = chatService.saveMessage(
-                    roomId,
-                    null, 
-                    aiResponse,
-                    SenderType.AI
-            );
-
-            // 4. DB 저장이 완료되면 해당 채팅방(/topic/chat/{roomId})에 들어와 있는 사람의 화면에 AI 메시지를 쏴줍니다.
-            messagingTemplate.convertAndSend("/topic/chat/" + roomId, savedAiMessage);
-            log.info("[방 번호: {}] AI 답변 전송 완료", roomId);
-
-        } catch (Exception e) {
-            log.error("AI 응답 처리 중 오류 발생", e);
+    @Value("${openai.api.model:gpt-4o-mini}")
+    private String apiModel;
+    
+    @PostConstruct
+    public void checkKey() {
+        if (apiKey == null || apiKey.isEmpty()) {
+            log.error("❌ API 키가 설정되지 않았습니다. 환경변수 OPENAI_API_KEY를 설정하세요.");
+        } else {
+            log.info("✅ API 키 로드 성공 (키 길이: {})", apiKey.trim().length());
         }
     }
 
-    /**
-     * 임시 AI 응답 생성기 (TODO: 차후 실제 LLM API 연동)
-     */
-    private String generateAiResponse(String message) {
-        if (message.contains("배송")) {
-            return "배송은 영업일 기준 2~3일 정도 소요됩니다. 🚚 추가로 궁금한 점이 있으신가요?";
-        } else if (message.contains("환불") || message.contains("취소")) {
-            return "취소 및 환불은 '마이페이지 > 주문내역'에서 신청하실 수 있습니다. 💳";
-        } else {
-            return "안녕하세요! 쇼핑몰 AI 챗봇입니다. 봇이 처리할 수 없는 복잡한 문의라면 메뉴에서 '상담원 연결'을 선택해 주세요. 🤖";
+    @Transactional(readOnly = true)
+    public String processUserMessageAndRespond(Long roomSeq, Long memberSeq, String message) {
+        log.info("채팅 메시지 처리 시작(OpenAI) - 방번호: {}, 발신자: {}, 내용: {}", roomSeq, memberSeq, message);
+        
+        StringBuilder systemPrompt = new StringBuilder("당신은 쇼핑몰의 전문적이고 친절한 CS 상담 AI 어시스턴트입니다. ");
+        
+        if (message != null && message.contains("배송")) {
+            List<Delivery> deliveries = deliveryRepository.findTop1ByOrders_MemberSeqOrderByDispatchAtDesc(memberSeq, PageRequest.of(0, 1));
+            
+            if (deliveries != null && !deliveries.isEmpty()) {
+                Delivery latestDelivery = deliveries.get(0);
+                String deliveryInfo = String.format(
+                    "최근 배송 상태: %s, 택배사: %s, 운송장번호: %s, 발송일시: %s, 예상배송일: %s",
+                    latestDelivery.getStatus(),
+                    latestDelivery.getDeliveryCompany() != null ? latestDelivery.getDeliveryCompany().getName() : "정보 없음",
+                    latestDelivery.getTrackingNumber() != null ? latestDelivery.getTrackingNumber() : "미발급",
+                    latestDelivery.getDispatch_at(),
+                    latestDelivery.getEstimated_date()
+                );
+                systemPrompt.append("\n[참고 데이터] ").append(deliveryInfo);
+            }
+        }
+
+        try {
+            return callOpenAiApi(systemPrompt.toString(), message);
+        } catch (Exception e) {
+            log.error("OpenAI 연동 오류 발생: ", e);
+            return "죄송합니다. 현재 AI 서버 연결에 문제가 발생했습니다.";
+        }
+    }
+
+    private String callOpenAiApi(String systemPrompt, String userMessage) {
+        if (apiKey == null || apiKey.isEmpty()) throw new RuntimeException("API 키가 설정되지 않았습니다.");
+        log.info("🔥 [보안 테스트] 전송 전 API 키 전체 길이: {}, 키 앞 10자리: {}", 
+                apiKey.trim().length(), apiKey.trim().substring(0, 10));
+        log.info("🚀 최종 인증 헤더값 확인: Bearer " + apiKey.trim());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        // 환경변수에서 가져온 키를 안전하게 trim()하여 사용
+        headers.set("Authorization", "Bearer " + apiKey.trim());
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", apiModel);
+        
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        messages.add(Map.of("role", "user", "content", userMessage));
+        requestBody.put("messages", messages);
+
+        try {
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            HttpEntity<String> entity = new HttpEntity<>(jsonRequest, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+            
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.path("choices").get(0).path("message").path("content").asText();
+
+        } catch (Exception e) {
+            log.error("OpenAI API 호출 실패: {}", e.getMessage());
+            throw new RuntimeException("OpenAI API 통신 오류", e);
         }
     }
 }
