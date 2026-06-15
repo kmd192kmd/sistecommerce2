@@ -96,4 +96,8 @@ public class Delivery {
                        .delayHours(this.delayHours)
                        .build();
     }
+    
+    public String getTrackingNumber() {
+        return this.tracking_number;
+    }
 }
