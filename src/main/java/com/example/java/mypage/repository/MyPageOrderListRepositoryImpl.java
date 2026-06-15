@@ -43,6 +43,11 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
 
     @Override
     public List<MyPageOrderListDto> findOrdersByMemberSeq(Long memberSeq, String keyword, String period) {
+        return findOrdersByMemberSeq(memberSeq, keyword, period, 0L, Integer.MAX_VALUE);
+    }
+
+    @Override
+    public List<MyPageOrderListDto> findOrdersByMemberSeq(Long memberSeq, String keyword, String period, long offset, int size) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(orders.memberSeq.eq(memberSeq));
 
@@ -65,7 +70,7 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
             }
         }
 
-        List<Long> matchedOrderSeqs = queryFactory
+        var query = queryFactory
                 .select(orders.seq)
                 .distinct()
                 .from(orders)
@@ -73,8 +78,13 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
                 .join(options).on(orderItem.optionsSeq.eq(options.seq))
                 .join(product).on(options.product.seq.eq(product.seq))
                 .where(builder)
-                .orderBy(orders.seq.desc())
-                .fetch();
+                .orderBy(orders.seq.desc());
+
+        if (size != Integer.MAX_VALUE) {
+            query.offset(offset).limit(size);
+        }
+
+        List<Long> matchedOrderSeqs = query.fetch();
 
         if (matchedOrderSeqs.isEmpty()) {
             return new ArrayList<>();
@@ -305,8 +315,13 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
 
     @Override
     public List<MyPageCancelReturnDto> findCancelReturnsByMemberSeq(Long memberSeq) {
+        return findCancelReturnsByMemberSeq(memberSeq, 0L, Integer.MAX_VALUE);
+    }
+
+    @Override
+    public List<MyPageCancelReturnDto> findCancelReturnsByMemberSeq(Long memberSeq, long offset, int size) {
         // 1. 취소/반품 상태인 OrderItem & Orders & Product 조회 (itemStatus: 6, 7, 8, 9)
-        List<Tuple> rows = queryFactory
+        var query = queryFactory
                 .select(
                         orderItem,
                         orders,
@@ -320,8 +335,13 @@ public class MyPageOrderListRepositoryImpl implements MyPageOrderListRepository 
                 .join(seller).on(product.sellerSeq.eq(seller.seq))
                 .where(orders.memberSeq.eq(memberSeq)
                         .and(orderItem.itemStatus.in(6, 7, 8, 9)))
-                .orderBy(orderItem.seq.desc())
-                .fetch();
+                .orderBy(orderItem.seq.desc());
+
+        if (size != Integer.MAX_VALUE) {
+            query.offset(offset).limit(size);
+        }
+
+        List<Tuple> rows = query.fetch();
 
         if (rows.isEmpty()) {
             return new ArrayList<>();
