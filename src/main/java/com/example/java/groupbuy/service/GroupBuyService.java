@@ -675,8 +675,17 @@ public class GroupBuyService {
     @Transactional(readOnly = true)
     public List<GroupBuySummaryResponse> getSummaries() {
         LocalDateTime now = LocalDateTime.now();
-        return groupBuyRepository.findAll().stream()
-                .map(g -> toSummary(g, now))
+        return groupBuyRepository.findByStatusOrderByEndAtAsc(GroupBuyStatus.ONGOING).stream()
+                .map(g -> toSummary(g, now, false))
+                .toList();
+    }
+
+    /** 공구 예정 목록 응답 (회원용) — SCHEDULED만, 시작 임박순. 남은시간은 '시작까지' 기준. */
+    @Transactional(readOnly = true)
+    public List<GroupBuySummaryResponse> getScheduledSummaries() {
+        LocalDateTime now = LocalDateTime.now();
+        return groupBuyRepository.findByStatusOrderByStartAtAsc(GroupBuyStatus.SCHEDULED).stream()
+                .map(g -> toSummary(g, now, true))
                 .toList();
     }
 
@@ -714,8 +723,9 @@ public class GroupBuyService {
                 .build();
     }
 
-    private GroupBuySummaryResponse toSummary(GroupBuy g, LocalDateTime now) {
-        long remain = remainSeconds(g.getEndAt(), now);
+    private GroupBuySummaryResponse toSummary(GroupBuy g, LocalDateTime now, boolean scheduled) {
+        // 예정(SCHEDULED)은 '시작까지', 진행중은 '마감까지' 남은시간을 보여준다.
+        long remain = remainSeconds(scheduled ? g.getStartAt() : g.getEndAt(), now);
         int currentCount = countParticipating(g.getSeq());
         return GroupBuySummaryResponse.builder()
                 .seq(g.getSeq())
