@@ -44,7 +44,7 @@ public class Delivery {
     private String recipient_phone;
     
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // READY, SHIPPING, DELIVERED, FAILED, DELAYED
+    private String status; // READY, SHIPPING, DELIVERED, FAILED, DELAYED, CANCELED
     
     @Column(name = "request_memo", length = 255)
     private String request_memo;

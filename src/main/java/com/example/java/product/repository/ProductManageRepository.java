@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductManageRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
 
     /*
@@ -99,6 +100,118 @@ public class ProductManageRepository {
                 searchType,
                 keyword
         );
+
+        params.addValue("offset", offset);
+        params.addValue("size", size);
+
+        String sql = """
+                SELECT
+                    pr.seq AS product_request_seq,
+                    pr.product_seq,
+                    pr.seller_seq,
+                    pr.admin_seq,
+                    pr.request_type,
+                    pr.request_status,
+                    pr.reject_reason,
+                    pr.request_date,
+                    pr.process_date,
+
+                    p.product_name,
+                    p.price,
+                    p.thumbnail_url,
+                    p.approval_status,
+                    p.sale_status,
+
+                    p.sales_count,
+                    p.avg_rating,
+
+                    s.name AS seller_name,
+                    s.email AS seller_email,
+                    s.phone AS seller_phone
+                FROM product_request pr
+                JOIN product p
+                  ON pr.product_seq = p.seq
+                JOIN seller s
+                  ON pr.seller_seq = s.seq
+                """ + whereSql + makeOrderBySql(sortType) + """
+                OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY
+                """;
+
+        return jdbcTemplate.query(sql, params, this::mapProductManageDto);
+    }
+
+
+    /*
+        판매처 상품 관리 화면의 검색 결과 개수를 조회합니다.
+
+        기존 countProductRequests()는 관리자 화면에서 전체 상품 요청을 조회할 때 사용합니다.
+        이 메서드는 판매처 화면에서 현재 로그인한 판매처의 상품 요청만 조회합니다.
+    */
+    public int countSellerProductRequests(Long sellerSeq,
+                                          String approvalStatus,
+                                          String startDate,
+                                          String endDate,
+                                          String searchType,
+                                          String keyword) {
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("sellerSeq", sellerSeq);
+
+        String whereSql = makeWhereSql(
+                params,
+                approvalStatus,
+                startDate,
+                endDate,
+                searchType,
+                keyword
+        );
+
+        whereSql += " AND pr.seller_seq = :sellerSeq ";
+
+        String sql = """
+                SELECT COUNT(*)
+                FROM product_request pr
+                JOIN product p
+                  ON pr.product_seq = p.seq
+                JOIN seller s
+                  ON pr.seller_seq = s.seq
+                """ + whereSql;
+
+        Integer count = jdbcTemplate.queryForObject(sql, params, Integer.class);
+
+        return count == null ? 0 : count;
+    }
+
+
+    /*
+        판매처 상품 관리 화면에 출력할 상품 요청 목록을 조회합니다.
+
+        기존 findProductRequests()는 관리자 화면에서 전체 상품 요청을 조회할 때 사용합니다.
+        이 메서드는 판매처 화면에서 현재 로그인한 판매처의 상품 요청만 조회합니다.
+    */
+    public List<ProductManageDto> findSellerProductRequests(Long sellerSeq,
+                                                            String approvalStatus,
+                                                            String startDate,
+                                                            String endDate,
+                                                            String searchType,
+                                                            String keyword,
+                                                            String sortType,
+                                                            int offset,
+                                                            int size) {
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("sellerSeq", sellerSeq);
+
+        String whereSql = makeWhereSql(
+                params,
+                approvalStatus,
+                startDate,
+                endDate,
+                searchType,
+                keyword
+        );
+
+        whereSql += " AND pr.seller_seq = :sellerSeq ";
 
         params.addValue("offset", offset);
         params.addValue("size", size);
@@ -321,6 +434,48 @@ public class ProductManageRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("productSeqs", productSeqs);
 
-        return jdbcTemplate.update(sql, params);
+        int result = jdbcTemplate.update(sql, params);
+        if (result > 0 && productSeqs != null) {
+            for (Long seq : productSeqs) {
+                eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(seq));
+            }
+        }
+        return result;
+    }
+
+
+    /*
+        판매처 상품 관리 화면에서 선택한 상품들을 삭제 처리합니다.
+
+        실제 DELETE가 아니라 product.status를 DELETED로 바꾸고,
+        hide_yn을 Y로 바꾸는 소프트 삭제 방식입니다.
+
+        sellerSeq 조건을 추가해서
+        현재 로그인한 판매처의 상품만 삭제할 수 있게 합니다.
+    */
+    public int deleteSellerProducts(Long sellerSeq, List<Long> productSeqs) {
+
+        String sql = """
+                UPDATE product
+                SET status = 'DELETED',
+                    hide_yn = 'Y',
+                    updated_date = SYSDATE
+                WHERE seq IN (:productSeqs)
+                  AND seller_seq = :sellerSeq
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("productSeqs", productSeqs)
+                .addValue("sellerSeq", sellerSeq);
+
+        int result = jdbcTemplate.update(sql, params);
+
+        if (result > 0 && productSeqs != null) {
+            for (Long seq : productSeqs) {
+                eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(seq));
+            }
+        }
+
+        return result;
     }
 }

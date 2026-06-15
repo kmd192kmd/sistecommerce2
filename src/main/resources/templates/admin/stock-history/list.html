@@ -27,10 +27,17 @@
     </style>
 </head>
 
-<body class="bg-body text-main">
+<body class="font-sans antialiased overflow-hidden">
 
-<div class="p-6 space-y-6">
-
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+        
     <h4 class="text-title mb-4">재고 이력 관리</h4>
 
     <!-- ================= 검색 ================= -->
@@ -203,7 +210,11 @@
             더보기
         </button>
     </div>
+    </main>
+  </div>
 </div>
+
+<script src="/admin/admin.js"></script>
 <script>
 
 let page = 1;

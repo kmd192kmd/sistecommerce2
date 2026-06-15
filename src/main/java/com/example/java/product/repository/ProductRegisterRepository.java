@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductRegisterRepository {
 
     private final JdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
 
     /*
@@ -105,6 +106,7 @@ public class ProductRegisterRepository {
                 dto.getContent(),
                 thumbnailUrl
         );
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
     }
 
 

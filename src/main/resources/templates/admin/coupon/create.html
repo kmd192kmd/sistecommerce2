@@ -1,0 +1,326 @@
+﻿<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${coupon != null} ? '쿠폰 수정 - Admin' : '새 쿠폰 생성 - Admin'">새 쿠폰 생성 - Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/admin/style.css">
+</head>
+<body class="font-sans antialiased overflow-hidden">
+
+  <div class="flex h-screen w-screen relative">
+    
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity"></div>
+
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+      
+      <div th:replace="~{admin/header :: header}"></div>
+
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+
+        <div class="flex items-center gap-3 mb-2">
+          <!-- [수정1] 뒤로가기 링크: /admin/coupons → /admin/coupon/list (Controller 경로 통일) -->
+          <a href="/admin/coupon/list"
+             class="p-2 rounded-lg hover:bg-black/20 text-label hover:text-value transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </a>
+          <div>
+            <h2 class="text-title text-2xl font-bold"
+                th:text="${coupon?.seq != null} ? '쿠폰 수정' : '새 쿠폰 생성'">새 쿠폰 생성</h2>
+            <p class="text-label text-sm mt-0.5">
+              <!-- [수정1] 브레드크럼 링크도 동일하게 수정 -->
+              <a href="/admin/coupon/list" class="hover:text-indigo-400 transition-colors">쿠폰 관리</a>
+              <span class="mx-1.5 opacity-40">/</span>
+              <span th:text="${coupon != null} ? '수정' : '신규 등록'">신규 등록</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <div class="lg:col-span-2 space-y-6">
+
+            <div class="card">
+              <h4 class="text-title text-base font-bold mb-4 border-b border-gray-700/50 pb-2">기본 정보</h4>
+
+              <!-- [수정2] form action 경로 수정: Controller의 @PostMapping("/admin/coupon/list") 와 일치 -->
+              <form id="couponForm"
+                    th:action="${coupon?.seq != null} ? @{/admin/coupons/{seq}/edit(seq=${coupon.seq})} : @{/admin/coupon/list}"
+                    method="POST"
+                    class="space-y-5">
+
+                <input th:if="${coupon != null}" type="hidden" name="_method" value="PUT">
+
+                <!-- [수정3] name="couponName" → name="name" (DTO 필드명 String name 과 일치) -->
+                <div class="form-group">
+                  <label for="couponName" class="text-label block text-sm font-medium mb-1">
+                    쿠폰 이름 <span class="text-red-400">*</span>
+                  </label>
+                  <input id="couponName" type="text" name="name"
+                         th:value="${coupon?.name}"
+                         class="form-input w-full"
+                         placeholder="예: 봄맞이 특별 할인"
+                         required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="form-group">
+                    <label for="discountType" class="text-label block text-sm font-medium mb-1">
+                      할인 방식 <span class="text-red-400">*</span>
+                    </label>
+                    <!-- discountType은 DTO와 일치, 그대로 유지 -->
+                    <select id="discountType" name="discountType"
+                            class="form-input w-full text-sm"
+                            onchange="updateDiscountUnit(this.value)">
+                      <option value="1" th:selected="${coupon?.discountType == 1}">정액 할인 (원)</option>
+                      <option value="0" th:selected="${coupon?.discountType == 0}">정률 할인 (%)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="discountValue" class="text-label block text-sm font-medium mb-1">
+                      할인 값 <span class="text-red-400">*</span>
+                    </label>
+                    <div class="relative">
+                      <!-- [수정4] name="discountValue" → JS submitCouponForm()에서 전송 직전
+                                  discountPrice / discountRate 로 동적 변경됨. 초기값은 임시명 사용 -->
+                      <input id="discountValue" type="number" name="discountValue"
+                             th:value="${coupon?.discountPrice != null} ? ${coupon.discountPrice} : ${coupon?.discountRate}"
+                             class="form-input w-full text-sm pr-10"
+                             placeholder="예: 5000"
+                             min="1" required>
+                      <span id="discountUnit"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-label text-xs font-medium">원</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="form-group">
+                    <label for="startDate" class="text-label block text-sm font-medium mb-1">
+                      배포 예약일 <span class="text-red-400">*</span>
+                    </label>
+                    <!-- startDate: DTO와 일치, 그대로 유지 -->
+                    <input id="startDate" type="date" name="startDate"
+                           th:value="${coupon?.startDate}"
+                           class="form-input w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-black focus:ring-1 focus:ring-black transition-colors"
+                           required>
+                  </div>
+                  <div class="form-group">
+                    <label for="validDays" class="text-label block text-sm font-medium mb-1">
+                      유효 기간 (일) <span class="text-red-400">*</span>
+                    </label>
+                    <!-- validDays: DTO와 일치, 그대로 유지 -->
+                    <input id="validDays" type="number" name="validDays"
+                           th:value="${coupon?.validDays}"
+                           class="form-input w-full text-sm"
+                           placeholder="예: 30"
+                           min="1" required>
+                  </div>
+                </div>
+
+                <!-- [수정5] name="targetAudience" → name="target" (DTO 필드명 String target 과 일치) -->
+                <div class="form-group pt-2 border-t border-gray-700/50">
+                  <label class="text-label block text-sm font-medium mb-2">
+                    발급 대상 회원 <span class="text-red-400">*</span>
+                  </label>
+                  <div class="flex gap-5">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="target" value="ALL"
+                             class="text-indigo-500 bg-transparent border-gray-600 focus:ring-indigo-500"
+                             checked>
+                      <span class="text-sm text-value">전체 회원</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="target" value="REGULAR"
+                             class="text-indigo-500 bg-transparent border-gray-600 focus:ring-indigo-500">
+                      <span class="text-sm text-value">일반 회원</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="target" value="MEMBERSHIP"
+                             class="text-indigo-500 bg-transparent border-gray-600 focus:ring-indigo-500">
+                      <span class="text-sm text-value">멤버십 회원</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="expiryPreview" class="hidden px-3 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30">
+                  <p class="text-indigo-300 text-xs">
+                    예상 만료일: <span id="expiryDate" class="font-semibold"></span>
+                  </p>
+                </div>
+
+                <div class="form-group">
+                  <label for="adminNote" class="text-label block text-sm font-medium mb-1">
+                    관리자 메모
+                    <span class="text-label text-xs font-normal ml-1">(내부용, 회원에게 미노출)</span>
+                  </label>
+                  <!-- adminNote: DTO에 없음. 필요 시 DTO에 추가 필요 (현재는 UI 전용으로 유지) -->
+                  <textarea id="adminNote" name="adminNote" rows="3"
+                            class="form-input w-full text-sm resize-none"
+                            placeholder="쿠폰 발급 목적이나 메모를 입력하세요."></textarea>
+                </div>
+
+              </form>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+
+            <div class="card">
+              <h4 class="text-title text-base font-bold mb-4 border-b border-gray-700/50 pb-2">쿠폰 미리보기</h4>
+              <div class="rounded-xl border-2 border-dashed border-indigo-500/40 bg-indigo-500/5 p-5 space-y-3 relative">
+                
+                <div class="absolute top-4 right-4">
+                  <span id="preview-target" class="text-[10px] font-bold px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    전체 회원
+                  </span>
+                </div>
+
+                <p id="preview-name" class="text-value font-bold text-base pr-16">쿠폰 이름을 입력하세요</p>
+                <div class="flex items-baseline gap-1">
+                  <span id="preview-value" class="text-indigo-400 font-extrabold text-2xl">-</span>
+                  <span id="preview-unit" class="text-indigo-400 text-sm font-medium">원 할인</span>
+                </div>
+                <div class="pt-2 border-t border-gray-700/40 space-y-1">
+                  <p class="text-label text-xs">
+                    유효기간: <span id="preview-dates" class="text-value">-</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card space-y-3">
+              <button type="button" onclick="submitCouponForm()"
+                      class="btn btn-primary w-full py-2.5 text-sm font-medium">
+                <span th:text="${coupon != null} ? '쿠폰 수정 저장' : '쿠폰 마스터 등록'">쿠폰 마스터 등록</span>
+              </button>
+              <!-- [수정1] 취소 링크도 /admin/coupon/list 로 통일 -->
+              <a href="/admin/coupon/list"
+                 class="block text-center w-full py-2.5 text-sm font-medium rounded-lg border border-gray-600 text-label hover:text-value hover:border-gray-500 transition-colors">
+                취소
+              </a>
+            </div>
+
+            <div th:if="${coupon != null}" class="card">
+              <h4 class="text-red-400 text-sm font-bold mb-2">위험 구역</h4>
+              <p class="text-label text-xs mb-3">배포 대기 상태인 경우에만 삭제할 수 있습니다.</p>
+              <button type="button"
+                      th:attr="onclick='deleteCoupon(' + ${coupon.seq} + ')'"
+                      th:disabled="${coupon.status != 0}"
+                      class="w-full py-2 text-sm font-medium rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                쿠폰 삭제
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    // ── 할인 단위 표시 ──
+    function updateDiscountUnit(type) {
+      const unit = document.getElementById('discountUnit');
+      const previewUnit = document.getElementById('preview-unit');
+      if (type === '1') {
+        unit.textContent = '원';
+        previewUnit.textContent = '원 할인';
+      } else {
+        unit.textContent = '%';
+        previewUnit.textContent = '% 할인';
+      }
+      updatePreview();
+    }
+
+    // ── 미리보기 갱신 ──
+    function updatePreview() {
+      const name  = document.getElementById('couponName').value;
+      const value = document.getElementById('discountValue').value;
+      const type  = document.getElementById('discountType').value;
+      const start = document.getElementById('startDate').value;
+      const days  = parseInt(document.getElementById('validDays').value, 10);
+
+      
+      const targetRadio   = document.querySelector('input[name="target"]:checked');
+      const previewTarget = document.getElementById('preview-target');
+      if (targetRadio) {
+        const map = { ALL: '전체 회원', REGULAR: '일반 회원', MEMBERSHIP: '멤버십 전용' };
+        previewTarget.textContent = map[targetRadio.value] ?? '';
+      }
+
+      document.getElementById('preview-name').textContent  = name || '쿠폰 이름을 입력하세요';
+      document.getElementById('preview-value').textContent = value ? Number(value).toLocaleString() : '-';
+      document.getElementById('preview-unit').textContent  = type === '1' ? '원 할인' : '% 할인';
+
+      
+      //         (minOrder 변수 미선언으로 인한 ReferenceError 원인)
+
+      // 만료일 계산
+      const expiryPreview = document.getElementById('expiryPreview');
+      const expiryDate    = document.getElementById('expiryDate');
+      const previewDates  = document.getElementById('preview-dates');
+
+      if (start && days > 0) {
+        const startD  = new Date(start);
+        const expiryD = new Date(start);
+        expiryD.setDate(expiryD.getDate() + days);
+        const fmt = d => d.toISOString().slice(0, 10);
+        expiryDate.textContent   = fmt(expiryD);
+        previewDates.textContent = fmt(startD) + ' ~ ' + fmt(expiryD);
+        expiryPreview.classList.remove('hidden');
+      } else {
+        expiryPreview.classList.add('hidden');
+        previewDates.textContent = '-';
+      }
+    }
+
+    // ── 폼 제출 ──
+    function submitCouponForm() {
+      const form = document.getElementById('couponForm');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      // 전송 직전 discountType에 따라 name을 discountPrice 또는 discountRate 로 교체
+      const type       = document.getElementById('discountType').value;
+      const valueInput = document.getElementById('discountValue');
+      valueInput.name  = (type === '1') ? 'discountPrice' : 'discountRate';
+
+      form.submit();
+    }
+
+    // ── 삭제 ──
+    function deleteCoupon(id) {
+      if (!confirm('정말 이 쿠폰을 삭제하시겠습니까?')) return;
+      fetch(`/admin/api/coupons/${id}`, { method: 'DELETE' })
+        .then(res => res.ok ? (window.location.href = '/admin/coupon/list') : alert('삭제에 실패했습니다.'))
+        .catch(() => alert('오류가 발생했습니다.'));
+    }
+
+    // ── 이벤트 바인딩 ──
+    document.addEventListener('DOMContentLoaded', () => {
+      
+      ['couponName', 'discountValue', 'startDate', 'validDays'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updatePreview);
+      });
+      document.getElementById('discountType')?.addEventListener('change', updatePreview);
+
+      
+      document.querySelectorAll('input[name="target"]').forEach(r =>
+        r.addEventListener('change', updatePreview)
+      );
+
+      updatePreview();
+      updateDiscountUnit(document.getElementById('discountType').value);
+    });
+  </script>
+</body>
+</html>

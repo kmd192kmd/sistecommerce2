@@ -1092,7 +1092,7 @@ COMMENT ON COLUMN participation.payment_deadline IS '대기열의 첫 번째 사
 COMMENT ON COLUMN participation.promoted_at IS '대기열의 첫 번째 사용자가 승격된 시각';
 COMMENT ON COLUMN participation.created_at IS '참여 또는 승격된 시각';
 COMMENT ON COLUMN delivery.tracking_number IS 'unique';
-COMMENT ON COLUMN delivery.status IS 'READY/SHIPPING/DELIVERED/FAILED';
+COMMENT ON COLUMN delivery.status IS 'READY/SHIPPING/DELIVERED/FAILED/DELAYED/CANCELED';
 COMMENT ON COLUMN delivery.orders_seq IS '주문번호/발주번호는 배타적 check 제약조건이 걸려있음';
 COMMENT ON COLUMN delivery.purchase_order_seq IS '주문번호/발주번호는 배타적 check 제약조건이 걸려있음';
 
@@ -1252,4 +1252,21 @@ ALTER TABLE memberships MODIFY (
 
 alter table cart Drop column update_date;
 
-select * from cart;
+ALTER TABLE login_log MODIFY ip_address VARCHAR2(45);
+
+ALTER TABLE member_withdrawal
+  RENAME COLUMN withdrwal_requested_at TO withdrawal_requested_at;
+
+
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '서비스를 잘 이용하지 않음');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '상품/서비스에 만족하지 못함');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '개인정보 유출이 우려됨');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '다른 서비스를 이용하려고 함');
+INSERT INTO withdrawal_reason (seq, reason)
+VALUES (withdrawal_reason_seq.NEXTVAL, '기타');
+
+COMMIT;

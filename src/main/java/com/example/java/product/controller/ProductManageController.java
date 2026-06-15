@@ -3,12 +3,14 @@ package com.example.java.product.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.example.java.member.security.CustomUserDetails;
 import com.example.java.product.dto.ProductManageDto;
 import com.example.java.product.service.ProductManageService;
 
@@ -35,6 +37,7 @@ public class ProductManageController {
     */
     @GetMapping("/products/manage")
     public String productManage(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(name = "approvalStatus", required = false) String approvalStatus,
             @RequestParam(name = "startDate", required = false) String startDate,
             @RequestParam(name = "endDate", required = false) String endDate,
@@ -45,6 +48,18 @@ public class ProductManageController {
             Model model) {
 
         /*
+            판매처 계정만 상품 관리 페이지에 접근할 수 있습니다.
+
+            현재 CustomUserDetails의 memberSeq 필드는
+            판매처 로그인일 때 seller.seq 값을 담습니다.
+        */
+        if (userDetails == null || !"ROLE_SELLER".equals(userDetails.getRole())) {
+            return "redirect:/";
+        }
+
+        Long sellerSeq = userDetails.getMemberSeq();
+
+        /*
             한 페이지에 보여줄 상품 요청 개수입니다.
         */
         int size = 10;
@@ -53,7 +68,8 @@ public class ProductManageController {
             page = 1;
         }
 
-        int totalCount = productManageService.countProductRequests(
+        int totalCount = productManageService.countSellerProductRequests(
+                sellerSeq,
                 approvalStatus,
                 startDate,
                 endDate,
@@ -80,7 +96,8 @@ public class ProductManageController {
             - priceAsc   : 가격순
             - ratingDesc : 별점순
         */
-        List<ProductManageDto> products = productManageService.getProductRequests(
+        List<ProductManageDto> products = productManageService.getSellerProductRequests(
+                sellerSeq,
                 approvalStatus,
                 startDate,
                 endDate,
@@ -119,33 +136,9 @@ public class ProductManageController {
 
         /*
             현재 선택한 정렬 조건을 화면으로 다시 내려줍니다.
-
-            이 값이 있어야 정렬 select에서 현재 선택한 값이 유지되고,
-            페이지네이션을 눌러도 정렬 조건이 유지됩니다.
         */
         model.addAttribute("sortType", sortType);
 
-        /*
-            이 return 경로는 상품 관리 HTML 파일 위치에 맞춰야 합니다.
-
-            현재 파일이 아래 위치라면:
-            src/main/resources/templates/product/product-manage.html
-
-            return "product/product-manage";
-
-            만약 파일 위치가 다르면 이 문자열만 바꾸면 됩니다.
-        */
-
-        /*
-            실제 상품 관리 HTML 파일 위치:
-            src/main/resources/templates/product/manage.html
-
-            Thymeleaf에서는 templates 폴더 아래 경로를 기준으로
-            확장자 .html을 제외하고 작성합니다.
-
-            따라서 product 폴더 안의 manage.html을 열려면
-            return "product/manage"; 로 작성해야 합니다.
-        */
         return "product/manage";
     }
 
@@ -158,9 +151,16 @@ public class ProductManageController {
     */
     @PostMapping("/products/manage/delete")
     public ResponseEntity<String> deleteProducts(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(name = "productSeqs") List<Long> productSeqs) {
 
-        productManageService.deleteProducts(productSeqs);
+        if (userDetails == null || !"ROLE_SELLER".equals(userDetails.getRole())) {
+            return ResponseEntity.status(403).body("판매처만 삭제할 수 있습니다.");
+        }
+
+        Long sellerSeq = userDetails.getMemberSeq();
+
+        productManageService.deleteSellerProducts(sellerSeq, productSeqs);
 
         return ResponseEntity.ok("삭제되었습니다.");
     }

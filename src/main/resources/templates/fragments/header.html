@@ -8,13 +8,23 @@
 -->
 <header th:fragment="header">
     <!-- 최상단 유틸 바 -->
-    <div class="w-full bg-[#fafafa] border-b border-gray-200 text-[11px] text-[#555555]">
-        <div class="max-w-screen-wide mx-auto px-4 h-8 flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <a th:href="@{/hotdeals}" class="text-amber-600 font-bold hover:underline">👑 골드배송</a>
-                <a th:href="@{/group-buys}" class="hover:underline">골드프레시</a>
-                <a th:href="@{/group-buys/scheduled}" class="hover:underline">골드멤버십 존</a>
-            </div>
+	<div class="w-full bg-[#fafafa] border-b border-gray-200 text-[11px] text-[#555555]">
+	    <div class="max-w-screen-wide mx-auto px-4 h-8 flex items-center justify-between">
+
+	        <!-- 좌측 역할별 메뉴 -->
+	        <div class="flex items-center space-x-4">
+				<a sec:authorize="hasAnyAuthority('ADMIN', 'ROLE_ADMIN')"
+				   th:href="@{/admin/statistics}"
+				   class="hover:underline">
+				    관리자 페이지
+				</a>
+
+				<a sec:authorize="hasAuthority('ROLE_SELLER')"
+				   th:href="@{/products/manage}"
+				   class="hover:underline">
+				    상품관리
+				</a>
+	        </div>
             <div class="flex items-center space-x-4">
                 <th:block sec:authorize="!isAuthenticated()">  <!-- 비로그인 -->
                     <a th:href="@{/member/login}" class="hover:underline">로그인</a>
@@ -24,7 +34,6 @@
                     <a th:href="@{/member/logout}" class="hover:underline">로그아웃</a>
                 </th:block>
                 <a href="#" class="hover:underline">고객센터</a>
-                <a th:href="@{/mypage/orders}" class="hover:underline">마이골드</a>
             </div>
         </div>
     </div>
@@ -151,7 +160,7 @@
                     <a th:href="@{/group-buys}" class="text-amber-400 flex items-center gap-1">
                         <i data-lucide="gem" class="w-3.5 h-3.5 fill-amber-400"></i> 공동구매
                     </a>
-                    <a th:href="@{/hotdeals}" class="hover:text-amber-400">핫딜 특가</a>
+                    <a th:href="@{/products(showHotDealsOnly=true)}" class="hover:text-amber-400">핫딜 특가</a>
                     <a th:href="@{/group-buys/scheduled}" class="hover:text-amber-400">공구 예정</a>
                 </div>
             </div>

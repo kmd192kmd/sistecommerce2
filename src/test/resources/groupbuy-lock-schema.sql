@@ -26,6 +26,32 @@ CREATE TABLE group_buy_options (
     occupied_count number DEFAULT 0 NOT NULL
 );
 
+-- 상품 옵션 테이블. 공구 가격 계산이 options.additional_price를 LAZY 로딩하므로 필요.
+-- Options 엔티티가 SELECT하는 컬럼(flat 옵션 컬럼 + 재고/추가금)을 모두 포함한다.
+CREATE TABLE options (
+    seq number NOT NULL PRIMARY KEY,
+    product_seq number,
+    color varchar2(100),
+    options_size varchar2(100),
+    volume_weight varchar2(100),
+    taste varchar2(100),
+    storage_type varchar2(100),
+    scent_ingredient varchar2(100),
+    voltage varchar2(100),
+    quantity_set varchar2(100),
+    size_spec varchar2(100),
+    storage_capacity varchar2(100),
+    memory varchar2(100),
+    switch_axis varchar2(100),
+    connection_type varchar2(100),
+    wearable_spec varchar2(100),
+    material_type varchar2(100),
+    options_type varchar2(100),
+    stock number NOT NULL,
+    safety_stock number NOT NULL,
+    additional_price number NOT NULL
+);
+
 CREATE TABLE participation (
     seq number NOT NULL PRIMARY KEY,
     group_buy_seq number NOT NULL,
@@ -62,3 +88,7 @@ VALUES (1, 1, TIMESTAMP '2000-01-01 00:00:00', TIMESTAMP '2999-12-31 23:59:59', 
 -- 테스트 대상 옵션 행: 발주 가능 10자리, 점유 0에서 시작.
 INSERT INTO group_buy_options (seq, group_buy_seq, options_seq, order_qty, occupied_count)
 VALUES (1, 1, 1, 10, 0);
+
+-- 기본 상품 옵션(추가금 0). 동적 생성 공구/옵션들이 options_seq=1을 참조한다.
+-- 추가금 > 0 케이스가 필요한 테스트는 별도 seq로 직접 INSERT 한다.
+INSERT INTO options (seq, stock, safety_stock, additional_price) VALUES (1, 0, 0, 0);

@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductDetailRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -36,13 +37,15 @@ public class ProductDetailRepository {
         상품 저장 / 수정
     */
     public Product save(Product product) {
-
+        Product saved;
         if (product.getSeq() == null) {
             entityManager.persist(product);
-            return product;
+            saved = product;
+        } else {
+            saved = entityManager.merge(product);
         }
-
-        return entityManager.merge(product);
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(saved.getSeq()));
+        return saved;
     }
 
     /*
@@ -131,49 +134,51 @@ public class ProductDetailRepository {
     }
 
     /*
-        상품 옵션 목록 조회
-    */
-    public List<ProductOptionDto> findProductOptions(Long productSeq) {
-
-        String sql = """
-                SELECT
-                    seq,
-                    product_seq,
-                    color,
-                    options_size,
-                    volume_weight,
-                    taste,
-                    storage_type,
-                    scent_ingredient,
-                    voltage,
-                    quantity_set,
-                    size_spec,
-                    storage_capacity,
-                    memory,
-                    switch_axis,
-                    connection_type,
-                    wearable_spec,
-                    material_type,
-                    options_type,
-                    stock,
-                    safety_stock,
-                    additional_price
-                FROM options
-                WHERE product_seq = :productSeq
-                  AND stock > 0
-                ORDER BY seq ASC
-                """;
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("productSeq", productSeq);
-
-        return jdbcTemplate.query(sql, params, this::mapProductOption);
-    }
+	    상품 옵션 목록 조회
+	*/
+	public List<ProductOptionDto> findProductOptions(Long productSeq) {
+	
+	    String sql = """
+	            SELECT
+	                seq,
+	                product_seq,
+	                color,
+	                options_size,
+	                volume_weight,
+	                taste,
+	                storage_type,
+	                scent_ingredient,
+	                voltage,
+	                quantity_set,
+	                size_spec,
+	                storage_capacity,
+	                memory,
+	                switch_axis,
+	                connection_type,
+	                wearable_spec,
+	                material_type,
+	                options_type,
+	                stock,
+	                safety_stock,
+	                additional_price
+	            FROM options
+	            WHERE product_seq = :productSeq
+	            ORDER BY seq ASC
+	            """;
+	
+	    MapSqlParameterSource params = new MapSqlParameterSource()
+	            .addValue("productSeq", productSeq);
+	
+	    return jdbcTemplate.query(sql, params, this::mapProductOption);
+	}
 
     /*
-        찜 여부 확인
-    */
+	    찜 여부 확인
+	*/
     public boolean existsWish(Long productSeq, Long memberSeq) {
+
+        System.out.println("existsWish productSeq = " + productSeq);
+        System.out.println("existsWish memberSeq = " + memberSeq);
 
         String sql = """
                 SELECT COUNT(*)
@@ -213,7 +218,11 @@ public class ProductDetailRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("productSeq", productSeq);
 
-        return jdbcTemplate.update(sql, params);
+        int result = jdbcTemplate.update(sql, params);
+        if (result > 0) {
+            eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
+        }
+        return result;
     }
 
     /*
@@ -244,6 +253,74 @@ public class ProductDetailRepository {
                 .addValue("productSeq", productSeq);
 
         jdbcTemplate.update(sql, params);
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
+    }
+
+    /*
+        상품 목록 전체 개수 조회
+    */
+    public int countProducts() {
+        String sql = """
+                SELECT COUNT(*)
+                FROM product
+                WHERE status = 'NORMAL'
+                  AND approval_status = 'APPROVED'
+                  AND hide_yn = 'N'
+                """;
+
+        Integer count = jdbcTemplate.queryForObject(
+                sql,
+                new MapSqlParameterSource(),
+                Integer.class
+        );
+
+        return count == null ? 0 : count;
+    }
+
+    /*
+        상품 목록 페이징 조회
+    */
+    public List<ProductDto> findProductsByPaging(int offset, int size) {
+        String sql = """
+                SELECT
+                    p.seq,
+                    p.seller_seq,
+                    p.category_seq,
+                    p.product_name,
+                    p.price,
+                    p.content,
+                    p.sale_status,
+                    p.approval_status,
+                    p.hide_yn,
+                    p.view_count,
+                    p.avg_rating,
+                    p.review_count,
+                    p.sales_count,
+                    p.created_date,
+                    p.updated_date,
+                    p.status,
+                    (
+                        SELECT pi.image_url
+                        FROM product_image pi
+                        WHERE pi.product_seq = p.seq
+                          AND pi.thumbnail_yn = 'Y'
+                          AND pi.status = 'NORMAL'
+                        ORDER BY pi.image_order
+                        FETCH FIRST 1 ROWS ONLY
+                    ) AS thumbnail_url
+                FROM product p
+                WHERE p.status = 'NORMAL'
+                  AND p.approval_status = 'APPROVED'
+                  AND p.hide_yn = 'N'
+                ORDER BY p.seq DESC
+                OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("offset", offset)
+                .addValue("size", size);
+
+        return jdbcTemplate.query(sql, params, this::mapProductDetail);
     }
 
     private ProductDto mapProductDetail(ResultSet rs, int rowNum) throws SQLException {

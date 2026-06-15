@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.example.java.member.security.CustomUserDetails;
 import com.example.java.product.dto.ProductDto;
 import com.example.java.product.service.CategoryService;
 import com.example.java.product.service.ProductDetailService;
@@ -36,13 +38,24 @@ public class ProductDetailController {
     @GetMapping("/{seq}")
     public String getProductDetail(
             @PathVariable("seq") Long seq,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
             HttpSession session,
             Model model) {
 
-        Long memberSeq = getLoginMemberSeq(session);
+        /*
+            기존에는 session.getAttribute("memberSeq") 방식으로 로그인 회원번호를 가져왔습니다.
 
-        System.out.println("session memberSeq = " + session.getAttribute("memberSeq"));
-        System.out.println("loginMemberSeq = " + memberSeq);
+            하지만 현재 프로젝트는 Spring Security를 사용하고 있고,
+            장바구니에서도 @AuthenticationPrincipal CustomUserDetails 방식으로
+            로그인 회원번호를 가져오고 있습니다.
+
+            그래서 리뷰 수정/삭제 버튼 표시도 같은 방식으로 맞춥니다.
+        */
+        Long memberSeq = null;
+
+        if (customUserDetails != null) {
+            memberSeq = customUserDetails.getMemberSeq();
+        }
 
         ProductDto product = productDetailService.getProductDetail(seq, memberSeq);
 
@@ -172,41 +185,5 @@ public class ProductDetailController {
         }
 
         return ResponseEntity.ok("상품이 삭제되었습니다.");
-    }
-
-    /*
-        세션에서 로그인 회원번호 가져오기
-
-        session에 "memberSeq"라는 이름으로 회원번호가 저장되어 있다고 가정합니다.
-
-        만약 프로젝트에서 다른 이름을 사용하고 있다면
-        "memberSeq" 부분만 바꾸면 됩니다.
-
-        예:
-        session.getAttribute("userSeq")
-        session.getAttribute("loginMemberSeq")
-        session.getAttribute("member")
-    */
-    private Long getLoginMemberSeq(HttpSession session) {
-
-        Object value = session.getAttribute("memberSeq");
-
-        if (value == null) {
-            return null;
-        }
-
-        if (value instanceof Long) {
-            return (Long) value;
-        }
-
-        if (value instanceof Integer) {
-            return ((Integer) value).longValue();
-        }
-
-        if (value instanceof String) {
-            return Long.parseLong((String) value);
-        }
-
-        return null;
     }
 }

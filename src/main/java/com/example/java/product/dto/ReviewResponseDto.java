@@ -28,4 +28,6 @@ public class ReviewResponseDto {
     private String status;
 
     private List<ReviewImageDto> images;
+    
+    private String nickname;
 }

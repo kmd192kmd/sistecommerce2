@@ -2,41 +2,131 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('장바구니')}"></head>
 <body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+<script th:if="${stockAlertMessage != null}" th:inline="javascript">
+    alert(/*[[${stockAlertMessage}]]*/ "");
+</script>
 
+	<!-- 기존 장바구니 화면 코드 -->
+	
 <div th:replace="~{fragments/header :: header}"></div>
 
-<!-- 장바구니 (CART-MAIN-01) -->
 <main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
 
     <h2 class="text-xl font-black bg-gray-100 px-5 py-4">장바구니</h2>
 
-    <form th:action="@{/cart/list}" method="get">
+    <!-- ── 비로그인 게스트 장바구니 ── -->
+    <div th:if="${guestMode}" id="guestCartSection">
+        <div class="bg-amber-50 border border-amber-200 px-5 py-3 text-sm text-amber-800 font-semibold flex items-center gap-2">
+            <span>⚠️</span>
+            <span>로그인 후 장바구니가 자동으로 저장됩니다.</span>
+            <a href="/member/login" class="ml-auto underline text-amber-700 hover:text-amber-900">로그인하기</a>
+        </div>
+
+        <div class="bg-white border border-gray-200 border-t-0" id="guestCartList">
+            <!-- JS가 localStorage 항목을 렌더링 -->
+        </div>
+
+        <div id="guestTotalBar" class="hidden bg-white border border-gray-200 border-t-0 px-5 py-4 flex justify-between items-center">
+            <span class="text-sm text-gray-500 font-semibold">선택 상품 합계</span>
+            <span id="guestTotalPrice" class="text-xl font-black text-slate-900">0원</span>
+        </div>
+    </div>
+
+    <!-- 체크한 cartSeq만 /order/checkout으로 전달 -->
+    <form th:if="${!guestMode}"
+          th:action="@{/order/checkout}"
+          method="get"
+          id="cartOrderForm"
+          onsubmit="return validateCartSelection()">
+
         <div class="bg-white border border-gray-200 border-t-0">
-            <!-- 항목 (#1 #2) -->
-            <div th:each="item : ${cartList}" class="flex items-center gap-4 p-5 border-b border-gray-100">
-                <input type="checkbox" name="select" th:value="${item.seq}" checked class="w-5 h-5 accent-amber-500">
+
+            <div th:if="${#lists.isEmpty(cartList)}"
+                 class="p-10 text-center text-gray-500">
+                <p class="text-sm font-semibold">장바구니에 담긴 상품이 없습니다.</p>
+                <a th:href="@{/products}"
+                   class="inline-block mt-4 bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 py-3 text-sm">
+                    상품 보러가기
+                </a>
+            </div>
+
+            <!-- th:data-* 로 JS에서 필요한 값 전달 -->
+            <div th:each="item : ${cartList}"
+                 class="cart-row flex items-center gap-4 p-5 border-b border-gray-100"
+                 th:data-seq="${item.seq}"
+                 th:data-unit-price="${item.price + item.additionalPrice}"
+                 th:data-stock="${item.stock}">
+
+                <input type="checkbox"
+                       name="cartSeq"
+                       th:value="${item.seq}"
+                       checked
+                       class="cart-check w-5 h-5 accent-amber-500"
+                       onchange="recalcTotal()">
+
                 <div class="w-24 h-24 bg-gray-50 shrink-0 overflow-hidden">
-                    <img th:src="${item.thumbnailUrl}" alt="" class="w-full h-full object-cover">
+                    <img th:src="${item.thumbnailUrl}"
+                         alt=""
+                         class="w-full h-full object-cover">
                 </div>
+
                 <div class="flex-1">
-                    <h4 th:text="${item.productName}" class="text-sm font-semibold">상품명</h4>
-                    <p class="text-xs text-gray-500 mt-1" th:text="'옵션: ' + ${item.optionName}">옵션</p>
+                    <h4 th:text="${item.productName}"
+                        class="text-sm font-semibold">
+                        상품명
+                    </h4>
+
+                    <p class="text-xs text-gray-500 mt-1"
+                       th:text="'옵션: ' + ${item.optionName}">
+                        옵션
+                    </p>
+
                     <div class="mt-2 flex items-center border border-gray-300 w-fit">
-                        <button type="button" class="px-2.5 py-1 text-gray-500 hover:bg-gray-50">−</button>
-                        <input type="text" th:value="${item.quantity}" class="w-10 text-center text-sm border-x border-gray-300 py-1">
-                        <button type="button" class="px-2.5 py-1 text-gray-500 hover:bg-gray-50">+</button>
+                        <button type="button"
+                                class="qty-minus px-2.5 py-1 text-gray-500 hover:bg-gray-50">
+                            −
+                        </button>
+
+                        <input type="text"
+                               th:value="${item.quantity}"
+                               class="qty-input w-10 text-center text-sm border-x border-gray-300 py-1"
+                               readonly>
+
+                        <button type="button"
+                                class="qty-plus px-2.5 py-1 text-gray-500 hover:bg-gray-50">
+                            +
+                        </button>
                     </div>
                 </div>
+
                 <div class="text-right">
-                    <p class="text-lg font-black" th:text="${#numbers.formatInteger(item.price * item.quantity, 0, 'COMMA')} + '원'">시세가</p>
-                    <button type="button" class="mt-2 text-gray-300 hover:text-red-500"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <p class="item-total text-lg font-black"
+                       th:text="${#numbers.formatInteger(item.itemTotal, 0, 'COMMA')} + '원'">
+                        0원
+                    </p>
+
+                    <button type="button"
+                            class="btn-delete mt-2 text-gray-300 hover:text-red-500">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- 구매 (#3) -->
+        <!-- 전체 합계 -->
+        <div th:if="${!#lists.isEmpty(cartList)}"
+             class="bg-white border border-gray-200 border-t-0 px-5 py-4 flex justify-between items-center">
+            <span class="text-sm text-gray-500 font-semibold">선택 상품 합계</span>
+            <span id="totalPrice" class="text-xl font-black text-slate-900">0원</span>
+        </div>
+
         <div class="flex justify-center mt-8">
-            <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-16 py-3.5">구매하기</button>
+            <button type="submit"
+                    th:disabled="${#lists.isEmpty(cartList)}"
+                    th:classappend="${#lists.isEmpty(cartList)} ? ' opacity-50 cursor-not-allowed' : ''"
+                    class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-16 py-3.5">
+                구매하기
+            </button>
         </div>
     </form>
 
@@ -44,5 +134,182 @@
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<script>
+    // ── 비로그인 게스트 장바구니 렌더링 ─────────────────────────
+    (function renderGuestCart() {
+        const section = document.getElementById('guestCartSection');
+        if (!section) return; // 로그인 상태면 없음
+
+        const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+        const listEl    = document.getElementById('guestCartList');
+        const totalBar  = document.getElementById('guestTotalBar');
+
+        if (guestCart.length === 0) {
+            listEl.innerHTML = `
+                <div class="p-10 text-center text-gray-500">
+                    <p class="text-sm font-semibold">장바구니에 담긴 상품이 없습니다.</p>
+                    <a href="/products" class="inline-block mt-4 bg-slate-900 hover:bg-slate-800 text-white font-bold px-8 py-3 text-sm">상품 보러가기</a>
+                </div>`;
+            return;
+        }
+
+        totalBar.classList.remove('hidden');
+
+        guestCart.forEach((item, idx) => {
+            const unitPrice = item.price + item.additionalPrice;
+            const row = document.createElement('div');
+            row.className = 'guest-row flex items-center gap-4 p-5 border-b border-gray-100';
+            row.dataset.idx       = idx;
+            row.dataset.unitPrice = unitPrice;
+            row.dataset.stock     = item.stock;
+            row.innerHTML = `
+                <input type="checkbox" checked class="guest-check w-5 h-5 accent-amber-500" onchange="recalcGuestTotal()">
+                <div class="w-24 h-24 bg-gray-50 shrink-0 overflow-hidden">
+                    <img src="${item.thumbnailUrl || '/src/images/product/default.png'}" alt="" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-sm font-semibold">${item.productName}</h4>
+                    <p class="text-xs text-gray-500 mt-1">옵션: ${item.optionName}</p>
+                    <div class="mt-2 flex items-center border border-gray-300 w-fit">
+                        <button type="button" class="g-minus px-2.5 py-1 text-gray-500 hover:bg-gray-50">−</button>
+                        <input type="text" value="${item.quantity}" class="g-qty w-10 text-center text-sm border-x border-gray-300 py-1" readonly>
+                        <button type="button" class="g-plus px-2.5 py-1 text-gray-500 hover:bg-gray-50">+</button>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="g-total text-lg font-black">${(unitPrice * item.quantity).toLocaleString('ko-KR')}원</p>
+                    <button type="button" class="g-delete mt-2 text-gray-300 hover:text-red-500">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>`;
+            listEl.appendChild(row);
+
+            row.querySelector('.g-minus').addEventListener('click', () => changeGuestQty(row, -1));
+            row.querySelector('.g-plus' ).addEventListener('click', () => changeGuestQty(row, +1));
+            row.querySelector('.g-delete').addEventListener('click', () => deleteGuestItem(row));
+        });
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        recalcGuestTotal();
+    })();
+
+    function getGuestCart() { return JSON.parse(localStorage.getItem('guestCart') || '[]'); }
+    function saveGuestCart(cart) { localStorage.setItem('guestCart', JSON.stringify(cart)); }
+
+    function recalcGuestTotal() {
+        let total = 0;
+        document.querySelectorAll('.guest-row').forEach(row => {
+            if (row.querySelector('.guest-check').checked) {
+                total += parseInt(row.dataset.unitPrice, 10) * parseInt(row.querySelector('.g-qty').value, 10);
+            }
+        });
+        const el = document.getElementById('guestTotalPrice');
+        if (el) el.textContent = total.toLocaleString('ko-KR') + '원';
+    }
+
+    function changeGuestQty(row, delta) {
+        const idx   = parseInt(row.dataset.idx, 10);
+        const stock = parseInt(row.dataset.stock, 10);
+        const input = row.querySelector('.g-qty');
+        let   qty   = parseInt(input.value, 10) + delta;
+        if (qty < 1) return;
+        if (qty > stock) { alert('재고(' + stock + '개)를 초과할 수 없습니다.'); return; }
+
+        const cart = getGuestCart();
+        cart[idx].quantity = qty;
+        saveGuestCart(cart);
+        input.value = qty;
+        row.querySelector('.g-total').textContent =
+            (parseInt(row.dataset.unitPrice, 10) * qty).toLocaleString('ko-KR') + '원';
+        recalcGuestTotal();
+    }
+
+    function deleteGuestItem(row) {
+        if (!confirm('장바구니에서 삭제하시겠습니까?')) return;
+        const idx  = parseInt(row.dataset.idx, 10);
+        const cart = getGuestCart();
+        cart.splice(idx, 1);
+        saveGuestCart(cart);
+        row.remove();
+        // 삭제 후 idx 재정렬
+        document.querySelectorAll('.guest-row').forEach((r, i) => r.dataset.idx = i);
+        recalcGuestTotal();
+    }
+
+    // ── 합계 재계산 ──────────────────────────────────────────
+    function recalcTotal() {
+        let total = 0;
+        document.querySelectorAll(".cart-row").forEach(row => {
+            const checked   = row.querySelector(".cart-check").checked;
+            const unitPrice = parseInt(row.dataset.unitPrice, 10);
+            const qty       = parseInt(row.querySelector(".qty-input").value, 10);
+            if (checked) total += unitPrice * qty;
+        });
+        const el = document.getElementById("totalPrice");
+        if (el) el.textContent = total.toLocaleString("ko-KR") + "원";
+    }
+
+    // ── 수량 변경 ────────────────────────────────────────────
+    function changeQuantity(row, delta) {
+        const cartSeq   = row.dataset.seq;
+        const stock     = parseInt(row.dataset.stock, 10);
+        const input     = row.querySelector(".qty-input");
+        const unitPrice = parseInt(row.dataset.unitPrice, 10);
+        let   qty       = parseInt(input.value, 10) + delta;
+
+        if (qty < 1) return;
+        if (qty > stock) { alert("재고(" + stock + "개)를 초과할 수 없습니다."); return; }
+
+        fetch(`/api/cart/${cartSeq}`, {
+            method : "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body   : JSON.stringify({ quantity: qty })
+        })
+        .then(res => {
+            if (!res.ok) return res.text().then(t => { throw new Error(t); });
+            input.value = qty;
+            row.querySelector(".item-total").textContent =
+                (unitPrice * qty).toLocaleString("ko-KR") + "원";
+            recalcTotal();
+        })
+        .catch(err => alert(err.message || "수량 변경 실패"));
+    }
+
+    // ── 항목 삭제 ────────────────────────────────────────────
+    function deleteItem(row) {
+        if (!confirm("장바구니에서 삭제하시겠습니까?")) return;
+        const cartSeq = row.dataset.seq;
+
+        fetch(`/api/cart/${cartSeq}`, { method: "DELETE" })
+        .then(res => {
+            if (!res.ok) return res.text().then(t => { throw new Error(t); });
+            row.remove();
+            recalcTotal();
+        })
+        .catch(err => alert(err.message || "삭제 실패"));
+    }
+
+    // ── 이벤트 바인딩 ────────────────────────────────────────
+    document.querySelectorAll(".cart-row").forEach(row => {
+        row.querySelector(".qty-minus").addEventListener("click", () => changeQuantity(row, -1));
+        row.querySelector(".qty-plus" ).addEventListener("click", () => changeQuantity(row, +1));
+        row.querySelector(".btn-delete").addEventListener("click", () => deleteItem(row));
+    });
+
+    // ── 페이지 진입 시 초기 합계 계산 ────────────────────────
+    recalcTotal();
+
+    // ── 구매하기 유효성 검사 ─────────────────────────────────
+    function validateCartSelection() {
+        const checkedItems = document.querySelectorAll(".cart-check:checked");
+        if (checkedItems.length === 0) {
+            alert("결제할 상품을 1개 이상 선택해 주세요.");
+            return false;
+        }
+        return true;
+    }
+</script>
+
 </body>
 </html>

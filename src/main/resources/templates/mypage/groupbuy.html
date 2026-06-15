@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('마이페이지 | 공동구매 내역')}"></head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #f8fafc; }
+
+    .gb-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        display: flex;
+        gap: 16px;
+        padding: 20px;
+        transition: box-shadow 0.2s;
+        align-items: center;
+    }
+    .gb-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .gb-thumbnail {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: #f1f5f9;
+    }
+    .badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .badge-yellow  { background: #fef9c3; color: #854d0e; }
+    .badge-green   { background: #dcfce7; color: #166534; }
+    .badge-blue    { background: #dbeafe; color: #1e40af; }
+    .badge-gray    { background: #f1f5f9; color: #475569; }
+    .badge-red     { background: #fee2e2; color: #991b1b; }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #94a3b8;
+    }
+</style>
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<main class="max-w-7xl mx-auto px-4 mt-10 mb-32 flex-1 w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
+        <div th:replace="~{fragments/mypage-aside :: aside('groupbuy')}"></div>
+
+        <section class="space-y-6">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">공동구매 내역</h1>
+                    <p class="text-slate-500 mt-1 text-sm">참여하신 공동구매 내역을 확인하세요.</p>
+                </div>
+                <span class="text-sm font-semibold text-amber-600 bg-amber-50 px-4 py-2 rounded-xl"
+                      th:text="'총 ' + ${#lists.size(groupBuyList)} + '건'">총 0건</span>
+            </div>
+
+            <!-- 목록 -->
+            <div class="space-y-4" th:if="${not #lists.isEmpty(groupBuyList)}">
+                <div class="gb-card" th:each="item : ${groupBuyList}">
+
+                    <!-- 썸네일 -->
+                    <img class="gb-thumbnail"
+                         th:src="${item.thumbnailUrl}"
+                         th:alt="${item.productName}">
+
+                    <!-- 정보 -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <!-- 상태 배지 -->
+                            <span th:switch="${item.status.name()}">
+                                <span th:case="'PAYMENT_PENDING'" class="badge badge-yellow">결제 대기</span>
+                                <span th:case="'PARTICIPATING'"   class="badge badge-green">참여 중</span>
+                                <span th:case="'CONFIRMED'"       class="badge badge-blue">구매 확정</span>
+                                <span th:case="'CANCELLED'"       class="badge badge-gray">취소됨</span>
+                                <span th:case="'FAILED'"          class="badge badge-red">실패</span>
+                                <span th:case="'EXPIRED'"         class="badge badge-gray">만료됨</span>
+                                <span th:case="*"                 class="badge badge-gray" th:text="${item.status.name()}">기타</span>
+                            </span>
+                        </div>
+
+                        <p class="text-base font-bold text-slate-900 truncate" th:text="${item.productName}">상품명</p>
+                        <p class="text-sm text-slate-500 mt-0.5" th:text="${item.optionName}">옵션</p>
+
+                        <p class="text-xs text-slate-400 mt-2"
+                           th:text="'공구 기간: ' + ${#temporals.format(item.startAt,'yyyy.MM.dd')} + ' ~ ' + ${#temporals.format(item.endAt,'yyyy.MM.dd')}">
+                            공구 기간
+                        </p>
+                        <p class="text-xs text-slate-400"
+                           th:text="'신청일: ' + ${#temporals.format(item.createdAt,'yyyy.MM.dd HH:mm')}">신청일</p>
+                    </div>
+
+                    <!-- 가격 -->
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-lg font-extrabold text-slate-900"
+                           th:text="${item.finalPrice != null} ? ${#numbers.formatInteger(item.finalPrice, 0, 'COMMA')} + '원' : '미정'">
+                            0원
+                        </p>
+                        <p class="text-xs text-slate-400 mt-1">확정가</p>
+
+                        <!-- 결제대기 상태일 때만 결제 재진입 버튼 (정규·승격 공용) -->
+                        <button th:if="${item.status.name() == 'PAYMENT_PENDING'}"
+                                type="button"
+                                class="gb-pay-btn mt-3 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg transition disabled:opacity-50"
+                                th:data-gb-seq="${item.groupBuySeq}">
+                            결제하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 빈 상태 -->
+            <div class="empty-state" th:if="${#lists.isEmpty(groupBuyList)}">
+                <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m13-9l2 9M9 21h6"/>
+                </svg>
+                <p class="font-semibold text-slate-400">참여한 공동구매 내역이 없어요</p>
+            </div>
+        </section>
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<!-- 토스 결제 SDK (결제대기 → 결제창 재진입). window.TossPayments 전역 제공 -->
+<script src="https://js.tosspayments.com/v2/standard"></script>
+<script th:inline="javascript">
+    // 서버가 심어준 토스 결제창 설정
+    const TOSS = {
+        clientKey:  /*[[${tossClientKey}]]*/  '',
+        successUrl: /*[[${tossSuccessUrl}]]*/ '',
+        failUrl:    /*[[${tossFailUrl}]]*/    '',
+        memberSeq:  /*[[${loginMemberSeq}]]*/ '',
+    };
+
+    // 결제대기(PAYMENT_PENDING) 항목의 "결제하기" 버튼 → promotion-payment 로 결제대기 주문을 받아 토스 결제창을 띄운다.
+    // 정규 참여자(이탈 후 재결제)와 대기열 승격자가 같은 API/흐름을 공유한다.
+    document.querySelectorAll('.gb-pay-btn').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+            const seq = btn.dataset.gbSeq;
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/group-buys/' + seq + '/promotion-payment', { method: 'POST' });
+                if (!res.ok) {
+                    // 결제 기한 만료·이미 처리됨·미로그인 등
+                    alert('결제를 시작할 수 없어요. 결제 기한이 지났거나 이미 처리된 참여일 수 있어요.');
+                    return;
+                }
+                // ParticipateResponse: orderUid / amount / orderName
+                const order = await res.json();
+                const tossPayments = window.TossPayments(TOSS.clientKey);
+                const payment = tossPayments.payment({ customerKey: 'member-' + TOSS.memberSeq });
+                await payment.requestPayment({
+                    method: 'CARD',
+                    amount: { currency: 'KRW', value: Number(order.amount) },
+                    orderId: order.orderUid,
+                    orderName: order.orderName,
+                    successUrl: TOSS.successUrl,
+                    failUrl: TOSS.failUrl,
+                });
+            } catch (e) {
+                // 토스 결제창에서 '취소'를 누르면 failUrl이 아니라 여기로 reject된다(모달이라 URL 안 바뀜).
+                // 예약해둔 결제대기 자리를 즉시 반납한다 (안 그러면 10분 만료까지 묶임).
+                if (e && (e.code === 'USER_CANCEL' || e.code === 'PAY_PROCESS_CANCELED')) {
+                    try { await fetch('/api/group-buys/' + seq + '/cancel-pending', { method: 'POST' }); } catch (_) {}
+                    alert('결제를 취소했어요. 예약했던 자리를 반납했습니다.');
+                } else {
+                    alert('결제 요청 중 오류가 발생했어요.');
+                }
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
+</script>
+</body>
+</html>

@@ -18,6 +18,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CartLog {
 
+    /** 담기 */
+    public static final String STATUS_ADD      = "0";
+    /** 삭제 */
+    public static final String STATUS_REMOVE   = "1";
+    /** 구매 (주문 완료 시점에 기록) */
+    public static final String STATUS_PURCHASE = "2";
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cart_log_seq")
     @SequenceGenerator(name = "cart_log_seq", sequenceName = "cart_log_seq", allocationSize = 1)

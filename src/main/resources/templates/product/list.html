@@ -14,35 +14,35 @@
             </h2>
             <ul class="space-y-2 text-sm font-bold text-gray-700">
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='salesDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='salesDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == null or sort == 'salesDesc' or sort == ''} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
-                        <span th:if="${sort == null or sort == 'salesDesc' or sort == ''}">✓ </span>판매량순
+                        <span th:if="${sort == null or sort == 'salesDesc' or sort == ''}">✓ </span>인기순
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='priceAsc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='priceAsc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == 'priceAsc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
                         <span th:if="${sort == 'priceAsc'}">✓ </span>낮은 가격순
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='priceDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='priceDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == 'priceDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
                         <span th:if="${sort == 'priceDesc'}">✓ </span>높은 가격순
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='newest', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='newest', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == 'newest'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
                         <span th:if="${sort == 'newest'}">✓ </span>최신순
                     </a>
                 </li>
                 <li>
-                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='reviewDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}" 
+                    <a th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort='reviewDesc', price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                        class="block px-3 py-2 border transition-colors"
                        th:classappend="${sort == 'reviewDesc'} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 hover:border-amber-500 hover:text-amber-500'">
                         <span th:if="${sort == 'reviewDesc'}">✓ </span>리뷰순
@@ -153,10 +153,14 @@
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-gray-100">
+                <div class="pt-2 border-t border-gray-100 space-y-2">
                     <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-gray-800">
                         <input type="checkbox" name="hideOutOfStock" value="true" th:checked="${hideOutOfStock}" class="text-amber-500 focus:ring-amber-500 border-gray-300 rounded">
                         🚫 품절 상품 숨기기
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-gray-800">
+                        <input type="checkbox" name="showHotDealsOnly" value="true" th:checked="${showHotDealsOnly}" class="text-red-500 focus:ring-red-500 border-gray-300 rounded">
+                        🔥 핫딜 상품만 보기
                     </label>
                 </div>
 
@@ -177,13 +181,13 @@
             <div class="flex items-center gap-3">
                 <span class="text-xs font-black text-slate-500 w-16 shrink-0">대분류</span>
                 <div class="flex flex-wrap gap-2">
-                    <a th:href="@{/products(keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                    <a th:href="@{/products(keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                        class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
                        th:classappend="${categoryPath == null or categoryPath.isEmpty()} ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
                         전체
                     </a>
                     <a th:each="cat : ${globalCategories}"
-                       th:href="@{/products(categorySeq=${cat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                       th:href="@{/products(categorySeq=${cat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                        th:text="${cat.categoryName}"
                        class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
                        th:classappend="${categoryPath != null and !categoryPath.isEmpty() and categoryPath[0].seq == cat.seq} ? 'bg-amber-500 text-white border-amber-500 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
@@ -199,13 +203,13 @@
                     <!-- 현재 선택된 대분류의 하위 중분류 목록 탐색 -->
                     <th:block th:each="largeCat : ${globalCategories}" th:if="${largeCat.seq == categoryPath[0].seq}">
                         <!-- 중분류 전체 (대분류 선택된 상태와 같음) -->
-                        <a th:href="@{/products(categorySeq=${largeCat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                        <a th:href="@{/products(categorySeq=${largeCat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                            class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
                            th:classappend="${categoryPath.size() == 1} ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
                             전체
                         </a>
                         <a th:each="cat1 : ${largeCat.children}"
-                           th:href="@{/products(categorySeq=${cat1.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                           th:href="@{/products(categorySeq=${cat1.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                            th:text="${cat1.categoryName}"
                            class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
                            th:classappend="${categoryPath.size() >= 2 and categoryPath[1].seq == cat1.seq} ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
@@ -223,13 +227,13 @@
                     <th:block th:each="largeCat : ${globalCategories}" th:if="${largeCat.seq == categoryPath[0].seq}">
                         <th:block th:each="midCat : ${largeCat.children}" th:if="${midCat.seq == categoryPath[1].seq}">
                             <!-- 소분류 전체 (중분류 선택된 상태와 같음) -->
-                            <a th:href="@{/products(categorySeq=${midCat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                            <a th:href="@{/products(categorySeq=${midCat.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                                class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
                                th:classappend="${categoryPath.size() == 2} ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
                                 전체
                             </a>
                             <a th:each="cat2 : ${midCat.children}"
-                               th:href="@{/products(categorySeq=${cat2.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock})}"
+                               th:href="@{/products(categorySeq=${cat2.seq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                                th:text="${cat2.categoryName}"
                                class="px-4 py-1.5 text-xs font-bold border transition-all rounded-full"
                                th:classappend="${categoryPath.size() >= 3 and categoryPath[2].seq == cat2.seq} ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-400 hover:text-amber-500'">
@@ -260,6 +264,8 @@
                 </div>
 
                 <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                    <!-- 핫딜 진행 중 배지 -->
+                    <div th:if="${p.hotDeal}" class="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 shadow-md uppercase tracking-wider">핫딜</div>
                     <img th:src="${p.image}" alt="상품 이미지" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
                 </div>
                 <div class="pt-3 space-y-1.5">
@@ -288,12 +294,12 @@
         <div th:if="${not #lists.isEmpty(productList)}" class="mt-12 flex justify-center items-center gap-1 text-sm font-bold">
             <!-- 이전 블록 (10페이지 전으로) -->
             <a th:if="${startPage > 0}" 
-               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${startPage - 10}, hideOutOfStock=${hideOutOfStock})}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${startPage - 10}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                class="w-8 h-8 flex items-center justify-center border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-500 bg-white" title="이전 10페이지">&laquo;</a>
             
             <!-- 이전 페이지 -->
             <a th:if="${productPage.hasPrevious()}" 
-               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number - 1}, hideOutOfStock=${hideOutOfStock})}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number - 1}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                class="px-3 py-1 text-gray-600 hover:text-amber-600 mr-1">Prev</a>
             <span th:unless="${productPage.hasPrevious()}" 
                    class="px-3 py-1 text-gray-400 mr-1">Prev</span>
@@ -301,7 +307,7 @@
             <!-- 페이지 번호 목록 (최대 10개) -->
             <th:block th:if="${productPage.totalPages > 0}">
                 <a th:each="i : ${#numbers.sequence(startPage, endPage)}"
-                   th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${i}, hideOutOfStock=${hideOutOfStock})}"
+                   th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${i}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}"
                    class="w-8 h-8 flex items-center justify-center border font-bold"
                    th:classappend="${i == productPage.number} ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-500'"
                    th:text="${i + 1}">1</a>
@@ -309,35 +315,59 @@
             
             <!-- 다음 페이지 -->
             <a th:if="${productPage.hasNext()}" 
-               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number + 1}, hideOutOfStock=${hideOutOfStock})}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${productPage.number + 1}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                class="px-3 py-1 text-gray-600 hover:text-amber-600 ml-1">Next</a>
             <span th:unless="${productPage.hasNext()}" 
                    class="px-3 py-1 text-gray-400 ml-1">Next</span>
 
             <!-- 다음 블록 (10페이지 후로) -->
             <a th:if="${endPage < productPage.totalPages - 1}" 
-               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${endPage + 1}, hideOutOfStock=${hideOutOfStock})}" 
+               th:href="@{/products(categorySeq=${categorySeq}, keyword=${keyword}, sort=${sort}, price=${price}, rating=${rating}, page=${endPage + 1}, hideOutOfStock=${hideOutOfStock}, showHotDealsOnly=${showHotDealsOnly})}" 
                class="w-8 h-8 flex items-center justify-center border border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-500 bg-white" title="다음 10페이지">&raquo;</a>
         </div>
     </section>
 
     <aside class="hidden xl:flex w-52 flex-col gap-6 flex-shrink-0">
         <div class="bg-white p-4 border border-gray-200 shadow-sm">
-            <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">🔥 추천 상품 목록</h3>
+            <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">📊 인기 상품 목록</h3>
             <ul class="space-y-3">
-                <li th:each="r : ${recommendedList}">
-                    <a th:href="@{/products/{seq}(seq=${r.seq})}" class="group block">
-                        <h4 th:text="${r.name}" class="text-[11px] text-gray-700 truncate group-hover:text-amber-600 group-hover:underline">추천상품명</h4>
-                        <div class="flex justify-between items-baseline mt-0.5">
-                            <span th:text="${#numbers.formatInteger(r.price, 0, 'COMMA')} + '원'" class="text-xs font-bold text-slate-900">0원</span>
-                            <span class="text-[10px] text-red-500 font-bold flex items-center">HOT</span>
+                <li th:each="r, stat : ${recommendedList}">
+                    <a th:href="@{/products/{seq}(seq=${r.seq})}" th:title="${r.name}" class="group flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0">
+                        <!-- 순위 및 순위 변동 배지 -->
+                        <div class="flex flex-col items-center justify-center w-8 shrink-0">
+                            <span th:text="${stat.count}" class="text-sm font-extrabold text-slate-800 leading-none">1</span>
+                            
+                            <!-- 순위 변동 배지 -->
+                            <span th:if="${r.rankChange != null}" 
+                                  th:text="${r.rankChange}"
+                                  th:class="${r.rankChange == 'NEW'} ? 'text-[8px] text-emerald-500 font-black mt-1 leading-none' :
+                                            (${#strings.startsWith(r.rankChange, '▲')} ? 'text-[8px] text-red-500 font-bold mt-1 leading-none' :
+                                             (${#strings.startsWith(r.rankChange, '▼')} ? 'text-[8px] text-blue-500 font-bold mt-1 leading-none' :
+                                             'text-[8px] text-slate-400 font-bold mt-1 leading-none'))">-</span>
+                            <!-- 캐시 정보가 아직 없는 경우 기본값 표시 -->
+                            <span th:if="${r.rankChange == null}" class="text-[8px] text-slate-400 font-bold mt-1 leading-none">-</span>
+                        </div>
+                        
+                        <!-- 상품 썸네일 이미지 추가 -->
+                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 shrink-0">
+                            <img th:src="${r.thumbnailUrl}" alt="상품 이미지" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200">
+                        </div>
+                        
+                        <!-- 상품명 및 가격 -->
+                        <div class="min-w-0 flex-1">
+                            <h4 th:text="${r.name}" class="text-[11px] text-gray-700 truncate group-hover:text-amber-600 group-hover:underline">인기상품명</h4>
+                            <div class="flex justify-between items-baseline mt-0.5">
+                                <span th:text="${#numbers.formatInteger(r.price, 0, 'COMMA')} + '원'" class="text-xs font-bold text-slate-900">0원</span>
+                                <span th:if="${r.hot}" class="text-[9px] bg-red-500 text-white font-bold px-1 rounded-sm flex items-center animate-pulse">HOT</span>
+                            </div>
                         </div>
                     </a>
                 </li>
             </ul>
         </div>
 
-        <div th:if="${not #lists.isEmpty(recentViewedList)}" class="bg-white p-4 border border-gray-200 shadow-sm sticky top-24">
+        <div id="recent-viewed-container" class="bg-white p-4 border border-gray-200 shadow-sm sticky top-24"
+             th:classappend="${#lists.isEmpty(recentViewedList)} ? 'hidden' : ''">
             <h3 class="text-xs font-black text-slate-900 mb-3 pb-2 border-b border-gray-100">🕒 최근 조회 상품</h3>
             <ul class="space-y-4">
                 <li th:each="rv : ${recentViewedList}">
@@ -578,6 +608,40 @@
     // 7. 페이지 최초 진입 시 슬라이더 초기 설정 실행
     document.addEventListener('DOMContentLoaded', function() {
         initPriceSlider();
+    });
+
+    // 8. 브라우저 뒤로가기(캐시 로드) 시 최근 조회 상품 세션 상태만 부분 갱신
+    function refreshRecentViewed() {
+        fetch('/products/recent-viewed')
+            .then(response => {
+                if (!response.ok) throw new Error('Response error');
+                return response.text();
+            })
+            .then(html => {
+                const oldContainer = document.getElementById('recent-viewed-container');
+                if (oldContainer) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContainer = doc.getElementById('recent-viewed-container');
+                    if (newContainer) {
+                        oldContainer.outerHTML = newContainer.outerHTML;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Failed to refresh recent viewed products:', error);
+            });
+    }
+
+    window.addEventListener('pageshow', function(event) {
+        const perfEntries = window.performance && window.performance.getEntriesByType 
+            ? window.performance.getEntriesByType('navigation') 
+            : [];
+        const isBackNavigation = perfEntries.length > 0 && perfEntries[0].type === 'back_forward';
+        
+        if (event.persisted || isBackNavigation) {
+            refreshRecentViewed();
+        }
     });
 </script>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>

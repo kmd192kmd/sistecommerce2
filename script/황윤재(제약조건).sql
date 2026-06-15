@@ -39,4 +39,41 @@ ON participation (
   CASE WHEN status IN ('CANCELLED','FAILED','EXPIRED') THEN NULL ELSE member_seq END
 );
 
-commit ;
+-- ① 진행중 공구 + 옵션 (어디에 참여자를 넣을지)
+SELECT gb.seq AS gb_seq, gb.status, gbo.seq AS gbo_seq,
+       gbo.order_qty, gbo.occupied_count, gb.min_count
+FROM group_buy gb
+JOIN group_buy_options gbo ON gbo.group_buy_seq = gb.seq
+WHERE gb.status = 'ONGOING'
+ORDER BY gb.seq, gbo.seq;
+
+-- ② 참여시킬 회원 seq (앞쪽 20명)
+SELECT seq FROM member WHERE ROWNUM <= 20 ORDER BY seq;
+
+-- 공구 4번에 회원 15명을 옵션 3개(5,6,7)에 균등 분배해 정규참여(PARTICIPATING) 생성
+INSERT INTO participation (seq, group_buy_seq, group_buy_options_seq, member_seq, status, created_at)
+SELECT participation_seq.NEXTVAL,
+       4,
+       CASE MOD(rn, 3) WHEN 0 THEN 5 WHEN 1 THEN 6 ELSE 7 END,
+       seq,
+       'PARTICIPATING',
+       SYSTIMESTAMP
+FROM (
+    SELECT seq, ROWNUM rn
+    FROM (SELECT seq FROM member ORDER BY seq)
+    WHERE ROWNUM <= 15
+);
+
+-- occupied_count를 실제 활성 참여 수와 동기화 (NFR-003: 점유 = PARTICIPATING + PAYMENT_PENDING 수)
+UPDATE group_buy_options gbo
+SET occupied_count = (
+    SELECT COUNT(*) FROM participation p
+    WHERE p.group_buy_options_seq = gbo.seq
+      AND p.status IN ('PARTICIPATING','PAYMENT_PENDING')
+)
+WHERE gbo.group_buy_seq = 4;
+
+-- 공구 4번 옵션 중 일부에 추가금 부여 (확인용). gbo 6,7 → 그 옵션들에 +10000, +20000
+UPDATE options SET additional_price = 10000 WHERE seq = (SELECT options_seq FROM group_buy_options WHERE seq = 6);
+UPDATE options SET additional_price = 20000 WHERE seq = (SELECT options_seq FROM group_buy_options WHERE seq = 7);
+COMMIT;

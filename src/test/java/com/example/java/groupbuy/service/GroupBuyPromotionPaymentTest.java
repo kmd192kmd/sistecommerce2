@@ -3,9 +3,11 @@ package com.example.java.groupbuy.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -28,6 +30,10 @@ import com.example.java.groupbuy.entity.ParticipationStatus;
 import com.example.java.groupbuy.payment.GroupBuyPaymentPort;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.groupbuy.repository.ParticipationRepository;
+import com.example.java.orders.dto.OrderCreateResultDto;
+import com.example.java.orders.service.OrdersCommandService;
+
+import org.junit.jupiter.api.BeforeEach;
 
 /**
  * 승격자 결제(confirmPromotedPayment) 시나리오 검증.
@@ -66,6 +72,16 @@ class GroupBuyPromotionPaymentTest {
     @MockitoBean
     GroupBuyPaymentPort paymentPort;
 
+    /** 승격자 결제 시작이 호출하는 결제대기 주문 생성(orders 도메인)은 테스트 스키마에 없으므로 모킹. */
+    @MockitoBean
+    OrdersCommandService ordersCommandService;
+
+    @BeforeEach
+    void stubOrderCreation() {
+        when(ordersCommandService.createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new OrderCreateResultDto(1L, "GB-TEST", 8000, "테스트상품"));
+    }
+
     private static final AtomicLong SEQ = new AtomicLong(500);
 
     /** 테스트용 공구 1건 + 옵션 1건 직접 INSERT. @return [groupBuySeq, optionSeq] */
@@ -103,22 +119,37 @@ class GroupBuyPromotionPaymentTest {
         return rows.isEmpty() ? null : rows.get(0).getStatus();
     }
 
+    /** 대기열(waiting_queue) 행을 직접 INSERT (만료 시 승격 대상 구성용). */
+    private void insertWaiting(long gbSeq, long optSeq, long memberSeq) {
+        jdbc.update("""
+                INSERT INTO waiting_queue (seq, group_buy_seq, group_buy_options_seq, member_seq, created_at)
+                VALUES (waiting_queue_seq.NEXTVAL, ?, ?, ?, ?)
+                """,
+                gbSeq, optSeq, memberSeq, Timestamp.valueOf(LocalDateTime.now()));
+    }
+
     @Test
-    void 승격자가_기한내_결제하면_참여중으로_확정되고_점유는_그대로다() {
+    void 승격자가_결제시작후_결제완료되면_참여중으로_확정되고_점유는_그대로다() {
         // given: 정원 1 공구. 그 1자리는 이미 승격자가 점유(occupied=1) + 결제대기 participation
         long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
         long gb = ids[0], opt = ids[1];
         insertPaymentPending(gb, opt, 9L, LocalDateTime.now().plusHours(20)); // 기한 여유
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
 
-        // when: 승격자(9번) 결제
-        groupBuyService.confirmPromotedPayment(gb, 9L);
+        // when: 승격자(9번) 결제 시작 → 결제대기 주문 생성(아직 확정 아님)
+        groupBuyService.startPromotedPayment(gb, 9L);
 
-        // then: PAYMENT_PENDING → PARTICIPATING, 결제 1회, 점유 수 변동 없음
-        assertThat(statusOf(gb, 9L)).as("결제로 참여 확정").isEqualTo(ParticipationStatus.PARTICIPATING);
-        verify(paymentPort, times(1)).pay(eq(9L), anyInt());
+        // then: 주문 생성됨, 참여는 여전히 결제대기 (실제 결제는 토스 결제창에서)
+        verify(ordersCommandService, times(1)).createGroupBuyOrder(eq(9L), eq(pSeq), anyLong(), anyInt(), anyInt(), anyInt());
+        assertThat(statusOf(gb, 9L)).as("결제 시작만으론 아직 결제대기").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
 
+        // when: 토스 결제 성공 콜백 → 확정 (결제 완료 이벤트가 호출하는 메서드)
+        groupBuyService.confirmAfterPayment(pSeq);
+
+        // then: PAYMENT_PENDING → PARTICIPATING, 점유 수 변동 없음
+        assertThat(statusOf(gb, 9L)).as("결제 완료로 참여 확정").isEqualTo(ParticipationStatus.PARTICIPATING);
         GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
-        assertThat(after.getOccupiedCount()).as("승격 때 이미 점유 → 결제로는 점유 수 불변").isEqualTo(1);
+        assertThat(after.getOccupiedCount()).as("승격 때 이미 점유 → 점유 수 불변").isEqualTo(1);
     }
 
     @Test
@@ -128,14 +159,14 @@ class GroupBuyPromotionPaymentTest {
         long gb = ids[0], opt = ids[1];
         insertPaymentPending(gb, opt, 9L, LocalDateTime.now().minusMinutes(1)); // 기한 지남
 
-        // when/then: 결제 시도 → 예외, 결제 호출 없음
-        assertThatThrownBy(() -> groupBuyService.confirmPromotedPayment(gb, 9L))
+        // when/then: 결제 시작 시도 → 예외, 주문 생성 없음
+        assertThatThrownBy(() -> groupBuyService.startPromotedPayment(gb, 9L))
                 .as("기한 만료 결제 차단")
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("결제 기한");
 
         assertThat(statusOf(gb, 9L)).as("여전히 결제대기 (확정 안 됨)").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
-        verify(paymentPort, times(0)).pay(eq(9L), anyInt());
+        verify(ordersCommandService, times(0)).createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt());
     }
 
     @Test
@@ -144,12 +175,77 @@ class GroupBuyPromotionPaymentTest {
         long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 0);
         long gb = ids[0];
 
-        // when/then: 결제 시도 → 거부 (승격받은 적 없는 회원)
-        assertThatThrownBy(() -> groupBuyService.confirmPromotedPayment(gb, 9L))
+        // when/then: 결제 시작 시도 → 거부 (승격받은 적 없는 회원)
+        assertThatThrownBy(() -> groupBuyService.startPromotedPayment(gb, 9L))
                 .as("결제대기 대상이 없으면 거부")
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("결제 대기");
 
-        verify(paymentPort, times(0)).pay(eq(9L), anyInt());
+        verify(ordersCommandService, times(0)).createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt());
+    }
+
+    @Test
+    void 결제기한_만료자는_EXPIRED되고_점유반납후_다음대기자가_승격된다() {
+        // given: 정원1(이미 점유). member9가 결제대기인데 기한 지남 + 대기열에 member10
+        long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
+        long gb = ids[0], opt = ids[1];
+        insertPaymentPending(gb, opt, 9L, LocalDateTime.now().minusMinutes(1)); // 기한 지남
+        insertWaiting(gb, opt, 10L);                                            // 대기열 1명
+
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
+
+        // when: 만료 처리 (스케줄러가 호출하는 서비스 메서드)
+        groupBuyService.expirePromotion(pSeq);
+
+        // then: 9번 EXPIRED / 10번 승격 / 점유 유지 / 환불 없음(결제 전이었으므로)
+        assertThat(statusOf(gb, 9L)).as("기한 만료자는 EXPIRED").isEqualTo(ParticipationStatus.EXPIRED);
+        assertThat(statusOf(gb, 10L)).as("같은 옵션 다음 대기자가 승격").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
+
+        GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
+        assertThat(after.getOccupiedCount()).as("점유 유지 (release -1 + 승격 +1 = 0)").isEqualTo(1);
+
+        verify(paymentPort, times(0)).refund(anyLong()); // 결제 전이라 환불 없음
+    }
+
+    @Test
+    void 결제대기자가_명시적_취소하면_CANCELLED되고_점유반납후_다음대기자가_승격된다() {
+        // given: 정원1(이미 점유). member9가 결제대기(기한 여유) + 대기열에 member10
+        long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
+        long gb = ids[0], opt = ids[1];
+        insertPaymentPending(gb, opt, 9L, LocalDateTime.now().plusHours(20)); // 기한 여유 — 취소는 기한 무관
+        insertWaiting(gb, opt, 10L);                                          // 대기열 1명
+
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
+
+        // when: 토스 결제창에서 명시적 취소 (failUrl → OrderPaymentFailedEvent → 이 메서드)
+        groupBuyService.cancelPendingPayment(pSeq);
+
+        // then: 9번 CANCELLED / 10번 승격 / 점유 유지 / 환불 없음(결제 전이었으므로)
+        assertThat(statusOf(gb, 9L)).as("명시적 취소자는 CANCELLED").isEqualTo(ParticipationStatus.CANCELLED);
+        assertThat(statusOf(gb, 10L)).as("같은 옵션 다음 대기자가 승격").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
+
+        GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
+        assertThat(after.getOccupiedCount()).as("점유 유지 (release -1 + 승격 +1 = 0)").isEqualTo(1);
+
+        verify(paymentPort, times(0)).refund(anyLong()); // 결제 전이라 환불 없음
+    }
+
+    @Test
+    void 이미_결제완료된_참여는_취소콜백이_와도_변화없다_멱등() {
+        // given: 결제대기였다가 결제 완료(PARTICIPATING)된 참여 — 취소 대상이 아니어야
+        long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1, 1);
+        long gb = ids[0], opt = ids[1];
+        insertPaymentPending(gb, opt, 9L, LocalDateTime.now().plusHours(20));
+        long pSeq = participationRepository.findByGroupBuySeqAndMemberSeq(gb, 9L).get(0).getSeq();
+        groupBuyService.confirmAfterPayment(pSeq); // 결제 완료 → PARTICIPATING
+
+        // when: 뒤늦은(중복) failUrl 콜백으로 취소 시도
+        groupBuyService.cancelPendingPayment(pSeq);
+
+        // then: PARTICIPATING 유지(취소 안 됨), 점유 불변 — PAYMENT_PENDING이 아니면 멱등 무시
+        assertThat(statusOf(gb, 9L)).as("결제완료자는 취소 콜백에도 PARTICIPATING 유지")
+                .isEqualTo(ParticipationStatus.PARTICIPATING);
+        GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
+        assertThat(after.getOccupiedCount()).as("점유 불변").isEqualTo(1);
     }
 }

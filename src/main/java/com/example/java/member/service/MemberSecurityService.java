@@ -1,12 +1,15 @@
 package com.example.java.member.service;
 
+import java.util.Optional;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.example.java.member.entity.Member;
-import com.example.java.member.repository.MemberRepository;
+import com.example.java.member.dto.LoginUserDto;
 import com.example.java.member.security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
@@ -15,15 +18,108 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MemberSecurityService implements UserDetailsService {
 
-	private final MemberRepository memberRepository;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
-	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		Member member = memberRepository.findByUsername(username)
-				.orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 아이디입니다: " + username));
-		// Spring Security가 제공하는 기본 User는 seq를 못 담으므로, 
-		// seq를 보관한 CustomUserDetails를 반환한다.
-		// (GroupBuyApiController에서 @AuthenticationPrincipal 로 회원 seq를 꺼내 쓰기 위함)
-		return new CustomUserDetails(member);
-	}
+    @Override
+    public UserDetails loadUserByUsername(String loginUsername) throws UsernameNotFoundException {
 
+        String[] parts = loginUsername.split(":", 2);
+
+        if (parts.length != 2) {
+            throw new UsernameNotFoundException("로그인 유형이 없습니다.");
+        }
+
+        String loginType = parts[0];
+        String username = parts[1];
+
+        LoginUserDto user;
+
+        if ("MEMBER".equals(loginType)) {
+            user = findMember(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 회원 아이디입니다."));
+        } else if ("SELLER".equals(loginType)) {
+            user = findSeller(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 판매처 아이디입니다."));
+        } else if ("ADMIN".equals(loginType)) {
+            user = findAdmin(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("존재하지 않는 관리자 아이디입니다."));
+        } else {
+            throw new UsernameNotFoundException("잘못된 로그인 유형입니다.");
+        }
+
+        return new CustomUserDetails(user);
+    }
+
+    private Optional<LoginUserDto> findMember(String username) {
+
+        String sql = """
+                SELECT
+                    seq,
+                    username,
+                    password,
+                    role,
+                    status,
+                    0 AS adm_role
+                FROM member
+                WHERE username = :username
+                """;
+
+        return findUser(sql, username, "MEMBER");
+    }
+
+    private Optional<LoginUserDto> findSeller(String username) {
+
+        String sql = """
+                SELECT
+                    seq,
+                    id AS username,
+                    password,
+                    role,
+                    status,
+                    0 AS adm_role
+                FROM seller
+                WHERE id = :username
+                """;
+
+        return findUser(sql, username, "SELLER");
+    }
+
+    private Optional<LoginUserDto> findAdmin(String username) {
+
+        String sql = """
+                SELECT
+                    seq,
+                    id AS username,
+                    password,
+                    role,
+                    adm_status AS status,
+                    adm_role
+                FROM admin
+                WHERE id = :username
+                """;
+
+        return findUser(sql, username, "ADMIN");
+    }
+
+    private Optional<LoginUserDto> findUser(String sql, String username, String loginType) {
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("username", username);
+
+        return jdbcTemplate.query(sql, params, rs -> {
+            if (!rs.next()) {
+                return Optional.empty();
+            }
+
+            return Optional.of(new LoginUserDto(
+                    rs.getLong("seq"),
+                    rs.getString("username"),
+                    rs.getString("password"),
+                    rs.getString("role"),
+                    rs.getInt("status"),
+                    loginType,
+                    rs.getInt("adm_role")
+            ));
+        });
+    }
 }

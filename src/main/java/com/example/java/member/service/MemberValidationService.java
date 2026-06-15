@@ -22,6 +22,9 @@ public class MemberValidationService {
 		return memberRepository.existsByNickname(nickname);
 	}
 
-	
-	
+	public boolean existsByEmail(String email) {
+
+		return memberRepository.existsByEmail(email);
+	}
+
 }

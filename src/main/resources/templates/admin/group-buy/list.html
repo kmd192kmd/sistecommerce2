@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공동구매 관리</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
+
+    <style>
+        .btn-more {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-body);
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-more:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-white);
+            border-color: var(--text-muted);
+        }
+        .btn-stop-selected {
+            background-color: #7C3AED;
+            color: white;
+            transition: background-color 0.2s;
+        }
+        .btn-stop-selected:hover {
+            background-color: #6D28D9;
+        }
+    </style>
+</head>
+
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+
+    <h4 class="text-title mb-4">공동구매 관리</h4>
+
+    <!-- ================= 검색 필터 ================= -->
+    <div class="card">
+        <form id="searchForm" method="get" th:action="@{/admin/group-buys}" class="space-y-4">
+            
+            <!-- 공동구매 상태 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">공동구매 상태</span>
+                <div class="flex gap-2">
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="" th:checked="${search.status == null}">
+                        전체
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="ONGOING" th:checked="${search.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).ONGOING}">
+                        진행 중
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="CONFIRMED" th:checked="${search.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).CONFIRMED}">
+                        성공
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="FAILED" th:checked="${search.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).FAILED}">
+                        실패
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="STOPPED" th:checked="${search.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).STOPPED}">
+                        강제 중지
+                    </label>
+                    <label class="filter-btn">
+                        <input type="radio" name="status" value="SCHEDULED" th:checked="${search.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).SCHEDULED}">
+                        시작 전
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 참여인원 범위 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">참여인원</span>
+                <div class="flex items-center gap-2">
+                    <input type="number" name="participantMin" th:value="${search.participantMin}" class="form-input w-32" placeholder="0">
+                    <span class="text-label">명 이상 ~</span>
+                    <input type="number" name="participantMax" th:value="${search.participantMax}" class="form-input w-32" placeholder="99999">
+                    <span class="text-label">명 이하</span>
+                </div>
+            </div>
+            
+            <!-- 공구 시작일 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">공구 시작일</span>
+                <div class="flex items-center gap-2">
+                    <input type="datetime-local" id="startAtFrom" name="startAtFrom" th:value="${search.startAtFrom}" class="form-input w-56">
+                    <span class="text-label">~</span>
+                    <input type="datetime-local" id="startAtTo" name="startAtTo" th:value="${search.startAtTo}" class="form-input w-56">
+                    
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('today', 'startAtFrom', 'startAtTo')">오늘</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('1week', 'startAtFrom', 'startAtTo')">1주일</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('1month', 'startAtFrom', 'startAtTo')">1개월</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('3month', 'startAtFrom', 'startAtTo')">3개월</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('all', 'startAtFrom', 'startAtTo')">전체</button>
+                </div>
+            </div>
+
+            <!-- 공구 종료일 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">공구 종료일</span>
+                <div class="flex items-center gap-2">
+                    <input type="datetime-local" id="endAtFrom" name="endAtFrom" th:value="${search.endAtFrom}" class="form-input w-56">
+                    <span class="text-label">~</span>
+                    <input type="datetime-local" id="endAtTo" name="endAtTo" th:value="${search.endAtTo}" class="form-input w-56">
+                    
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('today', 'endAtFrom', 'endAtTo')">오늘</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('1week', 'endAtFrom', 'endAtTo')">1주일</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('1month', 'endAtFrom', 'endAtTo')">1개월</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('3month', 'endAtFrom', 'endAtTo')">3개월</button>
+                    <button type="button" class="btn btn-outline py-1 px-3 text-xs" onclick="setDateRange('all', 'endAtFrom', 'endAtTo')">전체</button>
+                </div>
+            </div>
+
+            <!-- 검색어 -->
+            <div class="flex items-center gap-4">
+                <span class="text-label w-24">검색어</span>
+                <div class="flex gap-2 w-full">
+                    <select name="searchType" class="form-input w-32 bg-[var(--bg-body)]">
+                        <option value="PRODUCT_NAME" th:selected="${search.searchType == 'PRODUCT_NAME'}">상품명</option>
+                        <option value="SELLER_NAME" th:selected="${search.searchType == 'SELLER_NAME'}">판매처</option>
+                    </select>
+                    <input type="text" name="keyword" th:value="${search.keyword}" class="form-input w-[28rem]" placeholder="검색어를 입력하세요">
+                    <button type="submit" class="btn btn-primary px-12 py-2 text-base">검색</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ================= 검색결과 및 강제중지 버튼 ================= -->
+    <div class="flex items-center justify-between">
+        <h5 class="text-md font-bold text-white">
+            검색결과 : <span class="text-red-500" th:text="${totalElements}">0</span>건
+        </h5>
+        <button type="button" id="btnBatchStop" class="btn btn-stop-selected px-6 py-2">
+            선택 목록 강제 중지
+        </button>
+    </div>
+
+    <!-- ================= 데이터 테이블 ================= -->
+    <div class="card">
+        <div class="overflow-x-auto">
+            <form id="batchStopForm" method="post" th:action="@{/admin/group-buys/batch-stop}">
+                <table class="w-full text-sm text-center">
+                    <thead class="text-label border-b border-[var(--border-color)]">
+                    <tr>
+                        <th class="p-2 w-12"><input type="checkbox" id="selectAll" class="w-4 h-4"></th>
+                        <th class="p-2">공구번호</th>
+                        <th class="p-2">상태</th>
+                        <th class="p-2">판매처</th>
+                        <th class="p-2">상품명</th>
+                        <th class="p-2">참여인원</th>
+                        <th class="p-2">목표인원</th>
+                        <th class="p-2">대기자수</th>
+                        <th class="p-2">남은인원</th>
+                        <th class="p-2">공구 시작일</th>
+                        <th class="p-2">공구 종료일</th>
+                    </tr>
+                    </thead>
+                    <tbody id="groupBuyTableBody">
+                    <tr th:each="item : ${list}" class="border-b border-[var(--border-color)]">
+                        <td class="p-2">
+                            <input type="checkbox" name="seqs" th:value="${item.seq}" class="w-4 h-4 seq-checkbox">
+                        </td>
+                        <td class="p-2" th:text="${item.seq}"></td>
+                        <td class="p-2">
+                            <span class="badge" th:classappend="${
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).ONGOING ? 'badge-success' :
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).CONFIRMED ? 'badge-success' :
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).STOPPED ? 'badge-danger' : 'badge-danger'
+                            }" th:text="${
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).ONGOING ? '진행 중' :
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).CONFIRMED ? '성공' :
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).FAILED ? '실패' :
+                                item.status == T(com.example.java.groupbuy.entity.GroupBuyStatus).STOPPED ? '강제 중단' : '시작 전'
+                            }">상태</span>
+                        </td>
+                        <td class="p-2" th:text="${item.sellerName}"></td>
+                        <td class="p-2" th:text="${item.productName}"></td>
+                        <td class="p-2" th:text="${item.participantCount}"></td>
+                        <td class="p-2" th:text="${item.minCount}"></td>
+                        <td class="p-2 font-bold text-blue-400" th:text="${item.waitingCount}"></td>
+                        <td class="p-2 font-bold text-blue-500" th:text="${item.remainingCount}"></td>
+                        <td class="p-2" th:text="${#temporals.format(item.startAt, 'yyyy.MM.dd HH:mm')}"></td>
+                        <td class="p-2" th:text="${#temporals.format(item.endAt, 'yyyy.MM.dd HH:mm')}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(list)}">
+                        <td colspan="11" class="p-8 text-label">조회된 공동구매 정보가 없습니다.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= 더보기 버튼 ================= -->
+    <div class="mt-6">
+        <button id="loadMoreBtn" th:if="${hasNext}" class="btn btn-more">
+            더보기
+        </button>
+    </div>
+    </main>
+  </div>
+</div>
+
+<script>
+let page = 1;
+const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMore);
+}
+
+// 더보기 비동기 조회 로직
+async function loadMore() {
+    const form = document.getElementById("searchForm");
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+
+    for (const [key, value] of formData.entries()) {
+        if (value) params.append(key, value);
+    }
+    params.set("page", page);
+    params.set("size", 10);
+
+    const response = await fetch(`/admin/api/group-buys?${params.toString()}`);
+    if (!response.ok) return;
+
+    const pageData = await response.json();
+    const tbody = document.getElementById("groupBuyTableBody");
+
+    pageData.content.forEach(item => {
+        let badgeClass = "badge-danger";
+        let statusText = item.status;
+
+        if (item.status === "ONGOING") {
+            badgeClass = "badge-success";
+            statusText = "진행 중";
+        } else if (item.status === "CONFIRMED") {
+            badgeClass = "badge-success";
+            statusText = "성공";
+        } else if (item.status === "FAILED") {
+            statusText = "실패";
+        } else if (item.status === "STOPPED") {
+            statusText = "강제 중단";
+        } else if (item.status === "SCHEDULED") {
+            statusText = "시작 전";
+        }
+
+        const startStr = item.startAt ? item.startAt.replace("T", " ").substring(0, 16).replaceAll("-", ".") : "-";
+        const endStr = item.endAt ? item.endAt.replace("T", " ").substring(0, 16).replaceAll("-", ".") : "-";
+
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="border-b border-[var(--border-color)]">
+                <td class="p-2">
+                    <input type="checkbox" name="seqs" value="${item.seq}" class="w-4 h-4 seq-checkbox">
+                </td>
+                <td class="p-2">${item.seq}</td>
+                <td class="p-2">
+                    <span class="badge ${badgeClass}">${statusText}</span>
+                </td>
+                <td class="p-2">${item.sellerName}</td>
+                <td class="p-2">${item.productName}</td>
+                <td class="p-2">${item.participantCount}</td>
+                <td class="p-2">${item.minCount}</td>
+                <td class="p-2 font-bold text-blue-400">${item.waitingCount}</td>
+                <td class="p-2 font-bold text-blue-500">${item.remainingCount}</td>
+                <td class="p-2">${startStr}</td>
+                <td class="p-2">${endStr}</td>
+            </tr>
+        `);
+    });
+
+    if (pageData.last) {
+        loadMoreBtn.style.display = "none";
+    }
+    page++;
+}
+
+// 전체 선택/해제 기능
+const selectAll = document.getElementById("selectAll");
+selectAll.addEventListener("change", function() {
+    const checkboxes = document.querySelectorAll(".seq-checkbox");
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+});
+
+// 강제 중지 처리
+const btnBatchStop = document.getElementById("btnBatchStop");
+btnBatchStop.addEventListener("click", function() {
+    const checked = document.querySelectorAll(".seq-checkbox:checked");
+    if (checked.length === 0) {
+        alert("선택된 공동구매가 없습니다.");
+        return;
+    }
+    if (confirm("선택한 공동구매를 강제 중지하시겠습니까? 관련 참가자 결제가 취소됩니다.")) {
+        const form = document.getElementById("batchStopForm");
+        const formData = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            body: new URLSearchParams(formData)
+        }).then(res => {
+            if(res.ok) {
+                alert("성공적으로 중지되었습니다.");
+                location.reload();
+            } else {
+                alert("처리에 실패했습니다.");
+            }
+        }).catch(() => alert("오류가 발생했습니다."));
+    }
+});
+
+// 날짜 범위 설정 헬퍼 함수
+function setDateRange(type, targetFromId, targetToId) {
+    const fromInput = document.getElementById(targetFromId);
+    const toInput = document.getElementById(targetToId);
+    
+    if (type === 'all') {
+        fromInput.value = '';
+        toInput.value = '';
+        return;
+    }
+    
+    const now = new Date();
+    const formatDate = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${d}T${hh}:${mm}`;
+    };
+    
+    toInput.value = formatDate(now);
+    
+    const fromDate = new Date();
+    if (type === 'today') {
+        fromDate.setHours(0, 0, 0, 0);
+    } else if (type === '1week') {
+        fromDate.setDate(now.getDate() - 7);
+    } else if (type === '1month') {
+        fromDate.setMonth(now.getMonth() - 1);
+    } else if (type === '3month') {
+        fromDate.setMonth(now.getMonth() - 3);
+    }
+    fromInput.value = formatDate(fromDate);
+}
+</script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>

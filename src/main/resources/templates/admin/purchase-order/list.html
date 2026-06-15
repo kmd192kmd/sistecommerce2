@@ -6,185 +6,197 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/admin/style.css">
     <style>
-    .btn-more {
-  width: 100%;
-  justify-content: center;
-  padding: 0.75rem 1rem;
-  background-color: var(--bg-body);
-  border: 1px dashed var(--border-color);
-  color: var(--text-muted);
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.btn-more:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-white);
-  border-color: var(--text-muted);
-}
+	    .btn-more {
+		  width: 100%;
+		  justify-content: center;
+		  padding: 0.75rem 1rem;
+		  background-color: var(--bg-body);
+		  border: 1px dashed var(--border-color);
+		  color: var(--text-muted);
+		  font-weight: 500;
+		  transition: all 0.2s;
+		}
+		.btn-more:hover {
+			  background-color: var(--bg-hover);
+			  color: var(--text-white);
+			  border-color: var(--text-muted);
+		}
     </style>
 </head>
 
-<body class="bg-body text-main">
 
-<div class="p-6 space-y-6">
+<body class="font-sans antialiased overflow-hidden">
 
-    <h4 class="text-title mb-4">발주 관리</h4>
-    <!-- ================= 검색 영역 ================= -->
-    <div class="card">
-
-    <form method="get" th:action="@{/admin/purchase-orders}" class="space-y-4">
-
-        <!-- 1. 상태 -->
-        <div class="flex items-center gap-4">
-            <span class="text-label w-24">발주 상태</span>
-
-            <div class="flex gap-2">
-                <label class="filter-btn">
-                    <input type="radio" name="status"
-                    	value="" th:checked="${search.status == null}">
-                    전체
-                </label>
-
-                <label class="filter-btn">
-                    <input type="radio" name="status"
-                    	value="발주요청" th:checked="${search.status != null and search.status.name() == '발주요청'}">
-                    발주 요청
-                </label>
-
-                <label class="filter-btn">
-                    <input type="radio" name="status"
-                    	value="입고완료" th:checked="${search.status != null and search.status.name() == '입고완료'}">
-                    입고 완료
-                </label>
-
-                <label class="filter-btn">
-                    <input type="radio" name="status"
-                    	value="물품불량" th:checked="${search.status != null and search.status.name() == '물품불량'}">
-                    물품 불량
-                </label>
-            </div>
-        </div>
-
-        <!-- 2. 총금액 -->
-        <div class="flex items-center gap-4">
-            <span class="text-label w-24">총 금액</span>
-            <div class="flex items-center gap-2">
-                <input type="number" name="totalPriceFrom" class="form-input w-32">
-                <span class="text-label">원 이상 ~ </span>
-                <input type="number" name="totalPriceTo" class="form-input w-32">
-                <span class="text-label">원 이하</span>
-            </div>
-        </div>
-
-        <!-- 3. 발주일 -->
-        <div class="flex items-center gap-4">
-            <span class="text-label w-24">발주일</span>
-
-            <div class="flex items-center gap-2">
-                <input type="date" name="orderDateFrom" class="form-input">
-                <span class="text-label">~</span>
-                <input type="date" name="orderDateTo" class="form-input">
-            </div>
-        </div>
-
-        <!-- 4. 예정일 -->
-        <div class="flex items-center gap-4">
-            <span class="text-label w-24">예정일</span>
-
-            <div class="flex items-center gap-2">
-                <input type="date" name="expectedDateFrom" class="form-input">
-                <span class="text-label">~</span>
-                <input type="date" name="expectedDateTo" class="form-input">
-            </div>
-        </div>
-
-        <!-- 5. 검색 -->
-        <div class="flex items-center gap-4">
-            <span class="text-label w-24">검색</span>
-            <div class="flex gap-2 w-full">
-                <select name="keywordType" class="form-input w-40">
-                    <option value="">선택</option>
-                    <option value="product">상품명</option>
-                    <option value="option">옵션명</option>
-                </select>
-                <input type="text" name="keyword"
-                       class="form-input  w-[28rem]"
-                       placeholder="검색어 입력">
-                <button type="submit" class="btn btn-primary px-12 py-2 text-base">
-                    검색
-                </button>
-            </div>
-        </div>
-
-    </form>
-</div>
-
-	<h4 class="text-title mb-4">발주 목록</h4>
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+	    <h4 class="text-title mb-4">발주 관리</h4>
+	    <!-- ================= 검색 영역 ================= -->
+	    <div class="card">
 	
-    <!-- ================= 상태 변경 버튼 ================= -->
-    <div class="flex flex-wrap gap-2">
-        <button class="btn btn-outline" onclick="updateSelectedStatus('입고완료')">선택 발주 입고완료</button>
-        <button class="btn btn-outline" onclick="updateSelectedStatus('물품불량')">선택 발주 물품불량</button>
-        <button class="btn btn-outline" onclick="updateSelectedStatus('입고지연')">선택 발주 입고지연</button>
-        <button class="btn btn-outline" onclick="updateSelectedStatus('지연입고')">선택 발주 지연입고</button>
-    </div>
-
-    <!-- ================= 테이블 ================= -->
-    <div class="card">    
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-center">
-                <thead class="text-label border-b border-[var(--border-color)]">
-                <tr>
-                    <th class="p-2">
-                        <input type="checkbox" id="checkAll">
-                    </th>
-                    <th class="p-2">번호</th>
-                    <th class="p-2">상태</th>
-                    <th class="p-2">상품명</th>
-                    <th class="p-2">옵션</th>
-                    <th class="p-2">수량</th>
-                    <th class="p-2">총금액</th>
-                    <th class="p-2">발주일</th>
-                    <th class="p-2">예정일</th>
-                    <th class="p-2">입고일</th>
-                </tr>
-                </thead>
-
-                <tbody>
-                <tr th:each="item : ${list}" class="border-b border-[var(--border-color)]">
-                    <td class="p-2">
-                        <input type="checkbox"
-                               class="order-check"
-                               th:value="${item.seq}">
-                    </td>
-
-                    <td class="p-2" th:text="${item.seq}"></td>
-                    <td class="p-2" th:text="${item.status}"></td>
-                    <td class="p-2" th:text="${item.productName}"></td>
-                    <td class="p-2" th:text="${item.optionsName}"></td>
-                    <td class="p-2" th:text="${item.quantity}"></td>
-                    <td class="p-2"
-                        th:text="${#numbers.formatInteger(item.totalPrice, 3, 'COMMA') + '원'}"></td>
-                    <td class="p-2"
-                        th:text="${#temporals.format(item.orderDate, 'yyyy.MM.dd')}"></td>
-                    <td class="p-2"
-                        th:text="${#temporals.format(item.expectedDate, 'yyyy.MM.dd')}"></td>
-                    <td class="p-2"
-                        th:text="${item.receivedDate != null ? #temporals.format(item.receivedDate, 'yyyy.MM.dd') : '-'}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-        <div class="mt-6">
-		    <button id="loadMoreBtn" th:if="${hasNext}" class="btn btn-more">
-		    	더보기
-	    	</button>
-		</div>
+	    <form method="get" th:action="@{/admin/purchase-orders}" class="space-y-4">
+	
+	        <!-- 1. 상태 -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">발주 상태</span>
+	
+	            <div class="flex gap-2">
+	                <label class="filter-btn">
+	                    <input type="radio" name="status"
+	                    	value="" th:checked="${search.status == null}">
+	                    전체
+	                </label>
+	
+	                <label class="filter-btn">
+	                    <input type="radio" name="status"
+	                    	value="발주요청" th:checked="${search.status != null and search.status.name() == '발주요청'}">
+	                    발주 요청
+	                </label>
+	
+	                <label class="filter-btn">
+	                    <input type="radio" name="status"
+	                    	value="입고완료" th:checked="${search.status != null and search.status.name() == '입고완료'}">
+	                    입고 완료
+	                </label>
+	
+	                <label class="filter-btn">
+	                    <input type="radio" name="status"
+	                    	value="물품불량" th:checked="${search.status != null and search.status.name() == '물품불량'}">
+	                    물품 불량
+	                </label>
+	            </div>
+	        </div>
+	
+	        <!-- 2. 총금액 -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">총 금액</span>
+	            <div class="flex items-center gap-2">
+	                <input type="number" name="totalPriceFrom" class="form-input w-32">
+	                <span class="text-label">원 이상 ~ </span>
+	                <input type="number" name="totalPriceTo" class="form-input w-32">
+	                <span class="text-label">원 이하</span>
+	            </div>
+	        </div>
+	
+	        <!-- 3. 발주일 -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">발주일</span>
+	
+	            <div class="flex items-center gap-2">
+	                <input type="date" name="orderDateFrom" class="form-input">
+	                <span class="text-label">~</span>
+	                <input type="date" name="orderDateTo" class="form-input">
+	            </div>
+	        </div>
+	
+	        <!-- 4. 예정일 -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">예정일</span>
+	
+	            <div class="flex items-center gap-2">
+	                <input type="date" name="expectedDateFrom" class="form-input">
+	                <span class="text-label">~</span>
+	                <input type="date" name="expectedDateTo" class="form-input">
+	            </div>
+	        </div>
+	
+	        <!-- 5. 검색 -->
+	        <div class="flex items-center gap-4">
+	            <span class="text-label w-24">검색</span>
+	            <div class="flex gap-2 w-full">
+	                <select name="keywordType" class="form-input w-40">
+	                    <option value="">선택</option>
+	                    <option value="product">상품명</option>
+	                    <option value="option">옵션명</option>
+	                </select>
+	                <input type="text" name="keyword"
+	                       class="form-input  w-[28rem]"
+	                       placeholder="검색어 입력">
+	                <button type="submit" class="btn btn-primary px-12 py-2 text-base">
+	                    검색
+	                </button>
+	            </div>
+	        </div>
+	
+	    </form>
+	</div>
+	
+		<h4 class="text-title mb-4">발주 목록</h4>
+		
+	    <!-- ================= 상태 변경 버튼 ================= -->
+	    <div class="flex flex-wrap gap-2">
+	        <button class="btn btn-outline" onclick="updateSelectedStatus('입고완료')">선택 발주 입고완료</button>
+	        <button class="btn btn-outline" onclick="updateSelectedStatus('물품불량')">선택 발주 물품불량</button>
+	        <button class="btn btn-outline" onclick="updateSelectedStatus('입고지연')">선택 발주 입고지연</button>
+	        <button class="btn btn-outline" onclick="updateSelectedStatus('지연입고')">선택 발주 지연입고</button>
+	    </div>
+	
+	    <!-- ================= 테이블 ================= -->
+	    <div class="card">    
+	        <div class="overflow-x-auto">
+	            <table class="w-full text-sm text-center">
+	                <thead class="text-label border-b border-[var(--border-color)]">
+	                <tr>
+	                    <th class="p-2">
+	                        <input type="checkbox" id="checkAll">
+	                    </th>
+	                    <th class="p-2">번호</th>
+	                    <th class="p-2">상태</th>
+	                    <th class="p-2">판매처</th>
+	                    <th class="p-2">상품명</th>
+	                    <th class="p-2">옵션</th>
+	                    <th class="p-2">수량</th>
+	                    <th class="p-2">총금액</th>
+	                    <th class="p-2">발주일</th>
+	                    <th class="p-2">예정일</th>
+	                    <th class="p-2">입고일</th>
+	                </tr>
+	                </thead>
+	
+	                <tbody>
+	                <tr th:each="item : ${list}" class="border-b border-[var(--border-color)]">
+	                    <td class="p-2">
+	                        <input type="checkbox"
+	                               class="order-check"
+	                               th:value="${item.seq}">
+	                    </td>
+	
+	                    <td class="p-2" th:text="${item.seq}"></td>
+	                    <td class="p-2" th:text="${item.status}"></td>
+	                    <td class="p-2" th:text="${item.sellerName}"></td>
+	                    <td class="p-2" th:text="${item.productName}"></td>
+	                    <td class="p-2" th:text="${item.optionsName}"></td>
+	                    <td class="p-2" th:text="${item.quantity}"></td>
+	                    <td class="p-2"
+	                        th:text="${#numbers.formatInteger(item.totalPrice, 3, 'COMMA') + '원'}"></td>
+	                    <td class="p-2"
+	                        th:text="${#temporals.format(item.orderDate, 'yyyy.MM.dd')}"></td>
+	                    <td class="p-2"
+	                        th:text="${#temporals.format(item.expectedDate, 'yyyy.MM.dd')}"></td>
+	                    <td class="p-2"
+	                        th:text="${item.receivedDate != null ? #temporals.format(item.receivedDate, 'yyyy.MM.dd') : '-'}"></td>
+	                </tr>
+	                </tbody>
+	            </table>
+	        </div>
+	    </div>
+	        <div class="mt-6">
+			    <button id="loadMoreBtn" th:if="${hasNext}" class="btn btn-more">
+			    	더보기
+		    	</button>
+			</div>
+		</main>
+	</div>
 </div>
-<script>
 
+<script src="/admin/admin.js"></script>
+<script>
 	let page = 1;
 	
 	const loadMoreBtn =
@@ -219,6 +231,7 @@
 	
 	                <td class="p-2">${item.seq}</td>
 	                <td class="p-2">${item.status}</td>
+	                <td class="p-2">${item.sellerName}</td>
 	                <td class="p-2">${item.productName}</td>
 	                <td class="p-2">${item.optionsName}</td>
 	                <td class="p-2">${item.quantity}</td>

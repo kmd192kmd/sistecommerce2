@@ -90,4 +90,20 @@ public class Participation {
     public void expire() {
         this.status = ParticipationStatus.EXPIRED;
     }
+
+    /**
+     * 마감 확정 시 참여 확정: PARTICIPATING → CONFIRMED.
+     * 공구가 최소 인원을 달성해 성사된 경우, 결제 완료한 참여자가 최종 확정된다.
+     */
+    public void confirm() {
+        this.status = ParticipationStatus.CONFIRMED;
+    }
+
+    /**
+     * 마감 무산 시 참여 무산: PARTICIPATING → FAILED.
+     * 공구가 최소 인원 미달로 무산되면 결제 완료자는 무산 처리되고 환불된다(환불은 서비스).
+     */
+    public void fail() {
+        this.status = ParticipationStatus.FAILED;
+    }
 }

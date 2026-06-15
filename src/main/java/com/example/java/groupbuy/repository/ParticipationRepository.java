@@ -1,5 +1,6 @@
 package com.example.java.groupbuy.repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,9 @@ public interface ParticipationRepository extends JpaRepository<Participation, Lo
     List<Participation> findByGroupBuySeq(Long groupBuySeq);
     List<Participation> findByMemberSeq(Long memberSeq);
     List<Participation> findByGroupBuySeqAndMemberSeq(Long groupBuySeq, Long memberSeq);
+
+    /** 특정 공구에서 주어진 상태인 참여 목록 (마감 시 일괄 상태 전이·환불용). */
+    List<Participation> findByGroupBuySeqAndStatus(Long groupBuySeq, ParticipationStatus status);
 
     /**
      * 같은 공구에 해당 회원의 참여가 주어진 상태들 중 하나로 존재하는지.
@@ -45,4 +49,13 @@ public interface ParticipationRepository extends JpaRepository<Participation, Lo
      */
     Optional<Participation> findFirstByGroupBuySeqAndMemberSeqAndStatus(
             Long groupBuySeq, Long memberSeq, ParticipationStatus status);
+
+    /**
+     * 결제기한이 지난 결제대기(PAYMENT_PENDING) 참여 목록 (만료 처리 스케줄러용).
+     *   By Status               → WHERE status = ?            (PAYMENT_PENDING)
+     *   And PaymentDeadlineBefore → AND payment_deadline < ?   (기준 시각보다 이전 = 기한 지남)
+     * 스케줄러가 이 목록을 받아 각 건을 개별 트랜잭션(expirePromotion)으로 만료 처리한다.
+     */
+    List<Participation> findByStatusAndPaymentDeadlineBefore(
+            ParticipationStatus status, LocalDateTime deadline);
 }

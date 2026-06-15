@@ -35,7 +35,11 @@
                     상품명
                 </h1>
 
-                <button type="button" class="text-gray-300 hover:text-red-500" title="찜">
+                <button type="button"
+                        id="wishBtn"
+                        th:attr="data-product-seq=*{seq}"
+                        class="text-gray-300 hover:text-red-500"
+                        title="찜">
                     <i data-lucide="heart" class="w-6 h-6"></i>
                 </button>
             </div>
@@ -75,10 +79,6 @@
             <!-- 가격 영역 -->
             <div class="mt-6 space-y-1 border-y border-gray-100 py-5">
 
-                <p class="text-sm text-gray-400">
-                    시세가
-                </p>
-
                 <p class="flex items-baseline gap-2">
                     <span th:text="${#numbers.formatInteger(product.price, 0, 'COMMA')}"
                           class="text-3xl font-black">
@@ -92,12 +92,15 @@
             <div class="mt-6">
                 <label class="block text-xs font-bold text-gray-500 mb-1">옵션 선택</label>
 
-                <select id="optionsSeq" class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+                <select id="optionsSeq"
+                        class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
                     <option value="">옵션을 선택하세요</option>
 
                     <option th:each="opt : *{optionList}"
                             th:value="${opt.seq}"
-                            th:text="${opt.optionName}">
+                            th:text="${opt.optionName}"
+                            th:data-additional-price="${opt.additionalPrice}"
+                            th:data-stock="${opt.stock}">
                         옵션
                     </option>
                 </select>
@@ -106,20 +109,42 @@
             <!-- 수량 + 버튼 (#4 #5 #6) -->
             <div class="mt-4 flex items-center gap-3">
                 <div class="flex items-center border border-gray-300">
-                    <button type="button" class="px-3 py-2 text-gray-500 hover:bg-gray-50">−</button>
-                    <input type="text" id="quantity" value="1" class="w-12 text-center text-sm border-x border-gray-300 py-2" />
-                    <button type="button" class="px-3 py-2 text-gray-500 hover:bg-gray-50">+</button>
+                    <button type="button"
+                            id="quantityMinusBtn"
+                            class="px-3 py-2 text-gray-500 hover:bg-gray-50">
+                        −
+                    </button>
+
+                    <input type="text"
+                           id="quantity"
+                           value="1"
+                           class="w-12 text-center text-sm border-x border-gray-300 py-2" />
+
+                    <button type="button"
+                            id="quantityPlusBtn"
+                            class="px-3 py-2 text-gray-500 hover:bg-gray-50">
+                        +
+                    </button>
                 </div>
 
-                <button type="button" onclick="addToCart()"
-                        class="flex-1 border-2 border-amber-500 text-amber-600 font-bold py-2.5 text-sm hover:bg-amber-50">
-                    장바구니 담기
-                </button>
+				<button type="button"
+				        id="cartBtn"
+				        onclick="addToCart()"
+				        th:disabled="${product.saleStatus == 'SOLD_OUT' or product.hideYn == 'Y' or product.productStatus == 'DELETED'}"
+				        th:class="${product.saleStatus == 'SOLD_OUT' or product.hideYn == 'Y' or product.productStatus == 'DELETED'}
+				            ? 'flex-1 border-2 border-gray-300 text-gray-400 font-bold py-2.5 text-sm cursor-not-allowed bg-gray-100'
+				            : 'flex-1 border-2 border-amber-500 text-amber-600 font-bold py-2.5 text-sm hover:bg-amber-50'">
+				    장바구니 담기
+				</button>
 
-                <button type="button"
-                        class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 text-sm">
-                    바로구매
-                </button>
+				<button type="button"
+				        id="buyBtn"
+				        onclick="buyNow()"
+				        th:class="${product.saleStatus == 'SOLD_OUT' or product.hideYn == 'Y' or product.productStatus == 'DELETED'}
+				            ? 'flex-1 bg-gray-300 text-gray-500 font-bold py-2.5 text-sm cursor-not-allowed'
+				            : 'flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 text-sm'">
+				    바로구매
+				</button>
             </div>
         </div>
     </div>
@@ -131,6 +156,7 @@
             <!-- 상품 상세 탭 -->
             <button type="button"
                     id="detailTabBtn"
+                    onclick="showDetailTab()"
                     class="flex-1 py-3 border-b-2 border-amber-500 text-amber-600">
                 상품 상세
             </button>
@@ -138,6 +164,7 @@
             <!-- 상품평 탭 -->
             <button type="button"
                     id="reviewTabBtn"
+                    onclick="showReviewTabAndLoad()"
                     class="flex-1 py-3 text-gray-500 hover:text-gray-800"
                     th:text="'상품평 (' + ${#numbers.formatInteger(product.reviewCount != null ? product.reviewCount : 0, 0, 'COMMA')} + ')'">
                 상품평 (0)
@@ -145,24 +172,40 @@
         </div>
 
         <!-- 상품 상세 설명 영역 -->
-		<!--
-		    product.content 안에는 상품 등록 화면에서 작성한 HTML이 들어 있습니다.
+        <!--
+            product.content 안에는 상품 등록 화면에서 작성한 HTML이 들어 있습니다.
 
-		    예:
-		    <img src="...">
-		    <br>
-		    <p>상품 설명</p>
+            예:
+            <img src="...">
+            <br>
+            <p>상품 설명</p>
 
-		    th:text를 사용하면 HTML 태그가 문자 그대로 출력됩니다.
-		    th:utext를 사용해야 HTML 태그가 실제 태그로 해석되어
-		    이미지와 줄바꿈이 화면에 정상 표시됩니다.
-		-->
-		<div th:utext="${product.content}">
-		    상품 상세 설명
-		</div>
+            th:text를 사용하면 HTML 태그가 문자 그대로 출력됩니다.
+            th:utext를 사용해야 HTML 태그가 실제 태그로 해석되어
+            이미지와 줄바꿈이 화면에 정상 표시됩니다.
+        -->
+        <div id="detailSection"
+             class="p-8 min-h-[300px]"
+             th:utext="${product.content}">
+            상품 상세 설명
+        </div>
 
         <!-- 상품평 영역 -->
         <div id="reviewSection" class="hidden p-8 min-h-[300px]">
+
+            <!--
+                리뷰 등록 버튼 영역입니다.
+
+                상품평 탭을 눌렀을 때
+                리뷰 목록 위에 리뷰 작성 버튼을 보여줍니다.
+            -->
+            <div class="mb-6 flex items-center justify-end">
+                <button type="button"
+                        id="reviewWriteBtn"
+                        class="bg-black text-white text-xs font-bold px-5 py-2 hover:bg-gray-800">
+                    리뷰 작성
+                </button>
+            </div>
 
             <!-- 리뷰 로딩 문구 -->
             <div id="reviewLoading" class="hidden py-10 text-center text-sm text-gray-400">
@@ -182,6 +225,117 @@
         </div>
     </div>
 
+    <!--
+        리뷰 작성 모달입니다.
+
+        리뷰 작성 버튼을 누르면 이 영역이 화면 중앙에 나타납니다.
+
+        작성 항목:
+        1. 주문상품 선택
+        2. 별점 선택
+        3. 리뷰 내용
+        4. 리뷰 이미지 최대 5장
+    -->
+    <div id="reviewCreateModal"
+         class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+
+        <div class="w-full max-w-xl bg-white border border-gray-200 shadow-xl">
+
+            <!-- 모달 상단 -->
+            <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                <h3 class="text-lg font-bold text-gray-900">
+                    리뷰 작성
+                </h3>
+
+                <button type="button"
+                        id="reviewCreateCloseBtn"
+                        class="text-gray-400 hover:text-gray-800 text-xl leading-none">
+                    ×
+                </button>
+            </div>
+
+            <!-- 모달 내용 -->
+            <div class="p-5 space-y-4">
+
+                <!-- 주문상품 선택 -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">
+                        구매한 상품 선택
+                    </label>
+
+                    <select id="reviewOrderItemSeq"
+                            class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+                        <option value="">구매한 상품을 선택하세요</option>
+                    </select>
+
+                    <p class="mt-1 text-xs text-gray-400">
+                        배송완료된 주문상품만 선택할 수 있습니다.
+                    </p>
+                </div>
+
+                <!-- 별점 선택 -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">
+                        별점
+                    </label>
+
+                    <select id="reviewCreateRating"
+                            class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+                        <option value="5">★★★★★ 5점</option>
+                        <option value="4">★★★★☆ 4점</option>
+                        <option value="3">★★★☆☆ 3점</option>
+                        <option value="2">★★☆☆☆ 2점</option>
+                        <option value="1">★☆☆☆☆ 1점</option>
+                    </select>
+                </div>
+
+                <!-- 리뷰 내용 -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">
+                        리뷰 내용
+                    </label>
+
+                    <textarea id="reviewCreateContent"
+                              rows="5"
+                              class="w-full border border-gray-300 px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-amber-500"
+                              placeholder="상품에 대한 후기를 작성해주세요."></textarea>
+                </div>
+
+                <!-- 리뷰 이미지 -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">
+                        리뷰 이미지
+                    </label>
+
+                    <input type="file"
+                           id="reviewCreateImages"
+                           multiple
+                           accept="image/*"
+                           class="w-full border border-gray-300 bg-white px-3 py-2.5 text-sm">
+
+                    <p class="mt-1 text-xs text-gray-400">
+                        이미지는 최대 5장까지 등록할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 모달 하단 버튼 -->
+            <div class="flex justify-end gap-2 border-t border-gray-200 px-5 py-4">
+                <button type="button"
+                        id="reviewCreateCancelBtn"
+                        class="border border-gray-300 px-5 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50">
+                    취소
+                </button>
+
+                <button type="button"
+                        id="reviewCreateSubmitBtn"
+                        class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 text-sm font-bold">
+                    리뷰 등록
+                </button>
+            </div>
+        </div>
+    </div>
+
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
@@ -195,7 +349,10 @@
 
         리뷰 조회, 리뷰 수정, 리뷰 삭제 요청 URL에 사용됩니다.
     */
-    const productSeq = /*[[${product.seq}]]*/ 0;
+    const productSeq         = /*[[${product.seq}]]*/ 0;
+    const productName        = /*[[${product.productName}]]*/ '';
+    const productPrice       = /*[[${product.price}]]*/ 0;
+    const productThumbnailUrl = /*[[${product.thumbnailUrl}]]*/ '';
 
     /*
         현재 로그인 회원 번호
@@ -209,6 +366,263 @@
         현재 로그인 회원과 리뷰 작성자가 같은지 비교하는 데 사용합니다.
     */
     const currentMemberSeq = /*[[${loginMemberSeq}]]*/ null;
+
+	/*
+	    상품 판매 상태
+
+	    SOLD_OUT이면 품절 상품입니다.
+	    품절 상품은 상세 화면은 볼 수 있지만
+	    바로구매는 할 수 없습니다.
+	*/
+	const productSaleStatus = /*[[${product.saleStatus}]]*/ 'NORMAL';
+	const productHideYn = /*[[${product.hideYn}]]*/ 'N';
+	const productStatus = /*[[${product.productStatus}]]*/ 'NORMAL';
+
+	/*
+	    구매 불가 상품 여부 확인
+
+	    SOLD_OUT : 품절
+	    hideYn = Y : 숨김
+	    DELETED : 삭제
+	*/
+	function isBlockedProduct() {
+	    return productSaleStatus === 'SOLD_OUT'
+	        || productHideYn === 'Y'
+	        || productStatus === 'DELETED';
+	}
+
+	/*
+	    바로구매 버튼 클릭 시 실행
+
+	    품절 상품이면 구매 페이지로 이동하지 않고
+	    alert만 표시합니다.
+	*/
+	function buyNow() {
+
+	    if (currentMemberSeq === null) {
+	        alert('로그인이 필요합니다.');
+	        return;
+	    }
+
+	    if (isBlockedProduct()) {
+	        alert('구매할 수 없는 상품입니다.');
+	        return;
+	    }
+
+	    const optionsSeq = document.getElementById('optionsSeq').value;
+	    const quantity = document.getElementById('quantity').value;
+
+	    if (!optionsSeq) {
+	        alert('옵션을 선택해주세요.');
+	        return;
+	    }
+
+	    if (!quantity || Number(quantity) < 1) {
+	        alert('수량은 1개 이상이어야 합니다.');
+	        return;
+	    }
+
+	    const selectEl = document.getElementById('optionsSeq');
+	    const optionEl = selectEl.options[selectEl.selectedIndex];
+	    const stock = Number(optionEl.dataset.stock || 0);
+
+	    if (stock <= 0) {
+	        alert('재고가 없습니다.');
+	        return;
+	    }
+
+	    if (Number(quantity) > stock) {
+	        alert(`재고(${stock}개)를 초과할 수 없습니다.`);
+	        return;
+	    }
+
+	    location.href =
+	        `/order/checkout/direct?optionsSeq=${optionsSeq}&quantity=${quantity}`;
+	}
+	
+    /*
+        상품 찜 버튼 관련 화면 요소입니다.
+
+        상품 기준 찜이므로
+        optionsSeq가 아니라 productSeq를 사용합니다.
+    */
+    const wishBtn = document.getElementById('wishBtn');
+
+    /*
+        찜 하트 상태 변경 함수입니다.
+
+        wished = true
+        현재 로그인한 회원이 이 상품을 찜한 상태입니다.
+        하트를 빨간색으로 바꾸고 내부를 채웁니다.
+
+        wished = false
+        현재 로그인한 회원이 이 상품을 찜하지 않은 상태입니다.
+        하트를 회색 빈 하트로 표시합니다.
+    */
+    function setWishIcon(wished) {
+
+        if (!wishBtn) {
+            return;
+        }
+
+        /*
+            lucide.createIcons() 실행 후에는
+            <i data-lucide="heart"> 태그가 <svg> 태그로 변환됩니다.
+
+            그래서 하트 내부 색상을 채우려면
+            변환된 svg를 찾아서 fill 값을 변경해야 합니다.
+        */
+        const wishIcon = wishBtn.querySelector('svg');
+
+        if (wished) {
+            wishBtn.classList.remove('text-gray-300');
+            wishBtn.classList.add('text-red-500');
+
+            if (wishIcon) {
+                wishIcon.style.fill = 'currentColor';
+            }
+        } else {
+            wishBtn.classList.remove('text-red-500');
+            wishBtn.classList.add('text-gray-300');
+
+            if (wishIcon) {
+                wishIcon.style.fill = 'none';
+            }
+        }
+    }
+
+    /*
+        현재 상품의 찜 여부를 조회합니다.
+
+        상품 상세 페이지가 처음 열릴 때 실행됩니다.
+
+        서버 요청:
+        GET /api/product/wish?productSeq=상품번호
+
+        서버 응답:
+        true  = 찜한 상태
+        false = 찜하지 않은 상태
+    */
+    async function loadWishStatus() {
+
+        if (!wishBtn) {
+            return;
+        }
+
+        if (!productSeq || Number(productSeq) === 0) {
+            console.error('상품 번호를 찾을 수 없습니다.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/product/wish?productSeq=${productSeq}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                console.error('찜 상태 조회 실패:', response.status);
+                return;
+            }
+
+            const wished = await response.json();
+
+            setWishIcon(wished);
+
+        } catch (error) {
+            console.error('찜 상태 조회 오류:', error);
+        }
+    }
+
+    /*
+        찜 버튼 클릭 시 실행됩니다.
+
+        처리 순서:
+        1. 상품 번호 확인
+        2. POST /api/product/wish 요청
+        3. 서버에서 기존 찜 데이터 여부 확인
+        4. 없으면 INSERT
+        5. 있으면 status 변경
+        6. 서버 응답의 wished 값에 따라 하트 색상 변경
+    */
+    async function toggleWish() {
+
+        if (!wishBtn) {
+            return;
+        }
+
+        if (!productSeq || Number(productSeq) === 0) {
+            alert('상품 번호를 찾을 수 없습니다.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/product/wish', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    productSeq: Number(productSeq)
+                })
+            });
+
+            /*
+                로그인하지 않은 사용자가 찜 버튼을 누른 경우입니다.
+
+                ProductWishController에서 401을 반환하면
+                로그인 페이지로 이동시킵니다.
+            */
+            if (response.status === 401) {
+                alert('로그인이 필요합니다.');
+                location.href = '/member/login';
+                return;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(errorText);
+                alert(errorText || '찜 처리에 실패했습니다.');
+                return;
+            }
+
+            const result = await response.json();
+
+            /*
+                서버 응답 예시:
+                {
+                    "wished": true,
+                    "message": "찜 등록 완료"
+                }
+
+                wished 값에 따라 하트 상태를 변경합니다.
+            */
+            setWishIcon(result.wished);
+
+        } catch (error) {
+            console.error('찜 처리 오류:', error);
+            alert('찜 처리 중 오류가 발생했습니다.');
+        }
+    }
+
+    /*
+        찜 버튼 클릭 이벤트를 등록합니다.
+    */
+    if (wishBtn) {
+        wishBtn.addEventListener('click', function () {
+            toggleWish();
+        });
+    }
+
+    /*
+        페이지 로딩 시 현재 상품의 찜 여부를 조회합니다.
+    */
+    loadWishStatus();
 
     /*
         리뷰 이미지 최대 업로드 개수
@@ -238,30 +652,143 @@
     const reviewScrollTarget = document.getElementById('reviewScrollTarget');
 
     /*
-        상품 상세 탭 클릭
+        리뷰 작성 폼 관련 화면 요소입니다.
     */
-    detailTabBtn.addEventListener('click', function () {
-        showDetailTab();
-    });
+    const reviewWriteBtn = document.getElementById('reviewWriteBtn');
+    const reviewCreateModal = document.getElementById('reviewCreateModal');
+    const reviewCreateCloseBtn = document.getElementById('reviewCreateCloseBtn');
+    const reviewCreateCancelBtn = document.getElementById('reviewCreateCancelBtn');
+    const reviewCreateSubmitBtn = document.getElementById('reviewCreateSubmitBtn');
+
+    const reviewOrderItemSeq = document.getElementById('reviewOrderItemSeq');
+    const reviewCreateRating = document.getElementById('reviewCreateRating');
+    const reviewCreateContent = document.getElementById('reviewCreateContent');
+    const reviewCreateImages = document.getElementById('reviewCreateImages');
 
     /*
-        상품평 탭 클릭
+        버튼에 onclick도 넣어두었지만,
+        기존 방식처럼 addEventListener도 유지합니다.
 
-        처음 한 번만 리뷰를 조회하고,
-        이후에는 이미 조회한 리뷰 목록을 그대로 보여줍니다.
+        단, 요소가 없을 경우 JavaScript 전체가 멈추지 않도록
+        null 체크를 추가했습니다.
     */
-    reviewTabBtn.addEventListener('click', function () {
-        showReviewTab();
+    if (detailTabBtn) {
+        detailTabBtn.addEventListener('click', function () {
+            showDetailTab();
+        });
+    }
 
-        if (!isReviewLoadedOnce) {
-            loadReviews();
-        }
-    });
+    if (reviewTabBtn) {
+        reviewTabBtn.addEventListener('click', function () {
+            showReviewTabAndLoad();
+        });
+    }
+
+    /*
+        리뷰 작성 버튼 클릭 이벤트입니다.
+
+        처리 순서:
+        1. 로그인 여부 확인
+        2. 리뷰 작성 가능 여부 확인
+        3. 리뷰 작성 가능한 주문상품 목록 조회
+        4. 리뷰 작성 모달 열기
+    */
+    if (reviewWriteBtn) {
+        reviewWriteBtn.addEventListener('click', async function () {
+
+            if (currentMemberSeq === null) {
+                alert('로그인 후 리뷰를 작성할 수 있습니다.');
+                location.href = '/member/login';
+                return;
+            }
+
+            try {
+                const writableResponse = await fetch(`/products/${productSeq}/reviews/writable`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (writableResponse.status === 401) {
+                    alert('로그인 후 리뷰를 작성할 수 있습니다.');
+                    location.href = '/member/login';
+                    return;
+                }
+
+                if (!writableResponse.ok) {
+                    alert('리뷰 작성 가능 여부를 확인하지 못했습니다.');
+                    return;
+                }
+
+                const writableResult = await writableResponse.json();
+
+                if (!writableResult.writable) {
+                    alert(writableResult.message || '리뷰를 작성할 수 없습니다.');
+                    return;
+                }
+
+                await loadReviewWritableOrderItems();
+
+                openReviewCreateModal();
+
+            } catch (error) {
+                console.error(error);
+                alert('리뷰 작성 폼을 여는 중 오류가 발생했습니다.');
+            }
+        });
+    }
+
+    /*
+        리뷰 작성 모달 닫기 버튼 이벤트입니다.
+    */
+    if (reviewCreateCloseBtn) {
+        reviewCreateCloseBtn.addEventListener('click', function () {
+            closeReviewCreateModal();
+        });
+    }
+
+    if (reviewCreateCancelBtn) {
+        reviewCreateCancelBtn.addEventListener('click', function () {
+            closeReviewCreateModal();
+        });
+    }
+
+    /*
+        모달 바깥 어두운 영역을 클릭하면 모달을 닫습니다.
+    */
+    if (reviewCreateModal) {
+        reviewCreateModal.addEventListener('click', function (event) {
+            if (event.target === reviewCreateModal) {
+                closeReviewCreateModal();
+            }
+        });
+    }
+
+    /*
+        리뷰 등록 버튼 클릭 이벤트입니다.
+    */
+    if (reviewCreateSubmitBtn) {
+        reviewCreateSubmitBtn.addEventListener('click', async function () {
+            await createReview();
+        });
+    }
 
     /*
         상품 상세 탭 보여주기
     */
     function showDetailTab() {
+
+        /*
+            detailSection 또는 reviewSection을 찾지 못해도
+            JavaScript 오류가 나지 않도록 방어 코드를 추가했습니다.
+        */
+        if (!detailSection || !reviewSection || !detailTabBtn || !reviewTabBtn) {
+            console.error('탭 영역을 찾을 수 없습니다.');
+            return;
+        }
+
         detailSection.classList.remove('hidden');
         reviewSection.classList.add('hidden');
 
@@ -270,9 +797,34 @@
     }
 
     /*
+        상품평 탭 클릭 시 실행됩니다.
+
+        처리 순서:
+        1. 상품평 영역을 보여줍니다.
+        2. 아직 리뷰를 한 번도 불러오지 않았다면 리뷰 목록을 조회합니다.
+    */
+    function showReviewTabAndLoad() {
+        showReviewTab();
+
+        if (!isReviewLoadedOnce) {
+            loadReviews();
+        }
+    }
+
+    /*
         상품평 탭 보여주기
     */
     function showReviewTab() {
+
+        /*
+            detailSection 또는 reviewSection을 찾지 못해도
+            JavaScript 오류가 나지 않도록 방어 코드를 추가했습니다.
+        */
+        if (!detailSection || !reviewSection || !detailTabBtn || !reviewTabBtn) {
+            console.error('탭 영역을 찾을 수 없습니다.');
+            return;
+        }
+
         detailSection.classList.add('hidden');
         reviewSection.classList.remove('hidden');
 
@@ -284,10 +836,10 @@
         리뷰 목록 조회
 
         처음 조회:
-        /products/{productSeq}/reviews-data?size=10
+        /api/product/{productSeq}/reviews?size=10
 
         다음 조회:
-        /products/{productSeq}/reviews-data?lastReviewSeq=마지막리뷰번호&size=10
+        /api/product/{productSeq}/reviews?lastReviewSeq=마지막리뷰번호&size=10
     */
     async function loadReviews() {
         if (isReviewLoading || !hasNext) {
@@ -295,18 +847,15 @@
         }
 
         isReviewLoading = true;
-        reviewLoading.classList.remove('hidden');
-        reviewEmpty.classList.add('hidden');
 
-		/*
-		    리뷰 목록 조회
+        if (reviewLoading) {
+            reviewLoading.classList.remove('hidden');
+        }
 
-		    처음 조회:
-		    /api/product/{productSeq}/reviews?size=10
+        if (reviewEmpty) {
+            reviewEmpty.classList.add('hidden');
+        }
 
-		    다음 조회:
-		    /api/product/{productSeq}/reviews?lastReviewSeq=마지막리뷰번호&size=10
-		*/
         let url = `/api/product/${productSeq}/reviews?size=10`;
 
         if (nextLastReviewSeq !== null) {
@@ -338,7 +887,7 @@
 
             const reviews = data.reviews || [];
 
-            if (!isReviewLoadedOnce && reviews.length === 0) {
+            if (!isReviewLoadedOnce && reviews.length === 0 && reviewEmpty) {
                 reviewEmpty.classList.remove('hidden');
             }
 
@@ -366,11 +915,13 @@
                 에러 문구가 여러 번 추가되지 않도록
                 기존 리뷰 목록 영역을 비우고 한 번만 표시합니다.
             */
-            reviewList.innerHTML = `
-                <div class="py-10 text-center text-sm text-red-500">
-                    리뷰를 불러오지 못했습니다.
-                </div>
-            `;
+            if (reviewList) {
+                reviewList.innerHTML = `
+                    <div class="py-10 text-center text-sm text-red-500">
+                        리뷰를 불러오지 못했습니다.
+                    </div>
+                `;
+            }
 
             /*
                 한 번은 조회 시도한 것으로 처리합니다.
@@ -379,7 +930,10 @@
 
         } finally {
             isReviewLoading = false;
-            reviewLoading.classList.add('hidden');
+
+            if (reviewLoading) {
+                reviewLoading.classList.add('hidden');
+            }
         }
     }
 
@@ -392,6 +946,7 @@
         const content = escapeHtml(review.content || '');
         const createdDate = formatDate(review.createdDate);
         const imagesHtml = makeReviewImagesHtml(review.images || []);
+        const nickname = escapeHtml(review.nickname || '익명');
 
         /*
             현재 로그인 회원과 리뷰 작성자가 같은지 확인합니다.
@@ -401,30 +956,41 @@
             테스트 중 버튼이 안 보이면 아래 값을 잠깐 true로 바꿔도 됩니다.
             const isMine = true;
         */
+
         const isMine = String(review.memberSeq) === String(currentMemberSeq);
 
         return `
             <div class="border-b border-gray-100 pb-6" data-review-seq="${review.seq}">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="text-amber-500 text-sm font-bold">
-                        ${stars}
-                        <span class="ml-1 text-gray-700">${rating}</span>
+
+                <div class="mb-2 flex items-start justify-between gap-4">
+
+                    <!-- 왼쪽: 닉네임 + 별점 -->
+                    <div class="min-w-0">
+                        <div class="mb-1 text-sm font-bold text-gray-800">
+                            ${nickname}
+                        </div>
+
+                        <div class="text-amber-500 text-sm font-bold leading-none">
+                            ${stars}
+                            <span class="ml-1 text-gray-700">${rating}</span>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <div class="text-xs text-gray-400">
+                    <!-- 오른쪽: 날짜 + 수정/삭제 -->
+                    <div class="shrink-0 flex items-center gap-2 text-xs">
+                        <span class="text-gray-400">
                             ${createdDate}
-                        </div>
+                        </span>
 
                         ${isMine ? `
                             <button type="button"
-                                    class="review-edit-btn text-xs text-gray-500 hover:text-amber-600"
+                                    class="review-edit-btn text-gray-500 hover:text-amber-600"
                                     data-review-seq="${review.seq}">
                                 수정
                             </button>
 
                             <button type="button"
-                                    class="review-delete-btn text-xs text-gray-500 hover:text-red-500"
+                                    class="review-delete-btn text-gray-500 hover:text-red-500"
                                     data-review-seq="${review.seq}">
                                 삭제
                             </button>
@@ -432,9 +998,7 @@
                     </div>
                 </div>
 
-                <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                    ${content}
-                </p>
+                <p class="mt-1 text-sm text-gray-700 leading-normal whitespace-pre-line">${content}</p>
 
                 ${imagesHtml}
 
@@ -558,73 +1122,264 @@
     }
 
     /*
+        리뷰 작성 모달을 엽니다.
+    */
+    function openReviewCreateModal() {
+
+        if (!reviewCreateModal) {
+            return;
+        }
+
+        reviewCreateModal.classList.remove('hidden');
+    }
+
+    /*
+        리뷰 작성 모달을 닫고 입력값을 초기화합니다.
+    */
+    function closeReviewCreateModal() {
+
+        if (!reviewCreateModal) {
+            return;
+        }
+
+        reviewCreateModal.classList.add('hidden');
+
+        resetReviewCreateForm();
+    }
+
+    /*
+        리뷰 작성 폼 입력값 초기화
+    */
+    function resetReviewCreateForm() {
+
+        if (reviewOrderItemSeq) {
+            reviewOrderItemSeq.innerHTML = '<option value="">구매한 상품을 선택하세요</option>';
+        }
+
+        if (reviewCreateRating) {
+            reviewCreateRating.value = '5';
+        }
+
+        if (reviewCreateContent) {
+            reviewCreateContent.value = '';
+        }
+
+        if (reviewCreateImages) {
+            reviewCreateImages.value = '';
+        }
+    }
+
+    /*
+        리뷰 작성 가능한 주문상품 목록을 조회합니다.
+
+        서버 주소:
+        GET /products/{productSeq}/reviews/order-items
+
+        서버에서는 현재 로그인한 회원 기준으로
+        배송완료된 주문상품만 내려줘야 합니다.
+    */
+    async function loadReviewWritableOrderItems() {
+
+        if (!reviewOrderItemSeq) {
+            return;
+        }
+
+        reviewOrderItemSeq.innerHTML = '<option value="">불러오는 중입니다...</option>';
+
+        const response = await fetch(`/products/${productSeq}/reviews/order-items`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+
+        if (response.status === 401) {
+            alert('로그인 후 리뷰를 작성할 수 있습니다.');
+            location.href = '/member/login';
+            return;
+        }
+
+        if (!response.ok) {
+            reviewOrderItemSeq.innerHTML = '<option value="">구매상품을 불러오지 못했습니다</option>';
+            throw new Error('리뷰 작성 가능한 주문상품 조회 실패: ' + response.status);
+        }
+
+        const orderItems = await response.json();
+
+        reviewOrderItemSeq.innerHTML = '<option value="">구매한 상품을 선택하세요</option>';
+
+        if (!orderItems || orderItems.length === 0) {
+            reviewOrderItemSeq.innerHTML = '<option value="">리뷰 작성 가능한 주문상품이 없습니다</option>';
+            return;
+        }
+
+        orderItems.forEach(function (item) {
+            const option = document.createElement('option');
+
+            option.value = item.orderItemSeq;
+            option.textContent = `${item.productName} / ${item.optionName}`;
+
+            reviewOrderItemSeq.appendChild(option);
+        });
+    }
+
+    /*
+        리뷰 등록 요청입니다.
+
+        이미지 파일이 포함될 수 있으므로
+        JSON이 아니라 FormData로 전송합니다.
+
+        서버 주소:
+        POST /products/{productSeq}/reviews
+    */
+    async function createReview() {
+
+        const orderItemSeq = reviewOrderItemSeq.value;
+        const rating = reviewCreateRating.value;
+        const content = reviewCreateContent.value.trim();
+        const images = reviewCreateImages.files;
+
+        if (!orderItemSeq) {
+            alert('구매한 상품을 선택해주세요.');
+            return;
+        }
+
+        if (!rating) {
+            alert('별점을 선택해주세요.');
+            return;
+        }
+
+        if (!content) {
+            alert('리뷰 내용을 입력해주세요.');
+            return;
+        }
+
+        if (images.length > MAX_REVIEW_IMAGE_COUNT) {
+            alert('리뷰 이미지는 최대 5장까지 등록할 수 있습니다.');
+            return;
+        }
+
+        const formData = new FormData();
+
+        /*
+            memberSeq는 화면에서 보내지 않습니다.
+
+            서버에서 @AuthenticationPrincipal CustomUserDetails를 통해
+            현재 로그인한 회원번호를 가져와야 합니다.
+        */
+        formData.append('orderItemSeq', orderItemSeq);
+        formData.append('rating', rating);
+        formData.append('content', content);
+
+        for (const image of images) {
+            formData.append('images', image);
+        }
+
+        try {
+            const response = await fetch(`/products/${productSeq}/reviews`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            if (response.status === 401) {
+                alert('로그인 후 리뷰를 작성할 수 있습니다.');
+                location.href = '/member/login';
+                return;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(errorText);
+                alert(errorText || '리뷰 등록에 실패했습니다.');
+                return;
+            }
+
+            alert('리뷰가 등록되었습니다.');
+
+            closeReviewCreateModal();
+
+            /*
+                리뷰 등록 후 리뷰 목록을 새로 불러옵니다.
+            */
+            resetReviewList();
+            loadReviews();
+
+        } catch (error) {
+            console.error(error);
+            alert('리뷰 등록 중 오류가 발생했습니다.');
+        }
+    }
+
+    /*
         리뷰 목록 영역 클릭 이벤트
 
         리뷰 목록은 fetch로 동적으로 생성되기 때문에
         각 버튼에 직접 addEventListener를 거는 대신,
         reviewList에 이벤트 위임 방식으로 처리합니다.
     */
-    reviewList.addEventListener('click', async function (event) {
+    if (reviewList) {
+        reviewList.addEventListener('click', async function (event) {
 
-        const editBtn = event.target.closest('.review-edit-btn');
-        const deleteBtn = event.target.closest('.review-delete-btn');
-        const editCancelBtn = event.target.closest('.review-edit-cancel-btn');
-        const editSubmitBtn = event.target.closest('.review-edit-submit-btn');
+            const editBtn = event.target.closest('.review-edit-btn');
+            const deleteBtn = event.target.closest('.review-delete-btn');
+            const editCancelBtn = event.target.closest('.review-edit-cancel-btn');
+            const editSubmitBtn = event.target.closest('.review-edit-submit-btn');
 
-        /*
-            수정 버튼 클릭
-        */
-        if (editBtn) {
-            const reviewSeq = editBtn.dataset.reviewSeq;
-            const editForm = document.getElementById(`reviewEditForm-${reviewSeq}`);
+            /*
+                수정 버튼 클릭
+            */
+            if (editBtn) {
+                const reviewSeq = editBtn.dataset.reviewSeq;
+                const editForm = document.getElementById(`reviewEditForm-${reviewSeq}`);
 
-            if (editForm) {
-                editForm.classList.remove('hidden');
+                if (editForm) {
+                    editForm.classList.remove('hidden');
+                }
+
+                return;
             }
 
-            return;
-        }
+            /*
+                수정 취소 버튼 클릭
+            */
+            if (editCancelBtn) {
+                const reviewSeq = editCancelBtn.dataset.reviewSeq;
+                const editForm = document.getElementById(`reviewEditForm-${reviewSeq}`);
 
-        /*
-            수정 취소 버튼 클릭
-        */
-        if (editCancelBtn) {
-            const reviewSeq = editCancelBtn.dataset.reviewSeq;
-            const editForm = document.getElementById(`reviewEditForm-${reviewSeq}`);
+                if (editForm) {
+                    editForm.classList.add('hidden');
+                }
 
-            if (editForm) {
-                editForm.classList.add('hidden');
+                return;
             }
 
-            return;
-        }
+            /*
+                수정 저장 버튼 클릭
+            */
+            if (editSubmitBtn) {
+                const reviewSeq = editSubmitBtn.dataset.reviewSeq;
 
-        /*
-            수정 저장 버튼 클릭
-        */
-        if (editSubmitBtn) {
-            const reviewSeq = editSubmitBtn.dataset.reviewSeq;
+                await updateReview(reviewSeq);
 
-            await updateReview(reviewSeq);
+                return;
+            }
 
-            return;
-        }
+            /*
+                삭제 버튼 클릭
+            */
+            if (deleteBtn) {
+                const reviewSeq = deleteBtn.dataset.reviewSeq;
 
-        /*
-            삭제 버튼 클릭
-        */
-        if (deleteBtn) {
-            const reviewSeq = deleteBtn.dataset.reviewSeq;
+                await deleteReview(reviewSeq);
 
-            await deleteReview(reviewSeq);
-
-            return;
-        }
-    });
+                return;
+            }
+        });
+    }
 
     /*
-        리뷰 수정 요청
-
         이미지 파일이 포함될 수 있으므로 FormData로 전송합니다.
     */
     async function updateReview(reviewSeq) {
@@ -644,7 +1399,14 @@
         }
 
         const formData = new FormData();
-        formData.append('memberSeq', currentMemberSeq);
+
+        /*
+            memberSeq는 화면에서 보내지 않습니다.
+
+            서버의 ReviewController에서
+            @AuthenticationPrincipal CustomUserDetails를 통해
+            현재 로그인한 회원번호를 가져옵니다.
+        */
         formData.append('rating', rating);
         formData.append('content', content);
 
@@ -658,6 +1420,12 @@
                 body: formData,
                 credentials: 'same-origin'
             });
+
+            if (response.status === 401) {
+                alert('로그인 후 리뷰를 수정할 수 있습니다.');
+                location.href = '/member/login';
+                return;
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -686,7 +1454,13 @@
         }
 
         const formData = new FormData();
-        formData.append('memberSeq', currentMemberSeq);
+
+        /*
+            memberSeq는 화면에서 보내지 않습니다.
+
+            서버에서 현재 로그인한 회원번호를 확인한 뒤,
+            본인이 작성한 리뷰만 삭제할 수 있게 처리합니다.
+        */
 
         try {
             const response = await fetch(`/products/${productSeq}/reviews/${reviewSeq}/delete`, {
@@ -694,6 +1468,12 @@
                 body: formData,
                 credentials: 'same-origin'
             });
+
+            if (response.status === 401) {
+                alert('로그인 후 리뷰를 삭제할 수 있습니다.');
+                location.href = '/member/login';
+                return;
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -715,11 +1495,14 @@
     /*
         리뷰 목록 초기화
 
-        리뷰 수정/삭제 후 새로 조회하기 위해 사용합니다.
+        리뷰 등록/수정/삭제 후 새로 조회하기 위해 사용합니다.
     */
     function resetReviewList() {
         reviewList.innerHTML = '';
-        reviewEmpty.classList.add('hidden');
+
+        if (reviewEmpty) {
+            reviewEmpty.classList.add('hidden');
+        }
 
         nextLastReviewSeq = null;
         hasNext = true;
@@ -733,38 +1516,143 @@
         상품평 탭이 보이는 상태에서 아래 감지 영역이 보이면
         다음 리뷰를 자동으로 조회합니다.
     */
-    const observer = new IntersectionObserver(function (entries) {
-        const entry = entries[0];
+    if (reviewScrollTarget && reviewSection) {
+        const observer = new IntersectionObserver(function (entries) {
+            const entry = entries[0];
 
-        if (entry.isIntersecting && !reviewSection.classList.contains('hidden')) {
-            loadReviews();
-        }
-    });
+            if (entry.isIntersecting && !reviewSection.classList.contains('hidden')) {
+                loadReviews();
+            }
+        });
 
-    observer.observe(reviewScrollTarget);
+        observer.observe(reviewScrollTarget);
+    }
+
+    /*
+        수량 - 버튼 처리
+    */
+    const quantityMinusBtn = document.getElementById('quantityMinusBtn');
+    const quantityPlusBtn = document.getElementById('quantityPlusBtn');
+    const quantityInput = document.getElementById('quantity');
+
+    if (quantityMinusBtn && quantityInput) {
+        quantityMinusBtn.addEventListener('click', function () {
+            let quantity = Number(quantityInput.value || 1);
+
+            if (quantity > 1) {
+                quantity -= 1;
+            }
+
+            quantityInput.value = quantity;
+        });
+    }
+
+    /*
+        수량 + 버튼 처리
+    */
+    if (quantityPlusBtn && quantityInput) {
+        quantityPlusBtn.addEventListener('click', function () {
+            let quantity = Number(quantityInput.value || 1);
+
+            quantity += 1;
+
+            quantityInput.value = quantity;
+        });
+    }
 </script>
 
 <script>
+	
+	function isBlockedProduct() {
+	    return productSaleStatus === 'SOLD_OUT'
+	        || productHideYn === 'Y'
+	        || productStatus === 'DELETED';
+	}
+	
+    /*
+        장바구니 담기 버튼 클릭 시 실행됩니다.
+
+        처리 순서:
+        1. 옵션 선택 여부 확인
+        2. 수량 확인
+        3. POST /api/cart 요청
+        4. 로그인하지 않은 경우 → localStorage에 저장 (비로그인 장바구니)
+        5. 성공 시 알림 표시
+    */
     function addToCart() {
         const optionsSeq = document.getElementById('optionsSeq').value;
         const quantity   = document.getElementById('quantity').value;
 
+		if (isBlockedProduct()) {
+		    alert('구매할 수 없는 상품입니다.');
+		    return;
+		}
+		
         if (!optionsSeq) {
             alert('옵션을 선택해주세요.');
+            return;
+        }
+
+        if (!quantity || Number(quantity) < 1) {
+            alert('수량은 1개 이상이어야 합니다.');
             return;
         }
 
         fetch('/api/cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ optionsSeq: optionsSeq, quantity: quantity })
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                optionsSeq: Number(optionsSeq),
+                quantity:   Number(quantity)
+            })
         })
-        .then(res => {
-            // 비로그인 처리 추가 필요
-            if (!res.ok) throw new Error();
-            alert('장바구니에 담겼습니다.');
+        .then(async function (res) {
+
+            const message = await res.text();
+
+            if (res.status === 401) {
+                // 비로그인 → localStorage에 저장
+                const selectEl  = document.getElementById('optionsSeq');
+                const optionEl  = selectEl.options[selectEl.selectedIndex];
+                const addPrice  = parseInt(optionEl.dataset.additionalPrice || '0', 10);
+                const stock     = parseInt(optionEl.dataset.stock || '0', 10);
+                const optName   = optionEl.text;
+                const qty       = Number(quantity);
+
+                const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
+                const existing  = guestCart.find(i => i.optionsSeq === Number(optionsSeq));
+
+                if (existing) {
+                    existing.quantity = Math.min(existing.quantity + qty, stock);
+                } else {
+                    guestCart.push({
+                        optionsSeq:      Number(optionsSeq),
+                        quantity:        qty,
+                        productName:     productName,
+                        price:           productPrice,
+                        thumbnailUrl:    productThumbnailUrl,
+                        optionName:      optName,
+                        additionalPrice: addPrice,
+                        stock:           stock
+                    });
+                }
+                localStorage.setItem('guestCart', JSON.stringify(guestCart));
+                alert('장바구니에 담겼습니다.\n로그인 후 자동으로 반영됩니다.');
+                return;
+            }
+
+            if (!res.ok) {
+                alert(message || '장바구니 담기에 실패했습니다.');
+                return;
+            }
+
+            alert(message || '장바구니에 담겼습니다.');
         })
-        .catch(() => alert('오류가 발생했습니다.'));
+        .catch(function (error) {
+            console.error(error);
+            alert('오류가 발생했습니다.');
+        });
     }
 </script>
 

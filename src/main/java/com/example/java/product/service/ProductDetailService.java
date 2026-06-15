@@ -44,6 +44,14 @@ public class ProductDetailService {
         대분류 / 중분류 / 소분류 카테고리 목록을 가져오기 위해 사용합니다.
     */
     private final CategoryService categoryService;
+    
+    /*
+	    ProductWishService
+	
+	    상품 상세 화면에서
+	    현재 로그인한 회원이 해당 상품을 찜했는지 확인하기 위해 사용합니다.
+	*/
+	private final ProductWishService productWishService;
 
     /*
         1. 상품 등록
@@ -102,20 +110,6 @@ public class ProductDetailService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. 번호: " + seq));
 
         /*
-            접근 불가 상품 검증
-
-            STOPPED : 판매 중지
-            hideYn = Y : 숨김 상품
-            DELETED : 삭제 상품
-        */
-        if ("STOPPED".equals(product.getSaleStatus())
-                || "Y".equals(product.getHideYn())
-                || "DELETED".equals(product.getStatus())) {
-
-            throw new IllegalStateException("해당 상품은 접근이 불가능합니다.");
-        }
-
-        /*
             상세 페이지에 들어왔으므로 조회수를 1 증가시킵니다.
         */
         Long currentViewCount = product.getViewCount() == null ? 0L : product.getViewCount();
@@ -132,7 +126,9 @@ public class ProductDetailService {
             로그인한 회원인 경우에만 찜 여부를 확인합니다.
         */
         if (memberSeq != null) {
-            dto.setWished(productDetailRepository.existsWish(seq, memberSeq));
+            dto.setWished(productWishService.isWished(memberSeq, seq));
+        } else {
+            dto.setWished(false);
         }
 
         return dto;

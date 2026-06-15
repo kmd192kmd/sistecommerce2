@@ -46,6 +46,7 @@ public class ProductListController {
             @RequestParam(value = "price", required = false) String price,
             @RequestParam(value = "rating", required = false) String rating,
             @RequestParam(value = "hideOutOfStock", required = false) Boolean hideOutOfStock,
+            @RequestParam(value = "showHotDealsOnly", required = false) Boolean showHotDealsOnly,
             HttpServletRequest request,
             HttpSession session,
             Model model) {
@@ -94,12 +95,12 @@ public class ProductListController {
             }
         }
         boolean hideStockVal = hideOutOfStock != null && hideOutOfStock;
-        Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sort, page, minPrice, maxPrice, minRating, hideStockVal);
+        boolean hotDealsOnly = showHotDealsOnly != null && showHotDealsOnly;
+        Page<ProductDto> productPage = productListService.getProductList(categorySeq, keyword, sort, page, minPrice, maxPrice, minRating, hideStockVal, hotDealsOnly);
         List<ProductDto> productList = productPage.getContent();
 
-        // 추천 상품 목록 (판매량*50 + 조회수*30 + 평점*10 + 리뷰수*10 순 상위 5개 추천)
-        List<ProductDto> recommendedList = productListService.getProductList(null, null, "recommend", 0)
-                .getContent().stream().limit(5).collect(Collectors.toList());
+        // 추천 상품 목록 (캐시된 5개 추천 상품 가져오기)
+        List<ProductDto> recommendedList = productListService.getPopularProducts();
 
         // 최근 조회 상품 목록 (세션에 저장된 상품 ID 순서대로 가져오기)
         @SuppressWarnings("unchecked")
@@ -134,6 +135,7 @@ public class ProductListController {
         model.addAttribute("price", price); // 파라미터 보존
         model.addAttribute("rating", rating); // 파라미터 보존
         model.addAttribute("hideOutOfStock", hideStockVal); // 품절 숨김 보존
+        model.addAttribute("showHotDealsOnly", hotDealsOnly); // 핫딜 여부 보존
         model.addAttribute("productList", productList);
         model.addAttribute("recommendedList", recommendedList);
         model.addAttribute("recentViewedList", recentViewedList);
@@ -146,6 +148,26 @@ public class ProductListController {
             return "product/list :: #product-main-container";
         }
         return "product/list";
+    }
+
+    // 최근 조회 상품 목록 조각(Fragment) 조회
+    @GetMapping("/recent-viewed")
+    public String getRecentViewed(HttpSession session, Model model) {
+        @SuppressWarnings("unchecked")
+        List<Long> recentViewedSeqs = (List<Long>) session.getAttribute("recentViewedSeqs");
+        List<ProductDto> recentViewedList = new java.util.ArrayList<>();
+        if (recentViewedSeqs != null && !recentViewedSeqs.isEmpty()) {
+            for (Long rSeq : recentViewedSeqs) {
+                try {
+                    ProductDto p = productDetailService.getProductWithoutViewCount(rSeq);
+                    recentViewedList.add(p);
+                } catch (Exception e) {
+                    // 무시
+                }
+            }
+        }
+        model.addAttribute("recentViewedList", recentViewedList);
+        return "product/list :: #recent-viewed-container";
     }
 
     // 최근 검색어 개별 삭제

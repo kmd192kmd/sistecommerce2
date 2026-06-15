@@ -55,19 +55,6 @@
               action="/api/product/register"
               enctype="multipart/form-data">
 			  
-		    <!--
-		        추가된 부분
-
-		        상품을 등록하는 판매자 번호입니다.
-
-		        실제 로그인 기능과 연결되어 있다면
-		        Controller에서 model.addAttribute("sellerSeq", 로그인한 판매자 번호);
-		        형태로 내려주고 th:value="${sellerSeq}"를 사용합니다.
-		    -->
-		    <input type="hidden"
-		           name="sellerSeq"
-		           th:value="11">
-
             <div class="grid grid-cols-[180px_1fr] gap-8">
 
                 <!-- 대표 이미지 -->
@@ -304,6 +291,8 @@
                             </div>
 
                         </div>
+						
+						<div id="optionCombinationArea"></div>
 
                     </div>
 
@@ -376,6 +365,7 @@
 
     const optionDetailList = document.getElementById('optionDetailList');
     const optionEmptyMessage = document.getElementById('optionEmptyMessage');
+	const optionCombinationArea = document.getElementById('optionCombinationArea');
 	const stockInput = document.getElementById('stockInput');
 	
     /*
@@ -740,9 +730,9 @@
 	    - 상품 수량은 직접 수정하지 못하게 readonly 처리합니다.
 	*/
 	function updateTotalStockFromOptions() {
-	    const selectedOptionCount = document.querySelectorAll('.option-type-checkbox:checked').length;
+	    const combinationStockInputs = document.querySelectorAll('input[name="optionCombinationStocks"]');
 
-	    if (selectedOptionCount === 0) {
+	    if (combinationStockInputs.length === 0) {
 	        stockInput.readOnly = false;
 	        stockInput.classList.remove('bg-gray-100', 'text-gray-500');
 	        return;
@@ -750,7 +740,7 @@
 
 	    let totalStock = 0;
 
-	    document.querySelectorAll('input[name="optionStocks"]').forEach(function (input) {
+	    combinationStockInputs.forEach(function (input) {
 	        const value = Number(input.value);
 
 	        if (!Number.isNaN(value)) {
@@ -818,48 +808,28 @@
     /*
         옵션 입력 한 줄 HTML 생성
     */
-    function makeOptionRowHtml(optionType) {
-        return `
-            <div class="option-detail-row">
+	function makeOptionRowHtml(optionType) {
+	    return `
+	        <div class="option-detail-row">
 
-                <div class="grid grid-cols-4 gap-3 mb-2 text-xs font-bold text-gray-600">
-                    <label>${optionType}</label>
-                    <label>추가금액</label>
-                    <label>재고</label>
-                    <label>안전재고</label>
-                </div>
+	            <div class="grid grid-cols-1 gap-3 mb-2 text-xs font-bold text-gray-600">
+	                <label>${escapeHtml(optionType)}</label>
+	            </div>
 
-                <div class="grid grid-cols-4 gap-3">
+	            <div class="grid grid-cols-1 gap-3">
 
-                    <input type="hidden"
-                           name="optionTypes"
-                           value="${optionType}">
+	                <input type="hidden"
+	                       name="optionTypes"
+	                       value="${escapeHtml(optionType)}">
 
-                    <input type="text"
-                           name="optionNames"
-                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
-
-                    <input type="number"
-                           name="optionPrices"
-                           value="0"
-                           min="0"
-                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
-
-                    <input type="number"
-                           name="optionStocks"
-                           value="0"
-                           min="0"
-                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
-
-                    <input type="number"
-                           name="optionSafeStocks"
-                           value="0"
-                           min="0"
-                           class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
-                </div>
-            </div>
-        `;
-    }
+	                <input type="text"
+	                       name="optionNames"
+	                       placeholder="${escapeHtml(optionType)} 값을 입력하세요"
+	                       class="h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+	            </div>
+	        </div>
+	    `;
+	}
 
     /*
         옵션 상세 영역의 + / - 버튼 처리
@@ -896,10 +866,167 @@
 	    옵션 재고 입력값이 바뀔 때마다 상품 수량 자동 계산
 	*/
 	optionDetailList.addEventListener('input', function (event) {
-	    if (event.target.matches('input[name="optionStocks"]')) {
+		if (event.target.matches('input[name="optionNames"]')) {
+		    clearTimeout(window.optionCombinationTimer);
+
+		    window.optionCombinationTimer = setTimeout(function () {
+		        renderOptionCombinationTable();
+		        updateTotalStockFromOptions();
+		    }, 300);
+		}
+
+	    if (event.target.matches('input[name="optionCombinationStocks"]')) {
 	        updateTotalStockFromOptions();
 	    }
 	});
+	
+	function renderOptionCombinationTable() {
+	    const oldTable = document.getElementById('optionCombinationTableWrap');
+
+	    if (oldTable) {
+	        oldTable.remove();
+	    }
+
+	    const optionGroups = Array.from(optionDetailList.querySelectorAll('.option-group'));
+
+	    if (optionGroups.length === 0) {
+	        updateTotalStockFromOptions();
+	        return;
+	    }
+
+	    const groupDataList = [];
+
+	    for (const group of optionGroups) {
+	        const optionType = group.dataset.optionType;
+
+	        const optionNames = Array.from(group.querySelectorAll('input[name="optionNames"]'))
+	            .map(input => input.value.trim())
+	            .filter(value => value !== '');
+
+	        if (optionNames.length === 0) {
+	            updateTotalStockFromOptions();
+	            return;
+	        }
+
+	        groupDataList.push({
+	            type: optionType,
+	            names: optionNames
+	        });
+	    }
+
+	    const combinations = makeOptionCombinations(groupDataList);
+
+	    const tableWrap = document.createElement('div');
+	    tableWrap.id = 'optionCombinationTableWrap';
+	    tableWrap.className = 'mt-6 border border-gray-200 bg-white p-4';
+
+		let html = `
+		    <div class="mb-4 font-bold text-sm">
+		        옵션 조합별 재고 / 추가금액
+		    </div>
+		`;
+
+		combinations.forEach(function (combination) {
+		    const typeText = combination.map(function (item) {
+		        return item.type;
+		    }).join('||');
+
+		    const nameText = combination.map(function (item) {
+		        return item.name;
+		    }).join('||');
+
+		    const displayName = combination.map(function (item) {
+		        return item.name;
+		    }).join(' / ');
+
+		    html += `
+		        <div class="option-combination-row border border-gray-200 bg-gray-50 p-4 mb-4">
+
+		            <div class="font-bold text-sm text-gray-800 mb-3">
+		                ${escapeHtml(displayName)}
+		            </div>
+
+		            <input type="hidden"
+		                   name="optionCombinationTypes"
+		                   value="${escapeHtml(typeText)}">
+
+		            <input type="hidden"
+		                   name="optionCombinationNames"
+		                   value="${escapeHtml(nameText)}">
+
+		            <div class="grid grid-cols-3 gap-3">
+
+		                <div>
+		                    <label class="block mb-1 text-xs font-bold text-gray-600">
+		                        추가금액
+		                    </label>
+		                    <input type="number"
+		                           name="optionCombinationPrices"
+		                           value="0"
+		                           min="0"
+		                           class="w-full h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+		                </div>
+
+		                <div>
+		                    <label class="block mb-1 text-xs font-bold text-gray-600">
+		                        재고
+		                    </label>
+		                    <input type="number"
+		                           name="optionCombinationStocks"
+		                           value="0"
+		                           min="0"
+		                           class="w-full h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+		                </div>
+
+		                <div>
+		                    <label class="block mb-1 text-xs font-bold text-gray-600">
+		                        안전재고
+		                    </label>
+		                    <input type="number"
+		                           name="optionCombinationSafeStocks"
+		                           value="0"
+		                           min="0"
+		                           class="w-full h-9 border border-gray-300 px-3 text-sm focus:outline-none focus:border-gray-500">
+		                </div>
+
+		            </div>
+		        </div>
+		    `;
+		});
+
+	    tableWrap.innerHTML = html;
+		
+		optionCombinationArea.appendChild(tableWrap);
+
+	    updateTotalStockFromOptions();
+	}
+
+	function makeOptionCombinations(groupDataList) {
+	    let result = [];
+
+	    result.push([]);
+
+	    groupDataList.forEach(function (groupData) {
+	        const temp = [];
+
+	        result.forEach(function (currentCombination) {
+	            groupData.names.forEach(function (optionName) {
+	                const nextCombination = currentCombination.slice();
+
+	                nextCombination.push({
+	                    type: groupData.type,
+	                    name: optionName
+	                });
+
+	                temp.push(nextCombination);
+	            });
+	        });
+
+	        result = temp;
+	    });
+
+	    return result;
+	}
 
     /*
         옵션 선택이 하나도 없을 때 안내 문구 표시

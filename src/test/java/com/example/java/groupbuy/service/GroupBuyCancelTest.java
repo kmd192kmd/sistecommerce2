@@ -3,9 +3,10 @@ package com.example.java.groupbuy.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -33,6 +34,10 @@ import com.example.java.groupbuy.payment.GroupBuyPaymentPort;
 import com.example.java.groupbuy.repository.GroupBuyOptionsRepository;
 import com.example.java.groupbuy.repository.ParticipationRepository;
 import com.example.java.groupbuy.repository.WaitingQueueRepository;
+import com.example.java.orders.dto.OrderCreateResultDto;
+import com.example.java.orders.service.OrdersCommandService;
+
+import org.junit.jupiter.api.BeforeEach;
 
 /**
  * 공구 취소 + 점유 복구 + 대기열 FIFO 승격 시나리오 검증.
@@ -74,9 +79,19 @@ class GroupBuyCancelTest {
     @Autowired
     JdbcTemplate jdbc;
 
-    /** 환불 횟수를 검증하려고 결제 포트를 목으로 대체(pay/cancel 모두 아무 동작 안 함). */
+    /** 환불 횟수를 검증하려고 결제 포트를 목으로 대체(refund가 아무 동작 안 함). */
     @MockitoBean
     GroupBuyPaymentPort paymentPort;
+
+    /** participate가 호출하는 결제대기 주문 생성(orders 도메인)은 테스트 스키마에 없으므로 모킹. */
+    @MockitoBean
+    OrdersCommandService ordersCommandService;
+
+    @BeforeEach
+    void stubOrderCreation() {
+        when(ordersCommandService.createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(new OrderCreateResultDto(1L, "GB-TEST", 8000, "테스트상품"));
+    }
 
     /** 동적 생성하는 공구/옵션 seq 발급기 (스키마 더미 seq=1과 안 겹치게 100부터). */
     private static final AtomicLong SEQ = new AtomicLong(100);
@@ -107,6 +122,18 @@ class GroupBuyCancelTest {
         return new long[]{gbSeq, optSeq};
     }
 
+    /**
+     * 참여 신청(결제대기) → 결제 완료까지 시뮬레이션해서 PARTICIPATING으로 만든다.
+     * 토스 2단계 흐름상 participate는 PAYMENT_PENDING까지만 만들므로, 취소 대상(결제 완료자)을
+     * 만들려면 결제 성공 이벤트가 호출하는 confirmAfterPayment까지 태워야 한다.
+     */
+    private void joinPaid(long groupBuySeq, long optionSeq, long memberSeq) {
+        groupBuyService.participate(groupBuySeq, optionSeq, memberSeq);
+        long participationSeq = participationRepository
+                .findByGroupBuySeqAndMemberSeq(groupBuySeq, memberSeq).get(0).getSeq();
+        groupBuyService.confirmAfterPayment(participationSeq);
+    }
+
     /** 특정 공구에서 해당 회원의 참여 상태를 꺼낸다 (없으면 null). */
     private ParticipationStatus statusOf(long groupBuySeq, long memberSeq) {
         List<Participation> rows = participationRepository.findByGroupBuySeqAndMemberSeq(groupBuySeq, memberSeq);
@@ -118,8 +145,8 @@ class GroupBuyCancelTest {
         // given: 정원 2 공구. 2명 정규참여로 매진 + 1명 대기열
         long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 2);
         long gb = ids[0], opt = ids[1];
-        groupBuyService.participate(gb, opt, 1L);
-        groupBuyService.participate(gb, opt, 2L);
+        joinPaid(gb, opt, 1L);                    // 결제 완료(취소 대상)
+        groupBuyService.participate(gb, opt, 2L); // 2번째 정원 채움(결제대기)
         groupBuyService.participate(gb, opt, 3L); // 매진이라 대기열로
 
         // when: 1번 회원이 취소
@@ -146,7 +173,7 @@ class GroupBuyCancelTest {
         // given: 정원 1 공구. 1명 매진 + 2명 대기열(2번이 3번보다 먼저 등록)
         long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 1);
         long gb = ids[0], opt = ids[1];
-        groupBuyService.participate(gb, opt, 1L); // 매진
+        joinPaid(gb, opt, 1L);                    // 결제 완료(정원 채움, 취소 대상)
         groupBuyService.participate(gb, opt, 2L); // 대기열 1순위 (먼저)
         groupBuyService.participate(gb, opt, 3L); // 대기열 2순위 (나중)
 
@@ -167,7 +194,7 @@ class GroupBuyCancelTest {
         // given: 마감이 10시간 뒤인 공구 (T_lock 24h 구간 안)
         long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusHours(10), 2);
         long gb = ids[0], opt = ids[1];
-        groupBuyService.participate(gb, opt, 1L);
+        joinPaid(gb, opt, 1L);
 
         // when/then: 취소 시도 → 예외
         assertThatThrownBy(() -> groupBuyService.cancel(gb, 1L))
@@ -186,8 +213,8 @@ class GroupBuyCancelTest {
         // given: 정원 2 매진 + 대기자 1
         long[] ids = createGroupBuyWithOption(LocalDateTime.now().plusDays(10), 2);
         long gb = ids[0], opt = ids[1];
-        groupBuyService.participate(gb, opt, 1L);
-        groupBuyService.participate(gb, opt, 2L);
+        joinPaid(gb, opt, 1L);                    // 결제 완료(취소 대상)
+        groupBuyService.participate(gb, opt, 2L); // 2번째 정원 채움(결제대기)
         groupBuyService.participate(gb, opt, 3L); // 대기열
 
         // when: 1번 회원의 cancel 을 2개 스레드가 동시에 호출
@@ -216,7 +243,7 @@ class GroupBuyCancelTest {
 
         // then
         assertThat(finished).as("모든 스레드 종료").isTrue();
-        verify(paymentPort, times(1)).cancel(eq(1L), anyInt()); // 환불은 정확히 1회 (NFR-004)
+        verify(paymentPort, times(1)).refund(anyLong()); // 환불은 정확히 1회 (NFR-004)
         assertThat(statusOf(gb, 1L)).as("취소자는 CANCELLED").isEqualTo(ParticipationStatus.CANCELLED);
         assertThat(statusOf(gb, 3L)).as("승격은 한 번만 (대기자 1명 승격)").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
 

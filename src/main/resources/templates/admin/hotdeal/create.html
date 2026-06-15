@@ -1,0 +1,213 @@
+﻿<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - 신규 핫딜 등록</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <link rel="stylesheet" href="/admin/style.css">
+</head>
+<body class="font-sans antialiased overflow-hidden">
+
+  <div class="flex h-screen w-screen relative">
+    
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity"></div>
+    
+        <div class="flex-1 flex flex-col h-full overflow-hidden">
+          
+          <div th:replace="~{admin/header :: header}"></div>
+    
+          <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+            
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-white">🔥 신규 핫딜 등록</h2>
+            </div>
+    
+             <div class="card w-full">
+      <h4 class="text-title mb-6">핫딜 기본 정보</h4>
+      
+       <form action="/admin/hotdeal/create" method="post" class="space-y-6">
+        
+        <div class="form-group">
+          <label class="text-label">핫딜 이름</label>
+          <input type="text" name="name" class="form-input" placeholder="예: 2026 여름맞이 반짝 특가전" required>
+        </div>
+    
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="form-group">
+                <label class="text-label">시작 날짜/시간</label>
+                <input type="datetime-local" name="startDate" class="form-input" step="3600" required>
+                <!-- ✅ 이 안내 문구 한 줄만 딱 넣어줍니다! -->
+                <p class="text-xs text-red-400 mt-1">※ 핫딜은 매시간 정각에만 작동합니다. (입력하신 '분'은 자동으로 00분
+          처리됩니다)</p>
+            </div>
+            
+            <div class="form-group">
+                <label class="text-label">종료 날짜/시간</label>
+                <input type="datetime-local" name="endDate" class="form-input"  step="3600" required>
+                
+            </div>
+    
+            <!-- 검색 UI 영역 -->
+            <!-- 검색 UI 영역 및 다중 선택 리스트 -->
+                <div class="form-group relative md:col-span-2">
+                    <label class="text-label">적용 상품 검색 및 다중 추가</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="optionSearchInput" class="form-input" placeholder="상품 이름 입력" onkeypress="if(event.key === 'Enter') { searchOptions(); event.preventDefault(); }">
+                        <button type="button" onclick="searchOptions()" class="btn btn-primary whitespace-
+  nowrap">검색</button>
+                    </div>
+                    <!-- 검색 결과 드롭다운 -->
+                    <ul id="optionSearchResult" class="hidden absolute z-10 w-full mt-1 bg-white rounded shadow-lg
+  text-gray-800 max-h-60 overflow-y-auto"></ul>
+
+                    <!-- 다중 선택된 옵션들이 한 줄씩 차곡차곡 쌓일 곳 -->
+                    <div id="selectedOptionsContainer" class="mt-4 space-y-2"></div>
+                </div>
+
+
+            </div>
+    
+
+        </div>
+    
+        <div class="p-4 rounded-lg bg-black/20 border border-gray-700 mt-6">
+            <h4 class="text-label mb-4 font-bold">할인 설정</h4>
+            <div class="flex items-center gap-6 mb-4">
+                <label class="flex items-center gap-2 cursor-pointer text-white">
+                    <input type="radio" name="discountType" value="RATE" class="form-radio text-blue-500" checked
+  onchange="toggleDiscountType(this.value)">
+                    <span>할인율(%)</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-white">
+                     <input type="radio" name="discountType" value="PRICE" class="form-radio text-blue-500"
+  onchange="toggleDiscountType(this.value)">
+                    <span>할인 가격(원)</span>
+                </label>
+            </div>
+    
+            <div class="form-group" id="rateInputGroup">
+                <input type="number" name="discountRate" id="discountRate" min="0" class="form-input w-full md:w-1/2" placeholder="예: 20">
+            </div>
+    
+            <div class="form-group hidden" id="priceInputGroup">
+                <input type="number" name="discountPrice" id="discountPrice" min="0" class="form-input w-full md:w-1/2" placeholder="예: 5000">
+            </div>
+        </div>
+    
+        <div class="flex justify-end gap-3 mt-8">
+          <button type="button" class="btn btn-outline" onclick="history.back()">취소</button>
+          <button type="submit" class="btn btn-primary">핫딜 생성</button>
+        </div>
+      </form>
+    </div>
+
+      </main>
+    </div>
+  </div>
+  
+ <script src="/admin/admin.js"></script>
+ <script th:inline="javascript">
+ 
+
+ 
+ function searchOptions() {
+        const keyword = document.getElementById('optionSearchInput').value.trim();
+        if (!keyword) { alert('검색어를 입력해주세요.'); return; }
+
+        fetch(`/admin/hot-deals/search-options?keyword=${encodeURIComponent(keyword)}`)
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('optionSearchResult');
+                list.innerHTML = '';
+                if(data.length === 0) {
+                    list.innerHTML = '<li class="p-2 text-center text-gray-500">검색 결과가 없습니다.</li>';
+                } else {
+                    data.forEach(opt => {
+                        const li = document.createElement('li');
+                        li.className = 'p-2 hover:bg-gray-100 cursor-pointer border-b text-sm flex justify-between';
+                        const pName = opt.product ? opt.product.productName : '알수없는상품';
+                        const oName = opt.color ? opt.color : '기본옵션';
+                        li.innerHTML = `<span>[${pName}] ${oName}</span> <span class="text-blue-500 text-xs font-
+  bold">남은재고: ${opt.stock}개</span>`;
+
+                        // 클릭 시 다중 목록에 추가하는 함수 호출
+                        li.onclick = () => {
+                            addOptionRow(opt.seq, `[${pName}] ${oName}`, opt.stock);
+                            list.classList.add('hidden');
+                        };
+                        list.appendChild(li);
+                    });
+                }
+                list.classList.remove('hidden');
+            });
+    }
+
+    // 클릭 시 화면에 한 줄씩 추가해 주는 핵심 함수
+    function addOptionRow(seq, text, maxStock) {
+        // 중복 추가 방지
+        if (document.getElementById('opt_row_' + seq)) {
+            alert('이미 추가된 상품입니다!');
+            return;
+        }
+
+        const container = document.getElementById('selectedOptionsContainer');
+        const row = document.createElement('div');
+        row.id = 'opt_row_' + seq;
+        row.className = 'flex items-center justify-between bg-black/20 p-3 rounded border border-gray-700';
+
+        row.innerHTML = `
+            <div class="text-sm text-indigo-300 font-bold w-1/2 break-words">
+                ${text} <span class="text-gray-400 text-xs font-normal">(재고: ${maxStock})</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- 백엔드로 넘어갈 배열 데이터 name="optionsSeqs" / name="hotDealStocks" -->
+                <input type="hidden" name="optionsSeqs" value="${seq}">
+                <input type="number" name="hotDealStocks" class="form-input w-24 !py-1 text-sm" placeholder="수량입력"
+  min="1" max="${maxStock}" required>
+                <button type="button" onclick="this.closest('div[id^=opt_row]').remove()" class="text-red-500
+  hover:text-red-300 ml-2 font-bold px-2">X</button>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+   
+   function toggleDiscountType(type) {
+        const rateGroup = document.getElementById('rateInputGroup');
+        const priceGroup = document.getElementById('priceInputGroup');
+        
+        if (type === 'RATE') {
+            rateGroup.classList.remove('hidden');
+            priceGroup.classList.add('hidden');
+            document.getElementById('discountPrice').value = '';
+        } else {
+            rateGroup.classList.add('hidden');
+            priceGroup.classList.remove('hidden');
+            document.getElementById('discountRate').value = '';
+        }
+    }
+    
+     document.querySelectorAll('input[type="datetime-local"]').forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.value) {
+                // 예: "2026-06-08T14:30" 형식으로 들어오는 값을 ':' 기준으로 쪼갬
+                let parts = this.value.split(':');
+                if (parts.length >= 2) {
+                    // 분(Minute) 자리를 무조건 '00'으로 강제 덮어쓰기
+                    this.value = parts[0] + ':00';
+                }
+            }
+        });
+     });
+     
+      const errorMessage =/*[[${errorMessage}]]*/ null;
+    if (errorMessage && errorMessage !== 'null') {
+        alert(errorMessage);
+    }
+   
+</script>
+</body>
+</html>

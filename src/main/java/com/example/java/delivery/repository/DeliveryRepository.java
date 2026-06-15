@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 
 import com.example.java.delivery.entity.Delivery;
 
+import java.util.List;
+
 public interface DeliveryRepository extends JpaRepository<Delivery, Long>{
 
 
@@ -21,4 +23,6 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long>{
 	List<Delivery> findByOrdersSeqWithCompany(@Param("orderSeq") Long orderSeq);
 	
 
+	List<Delivery> findByOrders_Seq(Long orderSeq);
+	
 }
