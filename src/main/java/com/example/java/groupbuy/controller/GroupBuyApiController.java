@@ -17,21 +17,26 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.java.groupbuy.dto.GroupBuyDetailResponse;
 import com.example.java.groupbuy.dto.GroupBuySummaryResponse;
 import com.example.java.groupbuy.dto.ParticipateResponse;
+import com.example.java.groupbuy.ratelimit.ParticipationRateLimiter;
 import com.example.java.groupbuy.service.GroupBuyService;
 import com.example.java.member.security.CustomUserDetails;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 공동구매 REST API. (Thymeleaf shell 위에 mount된 React가 호출)
  * 회원 노출용 데이터만 제공 — 옵션 잔여 수량 등 비공개 정보는 내려보내지 않는다.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/group-buys")
 @RequiredArgsConstructor
 public class GroupBuyApiController {
 
     private final GroupBuyService groupBuyService;
+    private final ParticipationRateLimiter participationRateLimiter;
 
     /** 공구 목록. */
     // GET /api/group-buys  (목록)
@@ -70,14 +75,24 @@ public class GroupBuyApiController {
             // (SecurityContext의 principal)를 자동으로 주입.
             // 타입을 CustomUserDetails로 받았으니 거기 담아둔 
             // getMemberSeq()를 바로 쓸 수 있다.
-            @AuthenticationPrincipal CustomUserDetails user) {
+            @AuthenticationPrincipal CustomUserDetails user,
+            // 클라이언트 IP 추출용 (rate limit). 프록시 뒤를 대비해 X-Forwarded-For 우선.
+            HttpServletRequest request) {
         if (user == null) {
             // 비로그인이면 principal이 없어 user가 null → 401(인증 필요)로 막는다.
-            // (SecurityConfig가 현재 개발용 permitAll이라 
+            // (SecurityConfig가 현재 개발용 permitAll이라
         	// 비로그인도 들어올 수 있어 여기서 직접 방어)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // 검증·점유·자리예약·주문생성·대기열은 서비스(트랜잭션)에 위임. 
+        // 점유 고갈 DoS 억제: 같은 계정/IP가 짧은 시간에 참여 신청을 반복하면 차단(429).
+        // (결제 전 점유 모델 악용 방어 — 반복/회전 공격용. 분산 최초 대량은 잔여 위험.)
+        String clientIp = clientIp(request);
+        if (participationRateLimiter.isBlocked(user.getMemberSeq(), clientIp)) {
+            log.warn("공구 참여 rate limit 초과 - groupBuySeq={}, memberSeq={}, ip={}",
+                    seq, user.getMemberSeq(), clientIp);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        // 검증·점유·자리예약·주문생성·대기열은 서비스(트랜잭션)에 위임.
         // 컨트롤러는 입력만 꺼내 넘긴다.
         ParticipateResponse response = groupBuyService.participate(seq, optionSeq, user.getMemberSeq());
         // 결과를 JSON으로 반환 → QUEUED(대기열) 또는 
@@ -145,6 +160,19 @@ public class GroupBuyApiController {
         }
         groupBuyService.cancelPendingPaymentByMember(seq, user.getMemberSeq());
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 클라이언트 IP를 추출한다 (rate limit 키용).
+     * 프록시/로드밸런서 뒤에서는 getRemoteAddr()가 프록시 IP를 반환하므로,
+     * X-Forwarded-For가 있으면 그 첫 번째(원 클라이언트) 값을 우선 사용한다.
+     */
+    private static String clientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     /**

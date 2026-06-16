@@ -12,6 +12,8 @@ import com.example.java.orders.entity.Orders;
 import com.example.java.orders.entity.OrderItem;
 import com.example.java.orders.repository.OrderItemRepository;
 import com.example.java.orders.repository.OrdersRepository;
+import com.example.java.product.repository.OptionsRepository;
+import com.example.java.product.repository.SellerRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -40,6 +42,8 @@ public class DeliveryBatchConfig {
     private final KakaoMapService kakaoMapService;
     private final OrderItemRepository orderItemRepository;
     private final OrdersRepository ordersRepository;
+    private final OptionsRepository optionsRepository;
+    private final SellerRepository sellerRepository;
     private final Random random = new Random();
 
     public DeliveryBatchConfig(JobRepository jobRepository,
@@ -50,7 +54,9 @@ public class DeliveryBatchConfig {
                                DeliveryService deliveryService,
                                KakaoMapService kakaoMapService,
                                OrderItemRepository orderItemRepository,
-                               OrdersRepository ordersRepository) {
+                               OrdersRepository ordersRepository,
+                               OptionsRepository optionsRepository,
+                               SellerRepository sellerRepository) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.deliveryRepository = deliveryRepository;
@@ -60,6 +66,8 @@ public class DeliveryBatchConfig {
         this.kakaoMapService = kakaoMapService;
         this.orderItemRepository = orderItemRepository;
         this.ordersRepository = ordersRepository;
+        this.optionsRepository = optionsRepository;
+        this.sellerRepository = sellerRepository;
     }
 
     /**
@@ -213,16 +221,28 @@ public class DeliveryBatchConfig {
                     delivery.setCompleted_at(now);
                     deliveryRepository.save(delivery);
 
-                    // 연관 주문 및 주문상품의 배송상태 업데이트 (orderStatus = 6 : 배송완료, itemStatus = 3 : 배송완료)
-                    if (order != null) {
+                    // 배송 완료 시 해당 배송에 포함된 주문상품들의 상태도 배송완료(3)로 변경
+                    List<OrderItem> orderItems = orderItemRepository.findByOrderSeq(order.getSeq());
+                    for (OrderItem item : orderItems) {
+                        optionsRepository.findById(item.getOptionsSeq()).ifPresent(opt -> {
+                            if (opt.getProduct() != null && opt.getProduct().getSellerSeq() != null) {
+                                sellerRepository.findById(opt.getProduct().getSellerSeq()).ifPresent(sel -> {
+                                    if (sel.getDeliveryCompany() != null && delivery.getDeliveryCompany() != null && 
+                                        sel.getDeliveryCompany().getSeq().equals(delivery.getDeliveryCompany().getSeq())) {
+                                        item.setItemStatus(3);
+                                        orderItemRepository.save(item);
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    // 주문 내 모든 상품이 배송완료(3) 또는 취소/반품(6, 9) 상태이면 주문 전체 상태도 배송완료(6)로 업데이트
+                    boolean allDelivered = orderItems.stream()
+                            .allMatch(item -> item.getItemStatus() != null && (item.getItemStatus() == 3 || item.getItemStatus() == 6 || item.getItemStatus() == 9));
+                    if (allDelivered) {
                         order.setOrderStatus(6);
                         ordersRepository.save(order);
-
-                        List<OrderItem> items = orderItemRepository.findByOrderSeq(order.getSeq());
-                        for (OrderItem item : items) {
-                            item.setItemStatus(3); // 배송완료
-                        }
-                        orderItemRepository.saveAll(items);
                     }
 
                     DeliveryHistory receiverHistory = DeliveryHistory.builder()

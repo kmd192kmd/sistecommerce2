@@ -319,7 +319,7 @@
                                    placeholder="예: 101동 1001호">
                         </div>
 
-                        <div>
+                        <!--<div>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox"
                                        name="saveDeliveryAddress"
@@ -329,11 +329,7 @@
                                     이 배송지를 배송지 목록에 저장
                                 </span>
                             </label>
-
-                            <p class="text-[11px] text-gray-400 mt-1">
-                                현재 코드는 새 배송지를 orders에 저장합니다. 회원 배송지 목록 저장까지 연결하려면 서버 저장 로직을 추가하세요.
-                            </p>
-                        </div>
+                        </div>-->
                     </div>
 
                     <div>
@@ -395,48 +391,30 @@
                 </div>
             </section>
 
-            <!-- 결제 수단 -->
-            <section class="bg-white border border-gray-200">
-                <div class="px-5 py-4 border-b border-gray-100">
-                    <h2 class="text-base font-black">결제 수단</h2>
-                </div>
+			<!-- 결제 수단 -->
+			<section class="bg-white border border-gray-200">
+			    <div class="px-5 py-4 border-b border-gray-100">
+			        <h2 class="text-base font-black">결제 수단</h2>
+			    </div>
 
-                <div class="p-5 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <label class="border border-amber-500 bg-amber-50/40 p-4 cursor-pointer flex items-center justify-between gap-3">
-                            <span class="text-sm font-black">카드 결제</span>
-                            <input type="radio"
-                                   name="paymentMethod"
-                                   value="CARD"
-                                   checked
-                                   class="accent-amber-500">
-                        </label>
+			    <div class="p-5 space-y-4">
+			        <input type="hidden"
+			               name="paymentMethod"
+			               value="CARD">
 
-                        <label class="border border-gray-200 p-4 cursor-pointer hover:border-amber-400 flex items-center justify-between gap-3">
-                            <span class="text-sm font-black">계좌이체</span>
-                            <input type="radio"
-                                   name="paymentMethod"
-                                   value="TRANSFER"
-                                   class="accent-amber-500">
-                        </label>
+			        <div class="border border-amber-500 bg-amber-50/40 p-4 flex items-center justify-between gap-3">
+			            <span class="text-sm font-black">카드 결제</span>
+			            <span class="text-xs font-bold text-amber-700">토스페이먼츠</span>
+			        </div>
 
-                        <label class="border border-gray-200 p-4 cursor-pointer hover:border-amber-400 flex items-center justify-between gap-3">
-                            <span class="text-sm font-black">가상계좌</span>
-                            <input type="radio"
-                                   name="paymentMethod"
-                                   value="VIRTUAL_ACCOUNT"
-                                   class="accent-amber-500">
-                        </label>
-                    </div>
-
-                    <div class="border border-dashed border-gray-300 bg-gray-50 p-5 text-center">
-                        <p class="text-sm font-black">토스페이먼츠 결제창 연동</p>
-                        <p class="text-xs text-gray-500 mt-1">
-                            결제하기 버튼을 누르면 주문 데이터를 생성한 뒤 토스페이먼츠 결제창을 호출합니다.
-                        </p>
-                    </div>
-                </div>
-            </section>
+			        <!--<div class="border border-dashed border-gray-300 bg-gray-50 p-5 text-center">
+			            <p class="text-sm font-black">토스페이먼츠 결제창 연동</p>
+			            <p class="text-xs text-gray-500 mt-1">
+			                결제하기 버튼을 누르면 주문 데이터를 생성한 뒤 카드 결제창을 호출합니다.
+			            </p>
+			        </div>-->
+			    </div>
+			</section>
 
             <!-- 주문자 동의 -->
             <section class="bg-white border border-gray-200 p-5">
