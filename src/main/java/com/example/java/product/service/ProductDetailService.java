@@ -245,9 +245,6 @@ public class ProductDetailService {
 
         /*
             대표 이미지 찾기
-
-            thumbnail_yn = 'Y'인 이미지를 우선 사용합니다.
-            없으면 기본 이미지를 사용합니다.
         */
         String thumbnailUrl = imageList.stream()
                 .filter(img -> "Y".equals(img.getThumbnailYn()))
@@ -258,20 +255,61 @@ public class ProductDetailService {
         dto.setImage(thumbnailUrl);
         dto.setThumbnailUrl(thumbnailUrl);
 
+        // 핫딜 정보 조회
+        List<ProductDetailRepository.HotDealInfoDto> hotDeals =
+                productDetailRepository.findProductHotDeals(product.getSeq());
+
+        boolean hasHotDeal = !hotDeals.isEmpty();
+        dto.setHotDeal(hasHotDeal);
+        if (hasHotDeal) {
+            dto.setOriginalPrice(product.getPrice());
+            ProductDetailRepository.HotDealInfoDto firstHotDeal = hotDeals.get(0);
+            if (firstHotDeal.getDiscountRate() != null) {
+                dto.setDiscountRate(firstHotDeal.getDiscountRate());
+                dto.setPrice(product.getPrice() * (100 - firstHotDeal.getDiscountRate()) / 100);
+            } else if (firstHotDeal.getDiscountPrice() != null) {
+                int discountPrice = firstHotDeal.getDiscountPrice();
+                dto.setPrice(Math.max(0, product.getPrice() - discountPrice));
+                int calculatedRate = (int) Math.round(((double) discountPrice / product.getPrice()) * 100);
+                dto.setDiscountRate(calculatedRate);
+            }
+        }
+
         /*
             상품 옵션 목록 조회
         */
         List<ProductDto.ProductOptionDto> optionList =
                 productDetailRepository.findProductOptions(product.getSeq());
 
+        if (hasHotDeal) {
+            java.util.Map<Long, ProductDetailRepository.HotDealInfoDto> hotDealMap = hotDeals.stream()
+                    .collect(Collectors.toMap(ProductDetailRepository.HotDealInfoDto::getOptionsSeq, h -> h, (h1, h2) -> h1));
+
+            for (ProductDto.ProductOptionDto optDto : optionList) {
+                ProductDetailRepository.HotDealInfoDto hd = hotDealMap.get(optDto.getSeq());
+                if (hd != null) {
+                    if (optDto.getStock() == null || optDto.getStock() <= 0) {
+                        String baseOptName = makeOptionNameWithoutPrice(optDto);
+                        optDto.setOptionName(baseOptName + " (품절)");
+                    } else {
+                        int originalOptPrice = product.getPrice() + (optDto.getAdditionalPrice() != null ? optDto.getAdditionalPrice() : 0);
+                        int discountedOptPrice = originalOptPrice;
+                        if (hd.getDiscountRate() != null) {
+                            discountedOptPrice = originalOptPrice * (100 - hd.getDiscountRate()) / 100;
+                        } else if (hd.getDiscountPrice() != null) {
+                            discountedOptPrice = Math.max(0, originalOptPrice - hd.getDiscountPrice());
+                        }
+                        String baseOptName = makeOptionNameWithoutPrice(optDto);
+                        optDto.setOptionName(baseOptName + " (핫딜가: " + String.format("%,d", discountedOptPrice) + "원)");
+                    }
+                }
+            }
+        }
+
         dto.setOptionList(optionList);
 
         /*
             옵션명을 문자열 목록으로 변환합니다.
-
-            예:
-            optionList의 optionName만 뽑아서
-            ["블랙 / M", "화이트 / L"] 형태로 만듭니다.
         */
         List<String> optionStrings = optionList.stream()
                 .map(ProductDto.ProductOptionDto::getOptionName)
@@ -285,5 +323,40 @@ public class ProductDetailService {
         dto.setOptions(optionStrings);
 
         return dto;
+    }
+
+    private String makeOptionNameWithoutPrice(ProductDto.ProductOptionDto dto) {
+        StringBuilder sb = new StringBuilder();
+        appendOptionStr(sb, dto.getColor());
+        appendOptionStr(sb, dto.getOptionsSize());
+        appendOptionStr(sb, dto.getVolumeWeight());
+        appendOptionStr(sb, dto.getTaste());
+        appendOptionStr(sb, dto.getStorageType());
+        appendOptionStr(sb, dto.getScentIngredient());
+        appendOptionStr(sb, dto.getVoltage());
+        appendOptionStr(sb, dto.getQuantitySet());
+        appendOptionStr(sb, dto.getSizeSpec());
+        appendOptionStr(sb, dto.getStorageCapacity());
+        appendOptionStr(sb, dto.getMemory());
+        appendOptionStr(sb, dto.getSwitchAxis());
+        appendOptionStr(sb, dto.getConnectionType());
+        appendOptionStr(sb, dto.getWearableSpec());
+        appendOptionStr(sb, dto.getMaterialType());
+        appendOptionStr(sb, dto.getOptionsType());
+
+        if (sb.length() == 0) {
+            sb.append("기본 옵션");
+        }
+        return sb.toString();
+    }
+
+    private void appendOptionStr(StringBuilder sb, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append(" / ");
+        }
+        sb.append(value);
     }
 }

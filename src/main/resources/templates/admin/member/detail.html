@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -40,11 +40,11 @@
           <div class="flex gap-3">
             
             <form th:if="${member.status == 1}" th:action="@{/admin/member/{seq}/status(seq=${member.seq})}" method="post">
-              <input type="hidden" name="status" value="2">
+              <input type="hidden" name="status" value="3">
               <button type="submit" class="px-4 py-2 bg-[var(--danger)] text-white hover:opacity-90 font-medium rounded-lg text-sm transition-all shadow-lg">계정 정지</button>
             </form>
             
-            <form th:if="${member.status != 1}" th:action="@{/admin/member/{seq}/status(seq=${member.seq})}" method="post">
+            <form th:if="${member.status == 2 or member.status == 3}" th:action="@{/admin/member/{seq}/status(seq=${member.seq})}" method="post">
               <input type="hidden" name="status" value="1">
               <button type="submit" class="px-4 py-2 bg-[var(--success)] text-white hover:opacity-90 font-medium rounded-lg text-sm transition-all shadow-lg">계정 활성화</button>
             </form>
@@ -65,8 +65,10 @@
                 <h3 class="text-3xl font-extrabold theme-text-white flex items-center gap-3">
                   <span th:text="${member.name}">홍길동</span>
                   <span th:if="${member.status == 1}" class="badge badge-success">정상 활동중</span>
-                  <span th:if="${member.status == 0}" class="badge" style="background:rgba(245,158,11,0.1); color:#f59e0b;">대기/휴면</span>
-                  <span th:if="${member.status == 2}" class="badge badge-danger">정지/탈퇴</span>
+                  <span th:if="${member.status == 2}" class="badge" style="background:rgba(245,158,11,0.1); color:#f59e0b;">휴면</span>
+                  <span th:if="${member.status == 3}" class="badge badge-danger">계정 정지</span>
+                  <span th:if="${member.status == 4}" class="badge" style="background:rgba(156,163,175,0.1); color:#9ca3af;">탈퇴 대기</span>
+                  <span th:if="${member.status == 5}" class="badge badge-danger">탈퇴 완료</span>
                 </h3>
                 <p class="theme-text-muted font-medium mt-1 text-lg" th:text="${'@' + member.username}">@username</p>
               </div>

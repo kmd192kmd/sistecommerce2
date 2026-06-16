@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -66,8 +66,10 @@
                   <td class="px-6 py-4" th:text="${member.email}"></td>
                   <td class="px-6 py-4">
                     <span th:if="${member.status == 1}" class="badge badge-success">정상</span>
-                    <span th:if="${member.status == 0}" class="badge" style="background:rgba(245,158,11,0.1); color:#f59e0b;">대기</span>
-                    <span th:if="${member.status == 2}" class="badge badge-danger">정지/탈퇴</span>
+                    <span th:if="${member.status == 2}" class="badge" style="background:rgba(245,158,11,0.1); color:#f59e0b;">휴면</span>
+                    <span th:if="${member.status == 3}" class="badge badge-danger">정지</span>
+                    <span th:if="${member.status == 4}" class="badge" style="background:rgba(156,163,175,0.1); color:#9ca3af;">탈퇴대기</span>
+                    <span th:if="${member.status == 5}" class="badge badge-danger">탈퇴완료</span>
                   </td>
                   <td class="px-6 py-4 text-xs theme-text-muted" th:text="${member.joinedAt != null ? #temporals.format(member.joinedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
                   <td class="px-6 py-4 text-xs theme-text-muted" th:text="${member.lastLoginAt != null ? #temporals.format(member.lastLoginAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>

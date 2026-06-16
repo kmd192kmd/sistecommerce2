@@ -434,6 +434,10 @@ public class ProductDetailRepository {
             sb.append(" (+").append(dto.getAdditionalPrice()).append("원)");
         }
 
+        if (dto.getStock() == null || dto.getStock() <= 0) {
+            sb.append(" (품절)");
+        }
+
         return sb.toString();
     }
 
@@ -448,5 +452,45 @@ public class ProductDetailRepository {
         }
 
         sb.append(value);
+    }
+
+    public List<HotDealInfoDto> findProductHotDeals(Long productSeq) {
+        String sql = """
+                SELECT 
+                    hp.options_seq, 
+                    h.discount_rate, 
+                    h.discount_price,
+                    hp.hot_deal_stock,
+                    hp.sold_quantity
+                FROM hot_deal_product hp
+                INNER JOIN hot_deal h ON hp.hot_deal_seq = h.seq
+                WHERE hp.options_seq IN (
+                    SELECT seq FROM options WHERE product_seq = :productSeq
+                )
+                AND h.status = 1
+                """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("productSeq", productSeq);
+
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            HotDealInfoDto dto = new HotDealInfoDto();
+            dto.setOptionsSeq(rs.getLong("options_seq"));
+            dto.setDiscountRate(rs.getObject("discount_rate") != null ? rs.getInt("discount_rate") : null);
+            dto.setDiscountPrice(rs.getObject("discount_price") != null ? rs.getInt("discount_price") : null);
+            dto.setHotDealStock(rs.getInt("hot_deal_stock"));
+            dto.setSoldQuantity(rs.getInt("sold_quantity"));
+            return dto;
+        });
+    }
+
+    @lombok.Getter
+    @lombok.Setter
+    public static class HotDealInfoDto {
+        private Long optionsSeq;
+        private Integer discountRate;
+        private Integer discountPrice;
+        private Integer hotDealStock;
+        private Integer soldQuantity;
     }
 }

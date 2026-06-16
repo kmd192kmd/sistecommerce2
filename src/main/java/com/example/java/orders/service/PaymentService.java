@@ -87,6 +87,7 @@ public class PaymentService {
     private final ReturnsRepository returnsRepository;
     private final com.example.java.common.util.SnowflakeIdGenerator snowflakeIdGenerator;
     private final OrdersQueryRepository ordersQueryRepository;
+    private final com.example.java.product.service.OptionsService optionsService;
     
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -965,6 +966,7 @@ public class PaymentService {
      */
     private void decreaseStockForOrderItems(List<OrderItem> orderItems, Long orderSeq) {
         LinkedHashMap<Long, Integer> quantityByOptionsSeq = aggregateQuantityByOptionsSeq(orderItems);
+        java.util.Set<Long> productSeqsToUpdate = new java.util.HashSet<>();
 
         for (Map.Entry<Long, Integer> entry : quantityByOptionsSeq.entrySet()) {
             Long optionsSeq = entry.getKey();
@@ -987,6 +989,11 @@ public class PaymentService {
             }
 
             options.decreaseStock(decreaseQuantity);
+            optionsRepository.saveAndFlush(options);
+
+            if (options.getProduct() != null) {
+                productSeqsToUpdate.add(options.getProduct().getSeq());
+            }
 
             int afterStock = nullToZero(options.getStock());
 
@@ -1001,6 +1008,10 @@ public class PaymentService {
                     StockHistorySourceType.주문
             );
         }
+
+        for (Long productSeq : productSeqsToUpdate) {
+            optionsService.updateProductSaleStatus(productSeq);
+        }
     }
 
     /**
@@ -1008,6 +1019,7 @@ public class PaymentService {
      */
     private void increaseStockForOrderItems(List<OrderItem> orderItems, Long orderSeq) {
         LinkedHashMap<Long, Integer> quantityByOptionsSeq = aggregateQuantityByOptionsSeq(orderItems);
+        java.util.Set<Long> productSeqsToUpdate = new java.util.HashSet<>();
 
         for (Map.Entry<Long, Integer> entry : quantityByOptionsSeq.entrySet()) {
             Long optionsSeq = entry.getKey();
@@ -1019,6 +1031,11 @@ public class PaymentService {
             int beforeStock = nullToZero(options.getStock());
 
             options.increaseStock(increaseQuantity);
+            optionsRepository.saveAndFlush(options);
+
+            if (options.getProduct() != null) {
+                productSeqsToUpdate.add(options.getProduct().getSeq());
+            }
 
             int afterStock = nullToZero(options.getStock());
 
@@ -1032,6 +1049,10 @@ public class PaymentService {
                     orderSeq,
                     StockHistorySourceType.주문
             );
+        }
+
+        for (Long productSeq : productSeqsToUpdate) {
+            optionsService.updateProductSaleStatus(productSeq);
         }
     }
 
