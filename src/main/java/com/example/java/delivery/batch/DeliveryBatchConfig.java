@@ -9,6 +9,11 @@ import com.example.java.delivery.repository.HubRepository;
 import com.example.java.delivery.service.DeliveryService;
 import com.example.java.delivery.service.KakaoMapService;
 import com.example.java.orders.entity.Orders;
+import com.example.java.orders.entity.OrderItem;
+import com.example.java.orders.repository.OrderItemRepository;
+import com.example.java.orders.repository.OrdersRepository;
+import com.example.java.product.repository.OptionsRepository;
+import com.example.java.product.repository.SellerRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -35,9 +40,10 @@ public class DeliveryBatchConfig {
     private final DeliveryHistoryRepository deliveryHistoryRepository;
     private final DeliveryService deliveryService;
     private final KakaoMapService kakaoMapService;
-    private final com.example.java.orders.repository.OrderItemRepository orderItemRepository;
-    private final com.example.java.product.repository.OptionsRepository optionsRepository;
-    private final com.example.java.product.repository.SellerRepository sellerRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final OrdersRepository ordersRepository;
+    private final OptionsRepository optionsRepository;
+    private final SellerRepository sellerRepository;
     private final Random random = new Random();
 
     public DeliveryBatchConfig(JobRepository jobRepository,
@@ -47,9 +53,10 @@ public class DeliveryBatchConfig {
                                DeliveryHistoryRepository deliveryHistoryRepository,
                                DeliveryService deliveryService,
                                KakaoMapService kakaoMapService,
-                               com.example.java.orders.repository.OrderItemRepository orderItemRepository,
-                               com.example.java.product.repository.OptionsRepository optionsRepository,
-                               com.example.java.product.repository.SellerRepository sellerRepository) {
+                               OrderItemRepository orderItemRepository,
+                               OrdersRepository ordersRepository,
+                               OptionsRepository optionsRepository,
+                               SellerRepository sellerRepository) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.deliveryRepository = deliveryRepository;
@@ -58,6 +65,7 @@ public class DeliveryBatchConfig {
         this.deliveryService = deliveryService;
         this.kakaoMapService = kakaoMapService;
         this.orderItemRepository = orderItemRepository;
+        this.ordersRepository = ordersRepository;
         this.optionsRepository = optionsRepository;
         this.sellerRepository = sellerRepository;
     }
@@ -101,6 +109,19 @@ public class DeliveryBatchConfig {
                 delivery.setStatus("SHIPPING");
                 delivery.setDelayHours(0);
                 deliveryRepository.save(delivery);
+
+                // 연관 주문 및 주문상품의 배송상태 업데이트 (orderStatus = 5 : 배송중, itemStatus = 2 : 배송중)
+                Orders order = delivery.getOrders();
+                if (order != null) {
+                    order.setOrderStatus(5);
+                    ordersRepository.save(order);
+
+                    List<OrderItem> items = orderItemRepository.findByOrderSeq(order.getSeq());
+                    for (OrderItem item : items) {
+                        item.setItemStatus(2); // 배송중
+                    }
+                    orderItemRepository.saveAll(items);
+                }
 
                 // Add delivery history: 본사 허브 도착 기록
                 DeliveryHistory hqHistory = DeliveryHistory.builder()
@@ -201,8 +222,8 @@ public class DeliveryBatchConfig {
                     deliveryRepository.save(delivery);
 
                     // 배송 완료 시 해당 배송에 포함된 주문상품들의 상태도 배송완료(3)로 변경
-                    List<com.example.java.orders.entity.OrderItem> orderItems = orderItemRepository.findByOrderSeq(order.getSeq());
-                    for (com.example.java.orders.entity.OrderItem item : orderItems) {
+                    List<OrderItem> orderItems = orderItemRepository.findByOrderSeq(order.getSeq());
+                    for (OrderItem item : orderItems) {
                         optionsRepository.findById(item.getOptionsSeq()).ifPresent(opt -> {
                             if (opt.getProduct() != null && opt.getProduct().getSellerSeq() != null) {
                                 sellerRepository.findById(opt.getProduct().getSellerSeq()).ifPresent(sel -> {
@@ -214,6 +235,14 @@ public class DeliveryBatchConfig {
                                 });
                             }
                         });
+                    }
+
+                    // 주문 내 모든 상품이 배송완료(3) 또는 취소/반품(6, 9) 상태이면 주문 전체 상태도 배송완료(6)로 업데이트
+                    boolean allDelivered = orderItems.stream()
+                            .allMatch(item -> item.getItemStatus() != null && (item.getItemStatus() == 3 || item.getItemStatus() == 6 || item.getItemStatus() == 9));
+                    if (allDelivered) {
+                        order.setOrderStatus(6);
+                        ordersRepository.save(order);
                     }
 
                     DeliveryHistory receiverHistory = DeliveryHistory.builder()
