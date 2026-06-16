@@ -14,6 +14,7 @@ function s() {
 		productPrice: 0,
 		quantity: 0,
 		statusText: "",
+		itemStatus: 0,
 		requestDate: "",
 		uid: "",
 		completedDate: "",
@@ -68,6 +69,7 @@ function s() {
 			productPrice: e.productPrice || 0,
 			quantity: e.quantity || 0,
 			statusText: e.statusText,
+			itemStatus: e.itemStatus || 0,
 			requestDate: e.requestDate || "-",
 			uid: e.uid || "-",
 			completedDate: e.completedDate || "진행 중",
@@ -92,6 +94,7 @@ function s() {
 				productPrice: 0,
 				quantity: 0,
 				statusText: "",
+				itemStatus: 0,
 				requestDate: "",
 				uid: "",
 				completedDate: "",
@@ -155,13 +158,48 @@ function s() {
 									className: "flex-1 space-y-4 w-full",
 									children: e.items && e.items.length > 0 ? e.items.map((e, t) => /* @__PURE__ */ (0, o.jsxs)("div", {
 										className: "flex gap-5 items-center pb-3 last:pb-0 border-b border-slate-100/50 last:border-b-0",
-										children: [/* @__PURE__ */ (0, o.jsx)("div", {
+										children: [/* @__PURE__ */ (0, o.jsxs)("div", {
 											className: "relative w-16 h-16 rounded-xl overflow-hidden shadow-sm border border-slate-100 shrink-0",
-											children: /* @__PURE__ */ (0, o.jsx)("img", {
-												src: e.thumbnailUrl || "/images/default-product.png",
-												alt: "상품 이미지",
-												className: "w-full h-full object-cover"
-											})
+											children: [
+												/* @__PURE__ */ (0, o.jsx)("img", {
+													src: e.thumbnailUrl || "/images/default-product.png",
+													alt: "상품 이미지",
+													className: `w-full h-full object-cover ${[
+														6,
+														7,
+														8,
+														9
+													].includes(e.itemStatus) ? " grayscale" : ""}`
+												}),
+												e.itemStatus === 6 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "취소됨"
+													})
+												}),
+												e.itemStatus === 7 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "반품대기"
+													})
+												}),
+												e.itemStatus === 8 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "반품진행"
+													})
+												}),
+												e.itemStatus === 9 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "반품완료"
+													})
+												})
+											]
 										}), /* @__PURE__ */ (0, o.jsxs)("div", {
 											className: "space-y-0.5",
 											children: [/* @__PURE__ */ (0, o.jsx)("h4", {
@@ -181,13 +219,48 @@ function s() {
 										})]
 									}, t)) : /* @__PURE__ */ (0, o.jsxs)("div", {
 										className: "flex gap-5 items-center",
-										children: [/* @__PURE__ */ (0, o.jsx)("div", {
+										children: [/* @__PURE__ */ (0, o.jsxs)("div", {
 											className: "relative w-16 h-16 rounded-xl overflow-hidden shadow-sm border border-slate-100 shrink-0",
-											children: /* @__PURE__ */ (0, o.jsx)("img", {
-												src: e.thumbnailUrl || "/images/default-product.png",
-												alt: "상품 이미지",
-												className: "w-full h-full object-cover"
-											})
+											children: [
+												/* @__PURE__ */ (0, o.jsx)("img", {
+													src: e.thumbnailUrl || "/images/default-product.png",
+													alt: "상품 이미지",
+													className: `w-full h-full object-cover ${[
+														6,
+														7,
+														8,
+														9
+													].includes(e.itemStatus) ? " grayscale" : ""}`
+												}),
+												e.itemStatus === 6 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "취소됨"
+													})
+												}),
+												e.itemStatus === 7 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "반품대기"
+													})
+												}),
+												e.itemStatus === 8 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "반품진행"
+													})
+												}),
+												e.itemStatus === 9 && /* @__PURE__ */ (0, o.jsx)("div", {
+													className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+													children: /* @__PURE__ */ (0, o.jsx)("span", {
+														className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+														children: "반품완료"
+													})
+												})
+											]
 										}), /* @__PURE__ */ (0, o.jsxs)("div", {
 											className: "space-y-0.5",
 											children: [/* @__PURE__ */ (0, o.jsx)("h4", {
@@ -320,13 +393,48 @@ function s() {
 						}),
 						/* @__PURE__ */ (0, o.jsxs)("div", {
 							className: "flex gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-100",
-							children: [/* @__PURE__ */ (0, o.jsx)("div", {
-								className: "w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-200",
-								children: /* @__PURE__ */ (0, o.jsx)("img", {
-									src: u.thumbnailUrl,
-									alt: "상품 이미지",
-									className: "w-full h-full object-cover"
-								})
+							children: [/* @__PURE__ */ (0, o.jsxs)("div", {
+								className: "relative w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-200",
+								children: [
+									/* @__PURE__ */ (0, o.jsx)("img", {
+										src: u.thumbnailUrl,
+										alt: "상품 이미지",
+										className: `w-full h-full object-cover ${[
+											6,
+											7,
+											8,
+											9
+										].includes(u.itemStatus) ? " grayscale" : ""}`
+									}),
+									u.itemStatus === 6 && /* @__PURE__ */ (0, o.jsx)("div", {
+										className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+										children: /* @__PURE__ */ (0, o.jsx)("span", {
+											className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+											children: "취소됨"
+										})
+									}),
+									u.itemStatus === 7 && /* @__PURE__ */ (0, o.jsx)("div", {
+										className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+										children: /* @__PURE__ */ (0, o.jsx)("span", {
+											className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+											children: "반품대기"
+										})
+									}),
+									u.itemStatus === 8 && /* @__PURE__ */ (0, o.jsx)("div", {
+										className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+										children: /* @__PURE__ */ (0, o.jsx)("span", {
+											className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+											children: "반품진행"
+										})
+									}),
+									u.itemStatus === 9 && /* @__PURE__ */ (0, o.jsx)("div", {
+										className: "absolute inset-0 bg-slate-900/45 flex items-center justify-center",
+										children: /* @__PURE__ */ (0, o.jsx)("span", {
+											className: "text-[10px] font-black text-white border border-white/60 px-1 py-0.5 rounded",
+											children: "반품완료"
+										})
+									})
+								]
 							}), /* @__PURE__ */ (0, o.jsxs)("div", {
 								className: "space-y-0.5",
 								children: [

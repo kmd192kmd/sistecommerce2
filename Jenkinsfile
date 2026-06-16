@@ -23,7 +23,7 @@ pipeline {
     }
 
     stages {
-        stage('Trigger Spring Batch') {
+        stage('Trigger Spring Batch') {aaaaa
             steps {
                 script {
                     echo "================================================="

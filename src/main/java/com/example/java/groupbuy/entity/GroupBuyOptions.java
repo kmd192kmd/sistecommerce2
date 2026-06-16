@@ -54,7 +54,8 @@ public class GroupBuyOptions {
 
     /**
      * 점유(+1). 정규 참여 결제 시 / 대기열 승격 시 호출.
-     * 반드시 비관적 락(findBySeqForUpdate)으로 행을 잠근 뒤 호출해야 동시성이 보장된다 (NFR-001).
+     * 반드시 비관적 락(findBySeqForUpdate)으로 행을 잠근 뒤 
+     * 호출해야 동시성이 보장된다 (NFR-001).
      */
     public void occupy() {
         if (isSoldOut()) {

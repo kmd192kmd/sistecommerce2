@@ -63,6 +63,21 @@ public class MembershipService {
         return membershipsRepository.findByMember(member);
     }
 
+    /**
+     * 멤버십 혜택이 유효한 회원인지 (공구 예정 조기 열람 등 혜택 게이팅용).
+     * active 또는 canceled(취소 예정이나 만료일까지 유지) 상태이고 아직 만료 전이면 true.
+     */
+    @Transactional(readOnly = true)
+    public boolean isActiveMember(Long memberSeq) {
+        LocalDateTime now = LocalDateTime.now();
+        return membershipsRepository.findByMember_Seq(memberSeq)
+                .map(m -> (Memberships.STATUS_ACTIVE.equals(m.getStatus())
+                                || Memberships.STATUS_CANCELED.equals(m.getStatus()))
+                        && m.getExpireAt() != null
+                        && m.getExpireAt().isAfter(now))
+                .orElse(false);
+    }
+
     public int getMembershipPrice() {
         return MEMBERSHIP_PRICE;
     }
