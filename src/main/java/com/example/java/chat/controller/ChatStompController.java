@@ -6,13 +6,14 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessagingTemplate; // 👈 추가된 임포트
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
 import com.example.java.chat.dto.request.ChatMessageRequest;
 import com.example.java.chat.dto.response.ChatMessageResponse;
-import com.example.java.chat.enums.SenderType;
+// 본인의 프로젝트 패키지 경로에 맞게 Enum을 정확히 임포트해주세요
+import com.example.java.chat.enums.SenderType; 
 import com.example.java.chat.service.AiChatbotService;
 import com.example.java.chat.service.ChatService;
 import com.example.java.member.security.CustomUserDetails;
@@ -27,10 +28,11 @@ public class ChatStompController {
 
     private final ChatService chatService;
     private final AiChatbotService aiChatbotService;
-    
-    // 👈 웹소켓으로 메시지를 직접 쏴줄 수 있는 메신저 템플릿 추가
     private final SimpMessagingTemplate messagingTemplate; 
 
+    /**
+     * 웹소켓을 통해 들어오는 실시간 메시지를 처리하는 엔드포인트
+     */
     @MessageMapping("/chat/{roomId}/send")
     @SendTo("/topic/chat/{roomId}")
     public ChatMessageResponse sendMessage(
@@ -38,39 +40,66 @@ public class ChatStompController {
             @Payload ChatMessageRequest request, 
             Principal principal) {
         
+        // 1. 발신자의 고유 번호(Seq) 가져오기
         Long memberSeq = getMemberSeqFromPrincipal(principal);
-        log.info("채팅 수신 - 방: {}, 발신자: {}, 내용: {}", roomId, memberSeq, request.getContent());
+        log.info("▶ [STOMP 수신] 방: {}, 발신자: {}, 구분: {}, 내용: {}", 
+                roomId, memberSeq, request.getSenderType(), request.getContent());
 
-        // 1. 사용자 메시지를 DB에 저장 (이 결과는 @SendTo를 통해 즉시 사용자의 화면에 나타남)
-        ChatMessageResponse userMessage = chatService.saveMessage(
+        // 2. 누가 보냈든(USER, ADMIN) 일단 들어온 메시지를 DB에 저장
+        ChatMessageResponse savedMessage = chatService.saveMessage(
             roomId, 
             memberSeq, 
             request.getContent(), 
-            request.getSenderType()
+            // 프론트에서 문자열로 넘어온 SenderType을 Enum으로 변환하여 저장
+            SenderType.valueOf(request.getSenderType().toString()) 
         );
 
-        // 2. OpenAI API 호출 및 답변 받아오기 (리턴값을 변수에 저장)
-        String aiAnswerText = aiChatbotService.processUserMessageAndRespond(roomId, memberSeq, request.getContent());
+        // 3. 발신자가 '고객(USER)'일 때만 AI 개입 여부를 판단
+        if (SenderType.USER.toString().equals(request.getSenderType().toString())) {
+            
+            // 🌟 [핵심 로직] 이 방에 관리자(ADMIN)가 이미 개입하여 답변을 남겼는지 확인
+            boolean isAdminJoined = chatService.hasAdminJoined(roomId);
 
-        // 3. AI의 답변을 DB에 저장하고 응답 객체(DTO) 생성
-        // (발신자 ID는 AI를 뜻하는 0L이나 1L 혹은 시스템 룰에 맞게 입력, senderType은 "AI"로 고정)
-        ChatMessageResponse aiMessage = chatService.saveMessage(
-            roomId, 
-            0L, // 시스템/AI의 가상 ID (프로젝트 DB 설정에 따라 null이 안되면 0 등을 사용)
-            aiAnswerText, 
-            SenderType.AI
-        );
+            if (!isAdminJoined) {
+                // 관리자가 아직 개입하지 않은 방이므로 AI가 답변 생성
+                log.info("▶ [AI 봇] 관리자 미배정 상태 확인. AI 챗봇이 답변을 생성합니다.");
+                
+                String aiAnswerText = aiChatbotService.processUserMessageAndRespond(
+                        roomId, memberSeq, request.getContent()
+                );
 
-        // 4. 🚨 [핵심] 완성된 AI 메시지를 해당 채팅방을 구독 중인 프론트엔드로 직접 발송!
-        messagingTemplate.convertAndSend("/topic/chat/" + roomId, aiMessage);
+                // AI의 답변을 DB에 저장 (발신자 ID는 0L, 타입은 AI)
+                ChatMessageResponse aiMessage = chatService.saveMessage(
+                    roomId, 
+                    0L, 
+                    aiAnswerText, 
+                    SenderType.AI
+                );
 
-        // 5. 사용자가 보낸 메시지 반환 (@SendTo 작동)
-        return userMessage;
+                // AI의 답변을 해당 채팅방 구독자(프론트엔드)들에게 직접 쏴줌
+                messagingTemplate.convertAndSend("/topic/chat/" + roomId, aiMessage);
+                
+            } else {
+                // 관리자가 이미 답변을 남긴 이력이 있다면, AI는 더 이상 개입하지 않음
+                log.info("▶ [AI 봇] 해당 방({})은 이미 상담사(ADMIN)가 배정되어 대화 중이므로 AI는 침묵합니다.", roomId);
+            }
+            
+        } else {
+            // 발신자가 관리자(ADMIN)인 경우
+            log.info("▶ [시스템] 발신자가 상담사(ADMIN)이므로 AI 답변 로직을 생략합니다.");
+        }
+
+        // 4. 최초에 저장했던 메시지(고객 또는 관리자가 쓴 원본 메시지) 반환 
+        // -> @SendTo 어노테이션에 의해 화면에 렌더링 됨
+        return savedMessage;
     }
 
+    /**
+     * SecurityContext의 Principal 객체로부터 회원의 고유 번호(memberSeq) 추출
+     */
     private Long getMemberSeqFromPrincipal(Principal principal) {
         if (principal == null) {
-            log.error("웹소켓 인증 정보 없음");
+            log.error("웹소켓 인증 정보 없음: Principal is null");
             throw new IllegalArgumentException("인증 정보가 존재하지 않습니다. 로그인이 필요합니다.");
         }
         
