@@ -36,6 +36,10 @@ import com.example.java.groupbuy.repository.ParticipationRepository;
 import com.example.java.groupbuy.repository.WaitingQueueRepository;
 import com.example.java.orders.dto.OrderCreateResultDto;
 import com.example.java.orders.service.OrdersCommandService;
+import com.example.java.common.notification.entity.Notification;
+import com.example.java.common.notification.entity.NotificationRecipientType;
+import com.example.java.common.notification.entity.NotificationType;
+import com.example.java.common.notification.repository.NotificationRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 
@@ -79,6 +83,9 @@ class GroupBuyCancelTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    NotificationRepository notificationRepository;
+
     /** 환불 횟수를 검증하려고 결제 포트를 목으로 대체(refund가 아무 동작 안 함). */
     @MockitoBean
     GroupBuyPaymentPort paymentPort;
@@ -91,6 +98,9 @@ class GroupBuyCancelTest {
     void stubOrderCreation() {
         when(ordersCommandService.createGroupBuyOrder(anyLong(), anyLong(), anyLong(), anyInt(), anyInt(), anyInt()))
                 .thenReturn(new OrderCreateResultDto(1L, "GB-TEST", 8000, "테스트상품"));
+        // 알림은 member_seq 단위로 누적된다(공구는 테스트마다 새로 만들지만 회원 1·2·3은 재사용).
+        // 테스트 간 격리를 위해 매 테스트 전에 알림 테이블을 비운다.
+        notificationRepository.deleteAll();
     }
 
     /** 동적 생성하는 공구/옵션 seq 발급기 (스키마 더미 seq=1과 안 겹치게 100부터). */
@@ -160,6 +170,24 @@ class GroupBuyCancelTest {
         assertThat(promoted.get(0).getStatus()).as("승격자는 결제대기").isEqualTo(ParticipationStatus.PAYMENT_PENDING);
         assertThat(promoted.get(0).getPaymentDeadline()).as("승격자 결제기한 설정됨").isNotNull();
         assertThat(promoted.get(0).getPromotedAt()).as("승격 시각 설정됨").isNotNull();
+
+        // 알림 검증
+        // 3번(승격된 회원): 승격 알림 1건
+        assertThat(notificationRepository.countByRecipientTypeAndRecipientSeqAndReadAtIsNull(
+                NotificationRecipientType.MEMBER, 3L))
+                .as("승격된 회원에게 읽지 않은 알림 1건 생성").isEqualTo(1);
+
+        // 1번(결제완료 후 취소): 결제완료(PAYMENT_DONE) + 환불완료(REFUND_DONE) 2건
+        List<Notification> notifications1 = notificationRepository
+                .findByRecipientTypeAndRecipientSeqOrderByCreatedAtDesc(NotificationRecipientType.MEMBER, 1L);
+        assertThat(notifications1).hasSize(2);
+        assertThat(notifications1.get(0).getType()).isEqualTo(NotificationType.REFUND_DONE);
+        assertThat(notifications1.get(1).getType()).isEqualTo(NotificationType.PAYMENT_DONE);
+
+        // 2번(결제대기 상태 유지): 알림 없음
+        assertThat(notificationRepository
+                .findByRecipientTypeAndRecipientSeqOrderByCreatedAtDesc(NotificationRecipientType.MEMBER, 2L))
+                .isEmpty();
 
         GroupBuyOptions after = groupBuyOptionsRepository.findById(opt).orElseThrow();
         assertThat(after.getOccupiedCount()).as("점유 수 유지 (release -1 후 승격 occupy +1 = net 0)").isEqualTo(2);

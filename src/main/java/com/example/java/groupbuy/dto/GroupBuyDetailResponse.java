@@ -10,7 +10,8 @@ import lombok.Getter;
 
 /**
  * 공구 상세 REST 응답 (GET /api/group-buys/{id}).
- * React 구매 패널이 소비한다. (React 도입 전엔 detail.html 서버렌더 fallback도 같은 필드를 쓴다)
+ * React 구매 패널이 소비한다. 
+ * (React 도입 전엔 detail.html 서버렌더 fallback도 같은 필드를 쓴다)
  */
 @Getter
 @Builder

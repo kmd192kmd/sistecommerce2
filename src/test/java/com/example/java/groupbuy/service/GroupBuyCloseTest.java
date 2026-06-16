@@ -26,6 +26,12 @@ import com.example.java.groupbuy.entity.ParticipationStatus;
 import com.example.java.groupbuy.payment.GroupBuyPaymentPort;
 import com.example.java.groupbuy.repository.GroupBuyRepository;
 import com.example.java.groupbuy.repository.ParticipationRepository;
+import com.example.java.common.notification.entity.Notification;
+import com.example.java.common.notification.entity.NotificationRecipientType;
+import com.example.java.common.notification.entity.NotificationType;
+import com.example.java.common.notification.repository.NotificationRepository;
+
+import org.junit.jupiter.api.BeforeEach;
 
 /**
  * 공구 마감 확정/무산 판정(close) 시나리오 검증.
@@ -60,8 +66,17 @@ class GroupBuyCloseTest {
     @Autowired
     JdbcTemplate jdbc;
 
+    @Autowired
+    NotificationRepository notificationRepository;
+
     @MockitoBean
     GroupBuyPaymentPort paymentPort;
+
+    /** 알림은 member_seq 단위로 누적된다(회원 1·2·3 재사용). 테스트 간 격리를 위해 매번 비운다. */
+    @BeforeEach
+    void clearNotifications() {
+        notificationRepository.deleteAll();
+    }
 
     private static final AtomicLong SEQ = new AtomicLong(700);
 
@@ -124,6 +139,12 @@ class GroupBuyCloseTest {
         assertThat(statusOf(gb, 1L)).as("참여자 확정").isEqualTo(ParticipationStatus.CONFIRMED);
         assertThat(statusOf(gb, 2L)).isEqualTo(ParticipationStatus.CONFIRMED);
         verify(paymentPort, times(0)).refund(anyLong());
+
+        // 알림 검증: 1·2번 회원에게 확정 알림(GROUP_BUY_CONFIRMED) 1건씩
+        assertThat(notificationRepository.countByRecipientTypeAndRecipientSeqAndReadAtIsNull(
+                NotificationRecipientType.MEMBER, 1L)).isEqualTo(1);
+        assertThat(notificationRepository.countByRecipientTypeAndRecipientSeqAndReadAtIsNull(
+                NotificationRecipientType.MEMBER, 2L)).isEqualTo(1);
     }
 
     @Test
@@ -142,6 +163,19 @@ class GroupBuyCloseTest {
         assertThat(statusOf(gb, 1L)).as("참여자 무산").isEqualTo(ParticipationStatus.FAILED);
         assertThat(statusOf(gb, 2L)).isEqualTo(ParticipationStatus.FAILED);
         verify(paymentPort, times(2)).refund(anyLong()); // 결제완료 2명 각각 환불 = 총 2회
+
+        // 알림 검증: 1·2번 회원에게 무산(GROUP_BUY_FAILED) + 환불완료(REFUND_DONE) 2건씩
+        List<Notification> noti1 = notificationRepository
+                .findByRecipientTypeAndRecipientSeqOrderByCreatedAtDesc(NotificationRecipientType.MEMBER, 1L);
+        assertThat(noti1).hasSize(2);
+        assertThat(noti1.stream().map(Notification::getType))
+                .containsExactlyInAnyOrder(NotificationType.GROUP_BUY_FAILED, NotificationType.REFUND_DONE);
+
+        List<Notification> noti2 = notificationRepository
+                .findByRecipientTypeAndRecipientSeqOrderByCreatedAtDesc(NotificationRecipientType.MEMBER, 2L);
+        assertThat(noti2).hasSize(2);
+        assertThat(noti2.stream().map(Notification::getType))
+                .containsExactlyInAnyOrder(NotificationType.GROUP_BUY_FAILED, NotificationType.REFUND_DONE);
     }
 
     @Test
@@ -160,5 +194,13 @@ class GroupBuyCloseTest {
         assertThat(groupBuyStatus(gb)).as("결제완료 2명으로 확정").isEqualTo(GroupBuyStatus.CONFIRMED);
         assertThat(statusOf(gb, 3L)).as("결제대기자는 EXPIRED").isEqualTo(ParticipationStatus.EXPIRED);
         verify(paymentPort, times(0)).refund(anyLong()); // 확정이라 환불 없음(결제대기자 포함 아무도 환불 안 됨)
+
+        // 알림 검증: 1·2번(확정)은 1건씩, 3번(만료)은 알림 없음
+        assertThat(notificationRepository.countByRecipientTypeAndRecipientSeqAndReadAtIsNull(
+                NotificationRecipientType.MEMBER, 1L)).isEqualTo(1);
+        assertThat(notificationRepository.countByRecipientTypeAndRecipientSeqAndReadAtIsNull(
+                NotificationRecipientType.MEMBER, 2L)).isEqualTo(1);
+        assertThat(notificationRepository.countByRecipientTypeAndRecipientSeqAndReadAtIsNull(
+                NotificationRecipientType.MEMBER, 3L)).isEqualTo(0);
     }
 }

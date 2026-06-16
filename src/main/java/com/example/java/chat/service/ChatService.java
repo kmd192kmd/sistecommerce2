@@ -74,4 +74,12 @@ public class ChatService {
                 .map(ChatMessageResponse::new)
                 .collect(Collectors.toList());
     }
+    public List<Chat> getAllActiveRooms() {
+        // 예: 상태값이 0(활성화)인 모든 채팅방을 생성일 역순으로 조회
+        return chatRepository.findByStatusOrderByCreatedAtDesc(0); 
+    }
+    public boolean hasAdminJoined(Long roomId) {
+        // ADMIN(관리자)이 해당 방에 단 한 번이라도 메시지를 남겼다면 true 반환
+        return chatMessageRepository.existsByChatSeqAndSenderType(roomId, SenderType.ADMIN);
+    }
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.example.java.groupbuy.service.GroupBuyService;
 import com.example.java.member.security.CustomUserDetails;
+import com.example.java.member.service.MembershipService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 public class GroupBuyViewController {
 
     private final GroupBuyService groupBuyService;
+    private final MembershipService membershipService;
 
     // 토스 결제창에 필요한 값들 (일반 결제 OrdersController와 동일한 설정을 재사용).
     @Value("${toss.client-key}")
@@ -38,10 +40,15 @@ public class GroupBuyViewController {
         return "groupbuy/list";
     }
 
-    /** 공구 예정 페이지 — 시작 전(SCHEDULED) 공구 목록. */
+    /**
+     * 공구 예정 페이지 — 시작 전(SCHEDULED) 공구 목록.
+     * 멤버십(활성 구독) 회원은 7일 더 일찍(시작 14일 전부터) 볼 수 있다. 
+     * 비로그인은 일반 기준(7일 전).
+     */
     @GetMapping("/group-buys/scheduled")
-    public String scheduled(Model model) {
-        model.addAttribute("groupBuys", groupBuyService.getScheduledSummaries());
+    public String scheduled(@AuthenticationPrincipal CustomUserDetails user, Model model) {
+        boolean isMember = user != null && membershipService.isActiveMember(user.getMemberSeq());
+        model.addAttribute("groupBuys", groupBuyService.getScheduledSummaries(isMember));
         return "groupbuy/scheduled";
     }
 
@@ -55,7 +62,8 @@ public class GroupBuyViewController {
                          @AuthenticationPrincipal CustomUserDetails user,
                          Model model) {
         model.addAttribute("groupBuy", groupBuyService.getDetail(seq));
-        // 토스 결제창 설정(참여 → 결제) — React가 data 속성으로 읽는다. customerKey는 화면에서 "member-"+seq로 조립.
+        // 토스 결제창 설정(참여 → 결제) — React가 data 속성으로 읽는다. 
+        // customerKey는 화면에서 "member-"+seq로 조립.
         model.addAttribute("tossClientKey", tossClientKey);
         model.addAttribute("tossSuccessUrl", tossSuccessUrl);
         model.addAttribute("tossFailUrl", tossFailUrl);

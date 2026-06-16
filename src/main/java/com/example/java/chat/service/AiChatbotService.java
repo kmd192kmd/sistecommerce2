@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@org.springframework.context.annotation.PropertySource("classpath:application-secret.yml")
+// @org.springframework.context.annotation.PropertySource(value = "classpath:application-secret.yml", ignoreResourceNotFound = true)
 public class AiChatbotService {
 
     private final DeliveryRepository deliveryRepository;

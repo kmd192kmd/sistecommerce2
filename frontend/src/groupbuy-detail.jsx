@@ -62,7 +62,9 @@ function PurchasePanel({ id, data, toss }) {
         return;
       }
       if (!res.ok) {
-        setMessage('참여 처리에 실패했습니다.');
+        // 서버가 내려준 업무 메시지(예: "기본 배송지가 없습니다...")가 있으면 그대로 보여준다.
+        const body = await res.json().catch(() => null);
+        setMessage(body?.message || '참여 처리에 실패했습니다.');
         return;
       }
       // 서버 응답(ParticipateResponse): QUEUED(매진→대기열) / PARTICIPATED(자리 예약 + 결제대기 주문 생성)

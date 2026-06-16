@@ -85,6 +85,27 @@
             </div>
 
             <div class="flex items-center space-x-7 text-[#555555] shrink-0">
+                <!-- 알림 벨 (로그인 시에만). 로직은 /js/notification.js -->
+                <div sec:authorize="isAuthenticated()" class="relative" id="notif-root">
+                    <button type="button" id="notif-bell"
+                            class="flex flex-col items-center justify-center hover:text-amber-600 text-xs font-semibold relative">
+                        <i data-lucide="bell" class="w-5 h-5 stroke-[1.5] mb-0.5"></i>
+                        <span>알림</span>
+                        <span id="notif-badge"
+                              class="hidden absolute -top-1 -right-2 bg-red-500 text-white text-[9px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center">0</span>
+                    </button>
+                    <div id="notif-dropdown"
+                         class="hidden absolute right-0 top-full mt-2 w-80 bg-white shadow-2xl border border-gray-200 z-50 rounded-sm">
+                        <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+                            <span class="text-sm font-black text-gray-700">알림</span>
+                            <button type="button" id="notif-read-all"
+                                    class="text-[11px] text-gray-400 hover:text-amber-500 hover:underline">모두 읽음</button>
+                        </div>
+                        <ul id="notif-list" class="max-h-96 overflow-y-auto divide-y divide-gray-50 text-xs text-left">
+                            <li class="px-4 py-6 text-center text-gray-400">불러오는 중...</li>
+                        </ul>
+                    </div>
+                </div>
                 <a th:href="@{/mypage/orders}" class="flex flex-col items-center justify-center hover:text-amber-600 text-xs font-semibold">
                     <i data-lucide="user" class="w-5 h-5 stroke-[1.5] mb-0.5"></i>
                     <span>마이골드</span>
@@ -309,6 +330,9 @@
                     .catch(error => console.error('Error:', error));
             }
         </script>
+
+        <!-- 알림 벨 동작 (안읽음 배지 / 드롭다운 / SSE 푸시) -->
+        <script th:src="@{/js/notification.js}"></script>
     </header>
 </header>
 </body>

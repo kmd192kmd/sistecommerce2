@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>고객 상담 관리 - 다크 모드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
+    <style>
+        .chat-container { height: calc(100vh - 150px); }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased bg-slate-950 text-slate-100 overflow-hidden">
+
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    
+    <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-900">
+        <div th:replace="~{admin/header :: header}"></div>
+        
+        <main class="flex-1 overflow-hidden p-6 flex flex-col space-y-4">
+            
+            <div class="flex justify-between items-center">
+                <h4 class="text-xl font-bold text-slate-100 tracking-wide m-0">1:1 실시간 고객 상담</h4>
+                <span class="bg-blue-950/50 text-blue-400 border border-blue-900/60 px-3 py-1.5 rounded text-sm font-semibold shadow-inner">
+                    <i class="fa-solid fa-headset mr-1"></i> CS Center
+                </span>
+            </div>
+            
+            <div class="flex-1 flex chat-container overflow-hidden bg-slate-900 border border-slate-800 rounded shadow-2xl">
+                
+                <div class="w-80 border-r border-slate-800 flex flex-col bg-slate-900/80">
+                    <div class="p-4 border-b border-slate-800 bg-slate-900">
+                        <h5 class="font-bold text-slate-300 text-sm flex items-center gap-2">
+                            <i class="fa-regular fa-comments text-blue-500"></i> 대기중인 상담
+                        </h5>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto divide-y divide-slate-800 custom-scrollbar" id="roomList">
+                        <div class="p-4 text-center text-sm text-slate-500">로드 중...</div>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col bg-slate-900">
+                    
+                    <div class="h-16 border-b border-slate-800 flex items-center px-6 justify-between bg-slate-900/90 backdrop-blur z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded bg-blue-950 border border-blue-900 text-blue-400 flex items-center justify-center font-bold text-sm" id="activeProfileIcon">
+                                -
+                            </div>
+                            <div>
+                                <h6 class="font-bold text-slate-100 text-sm" id="activeRoomTitle">상담방을 선택해 주세요</h6>
+                                <p class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5" id="activeRoomStatus">
+                                    대기 중
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-950/40 custom-scrollbar" id="chatMessages">
+                        <div class="flex h-full items-center justify-center text-sm text-slate-600">
+                            상담을 시작할 대화방을 리스트에서 선택해 주세요.
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-900 border-t border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="msgInput" 
+                                   class="w-full flex-1 bg-slate-950 border border-slate-800 rounded px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" 
+                                   placeholder="답변을 입력하세요..." disabled>
+                            <button onclick="sendMessage()" id="sendBtn" class="w-11 h-11 rounded bg-slate-800 text-slate-500 flex items-center justify-center shadow-md transition-colors" disabled>
+                                <i class="fa-solid fa-paper-plane text-sm ml-[-2px]"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script src="/admin/admin.js"></script>
+
+<script th:inline="javascript">
+    let stompClient = null;
+    let currentRoomId = null;
+    let stompSubscription = null; // 중복 구독 방지를 위한 전역 구독 핸들러
+
+    // 페이지 초기 진입 시 실행 라이프사이클
+    window.onload = function() {
+        connectWebSocket();
+        loadChatRooms();
+    };
+
+    // 1. 웹소켓 및 STOMP 핸드셰이크 커넥션 수립
+    function connectWebSocket() {
+        const socket = new SockJS('/ws-chat');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; // 디버그 로그 숨김 처리
+
+        stompClient.connect({}, function (frame) {
+            console.log('✅ [WebSocket] 실시간 STOMP 브로커 서버와 연결 성공');
+        }, function(error) {
+            console.error('❌ [WebSocket] 통신 장애 발생, 3초 후 재연결을 시도합니다.', error);
+            setTimeout(connectWebSocket, 3000);
+        });
+    }
+
+    // 2. 비동기 HTTP Fetch 로 가용 채팅방 리스트 갱신
+    async function loadChatRooms() {
+        const roomListContainer = document.getElementById('roomList');
+        try {
+            const response = await fetch('/api/admin/chat/rooms');
+            if (!response.ok) throw new Error('대기열 조회 실패');
+            
+            const rooms = await response.json();
+            roomListContainer.innerHTML = '';
+
+            if (rooms.length === 0) {
+                roomListContainer.innerHTML = '<div class="p-4 text-center text-sm text-slate-600">현재 대기 중인 상담이 없습니다.</div>';
+                return;
+            }
+			rooms.forEach(room => {
+			    // 💡 room.chatSeq 를 room.seq 로 모두 변경했습니다!
+			    const isActive = room.seq === currentRoomId;
+			    const activeClasses = isActive ? 'border-l-4 border-blue-500 bg-blue-950/40' : 'border-l-4 border-transparent hover:bg-slate-800/60 bg-slate-900/40';
+
+			    const roomHtml = `
+			        <div class="p-4 cursor-pointer transition-colors ${activeClasses}" onclick="enterRoom(${room.seq}, '${room.title}')" id="room-item-${room.seq}">
+			            <div class="flex justify-between items-start mb-1">
+			                <span class="font-bold text-slate-100 text-sm">${room.title || '익명 고객 문의'}</span>
+			                <span class="text-xs text-slate-500">${room.category || '일반 문의'}</span>
+			            </div>
+			            <p class="text-xs text-slate-400 truncate">세션 활성화 상태 (번호: ${room.seq})</p>
+			        </div>
+			    `;
+			    roomListContainer.insertAdjacentHTML('beforeend', roomHtml);
+			});
+
+        } catch (error) {
+            console.error('❌ [Fetch] 방 목록 로드 에러:', error);
+            roomListContainer.innerHTML = '<div class="p-4 text-center text-sm text-red-500">목록을 불러오는 중 오류가 발생했습니다.</div>';
+        }
+    }
+
+    // 3. 특정 대화방 진입 프로세스 (기존 구독 해제 -> 신규 웹소켓 구독 -> 대화 이력 보정)
+    async function enterRoom(roomId, roomTitle) {
+        if (currentRoomId === roomId) return; // 동일방 중복 진입 방지
+
+        // UI 상태값 동적 동기화
+        currentRoomId = roomId;
+        document.getElementById('activeRoomTitle').innerText = roomTitle || '고객 상담';
+        document.getElementById('activeProfileIcon').innerText = roomTitle ? roomTitle.substring(0, 1) : '고';
+        document.getElementById('activeRoomStatus').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 실시간 연결됨';
+        
+        // 입력 컨트롤 락 헤제
+        const inputField = document.getElementById('msgInput');
+        const sendBtn = document.getElementById('sendBtn');
+        inputField.disabled = false;
+        inputField.placeholder = "고객에게 전송할 메시지를 입력해 주세요...";
+        sendBtn.disabled = false;
+        sendBtn.className = "w-11 h-11 rounded bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition-colors active:scale-95";
+
+        // 기존에 가동 중인 타겟 룸 채널 구독 정보 소멸 처리
+        if (stompSubscription !== null) {
+            stompSubscription.unsubscribe();
+            console.log('📡 이전 방 채널 구독 핸들러 자원 회수 완료');
+        }
+
+        // 3-1. REST API 기반 과거 히스토리 내역 렌더링
+        const chatMessagesContainer = document.getElementById('chatMessages');
+        chatMessagesContainer.innerHTML = '<div class="p-4 text-center text-sm text-slate-600">이전 대화 내용을 불러오는 중...</div>';
+
+        try {
+            const response = await fetch(`/api/admin/chat/rooms/${roomId}/messages`);
+            if (!response.ok) throw new Error('히스토리 캐시 로드 실패');
+            
+            const messages = await response.json();
+            chatMessagesContainer.innerHTML = '';
+
+            if(messages.length === 0) {
+                chatMessagesContainer.innerHTML = '<div class="p-4 text-center text-sm text-slate-600">이전 대화 기록이 존재하지 않습니다.</div>';
+            } else {
+                messages.forEach(msg => displayMessage(msg));
+            }
+        } catch (error) {
+            console.error('❌ [History Fetch] 이전 로그 파싱 에러:', error);
+            chatMessagesContainer.innerHTML = '<div class="p-4 text-center text-sm text-red-500">대화 기록을 불러오지 못했습니다.</div>';
+        }
+
+        // 3-2. 백엔드 브로커 대기 채널 실시간 바인딩
+        stompSubscription = stompClient.subscribe(`/topic/chat/${roomId}`, function (messageOutput) {
+            const incomingPayload = JSON.parse(messageOutput.body);
+            displayMessage(incomingPayload);
+        });
+
+        console.log(`📡 [Room ${roomId}] 실시간 채널 구독 정상 맵핑 완료`);
+        
+        // 왼쪽 리스트 액티브 스타일 포커스 동기화 보정
+        loadChatRooms();
+    }
+
+    // 4. 입력 버퍼 파싱 후 STOMP 프레임 아웃바운드 전송
+    function sendMessage() {
+        const input = document.getElementById('msgInput');
+        const content = input.value.trim();
+        
+        if (content === '') return;
+        if (currentRoomId === null) {
+            alert('상담을 진행할 타겟 대화방이 지정되지 않았습니다.');
+            return;
+        }
+
+        // 백엔드 ChatStompController의 @MessageMapping("/chat/{roomId}/send") 규칙과 바인딩
+        const chatMessageRequest = {
+            content: content,
+            senderType: 'ADMIN' // 발신처 플래그를 관리자로 맵핑
+        };
+
+        stompClient.send(`/app/chat/${currentRoomId}/send`, {}, JSON.stringify(chatMessageRequest));
+        input.value = '';
+        input.focus();
+    }
+
+    // 인풋 바인딩 Key 엔터 처리 리스너
+    document.getElementById('msgInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // 5. 수신 데이터 패킷 판정 후 마운트 노드에 DOM 스트림 주입
+    function displayMessage(msg) {
+        const chatBox = document.getElementById('chatMessages');
+        
+        // 최초 초기화 안내 가이드라인 노드 소멸 처리용 방어 코드
+        if (chatBox.innerText.includes('리스트에서 선택') || chatBox.innerText.includes('기록이 존재하지 않습니다')) {
+            chatBox.innerHTML = '';
+        }
+
+        let html = '';
+        if (msg.senderType === 'USER') {
+            // 수신 패킷 - 고객 (좌측 정렬)
+            html = `
+            <div class="flex gap-3">
+                <div class="w-8 h-8 rounded bg-slate-800 border border-slate-700 flex-shrink-0 flex items-center justify-center text-slate-300 text-xs font-bold">
+                    고객
+                </div>
+                <div class="flex flex-col gap-1 items-start max-w-[70%]">
+                    <div class="bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2.5 rounded shadow-md text-sm leading-relaxed">
+                        ${escapeHtml(msg.content)}
+                    </div>
+                </div>
+            </div>`;
+        } else {
+            // 발신 및 시스템 패킷 - 관리자 / AI (우측 정렬)
+            const isAi = msg.senderType === 'AI';
+            const senderLabel = isAi ? 'AI봇' : '상담사';
+            const styleColor = isAi ? 'bg-emerald-600 border-emerald-500' : 'bg-blue-600 border-blue-500';
+            
+            html = `
+            <div class="flex gap-3 flex-row-reverse">
+                <div class="w-8 h-8 rounded ${styleColor} flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold shadow-md">
+                    ${senderLabel}
+                </div>
+                <div class="flex flex-col gap-1 items-end max-w-[70%]">
+                    <div class="${styleColor} border text-white px-4 py-2.5 rounded shadow-lg text-sm leading-relaxed">
+                        ${escapeHtml(msg.content)}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        chatBox.insertAdjacentHTML('beforeend', html);
+        chatBox.scrollTop = chatBox.scrollHeight; // 스크롤 하단 고정 스티키 처리
+    }
+
+    // XSS 방어 스트링 인코더 인라인 유틸리티
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+</script>
+</body>
+</html>

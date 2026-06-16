@@ -9,7 +9,7 @@ import lombok.Getter;
  * 공구 목록 REST 응답 (GET /api/group-buys) 한 건.
  *
  * 추후 추가 예정:
- *  - currentCount / progress  : participation 집계 시
+ * - currentCount / progress  : participation 집계 시
  */
 @Getter
 @Builder
