@@ -100,7 +100,8 @@
                             th:value="${opt.seq}"
                             th:text="${opt.optionName}"
                             th:data-additional-price="${opt.additionalPrice}"
-                            th:data-stock="${opt.stock}">
+                            th:data-stock="${opt.stock}"
+                            th:disabled="${opt.stock == null || opt.stock <= 0}">
                         옵션
                     </option>
                 </select>

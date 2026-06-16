@@ -55,6 +55,12 @@ public class FormLoginFailureHandler extends SimpleUrlAuthenticationFailureHandl
         }
 
         log.debug("로그인 실패 - username: {}, reason: {}", username, failReason);
-        super.onAuthenticationFailure(request, response, exception);
+        
+        saveException(request, exception);
+        if (exception instanceof LockedException) {
+            getRedirectStrategy().sendRedirect(request, response, "/member/login?error=suspended");
+        } else {
+            getRedirectStrategy().sendRedirect(request, response, "/member/login?error");
+        }
     }
 }

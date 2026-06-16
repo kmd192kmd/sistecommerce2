@@ -115,6 +115,10 @@ public class CustomUserDetails implements UserDetails, OidcUser {
 
     @Override
     public boolean isAccountNonLocked() {
+        if ("MEMBER".equals(loginType) || "SELLER".equals(loginType)) {
+            return status == null
+                    || status != com.example.java.member.constant.MemberStatus.SUSPENDED;
+        }
         return true;
     }
 
