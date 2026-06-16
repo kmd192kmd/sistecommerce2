@@ -1,10 +1,12 @@
 package com.example.java.groupbuy.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -143,6 +145,16 @@ public class GroupBuyApiController {
         }
         groupBuyService.cancelPendingPaymentByMember(seq, user.getMemberSeq());
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 업무 검증 실패(기본 배송지 없음, 이미 참여 중, 마감된 공구 등)를 400 + {message}로 변환한다.
+     * 핸들러가 없으면 그대로 500이 나가 프론트가 원인을 구분하지 못하므로, 여기서 사용자에게
+     * 보여줄 메시지(예: "기본 배송지가 없습니다. 배송지를 먼저 등록해주세요.")를 그대로 내려준다.
+     */
+    @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
+    public ResponseEntity<Map<String, String>> handleBusinessError(RuntimeException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
     }
 }
 

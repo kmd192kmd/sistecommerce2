@@ -28,7 +28,7 @@ function l({ id: e, data: t, toss: n }) {
 				return;
 			}
 			if (!t.ok) {
-				m("참여 처리에 실패했습니다.");
+				m((await t.json().catch(() => null))?.message || "참여 처리에 실패했습니다.");
 				return;
 			}
 			let n = await t.json();
