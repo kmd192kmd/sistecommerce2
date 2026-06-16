@@ -22,7 +22,5 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long>{
 	@Query("SELECT d FROM Delivery d JOIN FETCH d.deliveryCompany WHERE d.orders.seq = :orderSeq")
 	List<Delivery> findByOrdersSeqWithCompany(@Param("orderSeq") Long orderSeq);
 	
-
-	List<Delivery> findByOrders_Seq(Long orderSeq);
 	
 }

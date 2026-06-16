@@ -15,4 +15,6 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     // 특정 회원의 현재 진행 중인(0: 활성화) 채팅 단건 조회
     Optional<Chat> findByMemberSeqAndStatus(Long memberSeq, ChatStatus status);
+    
+    List<Chat> findByStatusOrderByCreatedAtDesc(int status);
 }
