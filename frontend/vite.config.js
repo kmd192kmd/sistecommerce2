@@ -18,6 +18,7 @@ export default defineConfig({
         'groupbuy-detail': path.resolve(import.meta.dirname, 'src/groupbuy-detail.jsx'),
         'mypage-orders': path.resolve(import.meta.dirname, 'src/mypage-orders.jsx'),
         'mypage-returns': path.resolve(import.meta.dirname, 'src/mypage-returns.jsx'),
+	'sales-dashboard': path.resolve(import.meta.dirname, 'src/SalesDashboard.jsx'),
       },
       formats: ['es'],           // <script type="module"> 용
       fileName: (format, entryName) => `${entryName}.js`,

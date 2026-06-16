@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 import com.example.java.delivery.entity.Delivery;
 
-import java.util.List;
-
 public interface DeliveryRepository extends JpaRepository<Delivery, Long>{
 
 

@@ -17,8 +17,9 @@ import lombok.Getter;
 public class GroupBuyOptionView {
 
     // 참여(participate)에 보낼 옵션 식별자 = group_buy_options.seq.
-    // ⚠️ 상품옵션(options.seq)이 아니다 — participate가 group_buy_options 행을 이 값으로 조회하므로
-    //    여기에 상품옵션 seq를 담으면 "옵션을 찾을 수 없습니다"로 참여가 실패한다.
+    // ⚠️ 상품옵션(options.seq)이 아니다 — participate가 
+	// group_buy_options 행을 이 값으로 조회하므로
+    // 여기에 상품옵션 seq를 담으면 "옵션을 찾을 수 없습니다"로 참여가 실패한다.
     private Long optionsSeq;
     private String label;       // 옵션 표시명 (예: "블랙", "270", "그레이") — Options.getDisplayName()
     private boolean soldOut;

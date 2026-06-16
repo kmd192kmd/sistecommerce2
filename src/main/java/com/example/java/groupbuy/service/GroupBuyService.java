@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,12 @@ import com.example.java.groupbuy.entity.Participation;
 import com.example.java.groupbuy.entity.ParticipationStatus;
 import com.example.java.groupbuy.entity.WaitingQueue;
 import com.example.java.groupbuy.dto.ParticipateResponse;
+import com.example.java.groupbuy.event.GroupBuyConfirmedEvent;
+import com.example.java.groupbuy.event.GroupBuyFailedEvent;
+import com.example.java.groupbuy.event.GroupBuyPaymentDoneEvent;
+import com.example.java.groupbuy.event.GroupBuyPromotedEvent;
+import com.example.java.groupbuy.event.GroupBuyRefundFailedEvent;
+import com.example.java.groupbuy.event.GroupBuyRefundedEvent;
 import com.example.java.groupbuy.payment.GroupBuyPaymentCommand;
 import com.example.java.groupbuy.payment.GroupBuyPaymentPort;
 import com.example.java.orders.dto.OrderCreateResultDto;
@@ -51,6 +58,7 @@ public class GroupBuyService {
     private final WaitingQueueRepository waitingQueueRepository;
     private final GroupBuyPaymentPort paymentPort;
     private final OrdersCommandService ordersCommandService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ProductRepository가 dev에서 class(EntityManager 직접 구현)로 바뀌어 
     // JpaRepository 메서드가 없음.
@@ -72,6 +80,9 @@ public class GroupBuyService {
     private static final long PROMOTION_PAY_HOURS = 24;
     /** 정규 참여자의 결제 대기시간(분). 자리 예약 후 이 시간 내 미결제면 만료 스케줄러가 반납한다. */
     private static final long REGULAR_PAY_MINUTES = 10;
+    /** 공구 예정 노출 윈도우(일): 일반 회원은 시작 7일 전부터, 멤버십은 14일 전(7일 조기)부터 본다. */
+    private static final long SCHEDULED_PREVIEW_DAYS_NORMAL = 7;
+    private static final long SCHEDULED_PREVIEW_DAYS_MEMBER = 14;
 
     /**
      * 공구 등록 (관리자).
@@ -300,6 +311,9 @@ public class GroupBuyService {
         participation.cancel(); // status → CANCELLED (변경감지로 UPDATE)
         // 환불 = participationSeq로 원주문(order_item)을 찾아 PG 취소. 금액은 order_item.final_price 스냅샷 사용(역산 X).
         paymentPort.refund(participation.getSeq());
+        // 환불완료 알림은 AFTER_COMMIT 리스너가 처리(이 트랜잭션이 커밋돼야 발송).
+        eventPublisher.publishEvent(
+                new GroupBuyRefundedEvent(participation.getMemberSeq(), participation.getSeq()));
 
         // 6) 점유 복구: 이 자리를 비운다 (occupied_count -1)
         option.release();
@@ -330,7 +344,7 @@ public class GroupBuyService {
                         deadline = groupBuy.getEndAt();
                     }
 
-                    participationRepository.save(Participation.builder()
+                    Participation promoted = participationRepository.save(Participation.builder()
                             .groupBuy(groupBuy)
                             .groupBuyOptions(option)
                             .memberSeq(next.getMemberSeq())
@@ -339,6 +353,10 @@ public class GroupBuyService {
                             .promotedAt(now)            // 승격된 시각
                             .createdAt(now)
                             .build());
+
+                    // 승격 알림(기한 내 결제 안내)은 AFTER_COMMIT 리스너가 처리.
+                    eventPublisher.publishEvent(
+                            new GroupBuyPromotedEvent(promoted.getMemberSeq(), promoted.getSeq()));
                 });
     }
 
@@ -555,7 +573,11 @@ public class GroupBuyService {
         if (participating.size() >= groupBuy.getMinCount()) {
             // 확정: 공구 + 결제 완료자 전원 CONFIRMED (환불 없음 — 성사됐으니 결제 유지)
             groupBuy.confirm(now);
-            participating.forEach(Participation::confirm);
+            participating.forEach(p -> {
+                p.confirm();
+                // 확정 알림은 AFTER_COMMIT 리스너가 처리.
+                eventPublisher.publishEvent(new GroupBuyConfirmedEvent(p.getMemberSeq(), p.getSeq()));
+            });
         } else {
             // 무산: 공구 FAILED + 결제 완료자 전원 환불 후 FAILED (전원 일괄 결제취소)
             groupBuy.fail(now);
@@ -564,10 +586,14 @@ public class GroupBuyService {
                 // 실패 건은 로그로 남기고 FAILED 처리는 진행 — 환불 재시도는 별도 처리(미구현).
                 try {
                     paymentPort.refund(p.getSeq()); // 환불액은 order_item.final_price 스냅샷 사용(역산 X)
+                    eventPublisher.publishEvent(new GroupBuyRefundedEvent(p.getMemberSeq(), p.getSeq()));
                 } catch (Exception e) {
                     log.error("[공구 무산 환불] 환불 실패 participationSeq={} (마감은 계속 진행)", p.getSeq(), e);
+                    eventPublisher.publishEvent(new GroupBuyRefundFailedEvent(p.getMemberSeq(), p.getSeq()));
                 }
                 p.fail();
+                // 무산 알림은 AFTER_COMMIT 리스너가 처리.
+                eventPublisher.publishEvent(new GroupBuyFailedEvent(p.getMemberSeq(), p.getSeq()));
             });
         }
     }
@@ -618,6 +644,9 @@ public class GroupBuyService {
             return; // 이미 확정/취소/만료됨 — 멱등(중복 결제 콜백 방어)
         }
         participation.confirmPayment(); // PAYMENT_PENDING → PARTICIPATING (변경감지로 UPDATE)
+        // 결제완료 알림은 AFTER_COMMIT 리스너가 처리.
+        eventPublisher.publishEvent(
+                new GroupBuyPaymentDoneEvent(participation.getMemberSeq(), participation.getSeq()));
     }
 
     private int optionFinalPrice(GroupBuy groupBuy, GroupBuyOptions option) {
@@ -680,11 +709,17 @@ public class GroupBuyService {
                 .toList();
     }
 
-    /** 공구 예정 목록 응답 (회원용) — SCHEDULED만, 시작 임박순. 남은시간은 '시작까지' 기준. */
+    /**
+     * 공구 예정 목록 응답 (회원용) — SCHEDULED 중 노출 윈도우 내, 시작 임박순. 남은시간은 '시작까지' 기준.
+     * 멤버십(활성 구독) 회원은 시작 14일 전부터, 일반/비로그인은 7일 전부터 본다(멤버십 7일 조기 열람).
+     */
     @Transactional(readOnly = true)
-    public List<GroupBuySummaryResponse> getScheduledSummaries() {
+    public List<GroupBuySummaryResponse> getScheduledSummaries(boolean isMember) {
         LocalDateTime now = LocalDateTime.now();
-        return groupBuyRepository.findByStatusOrderByStartAtAsc(GroupBuyStatus.SCHEDULED).stream()
+        long previewDays = isMember ? SCHEDULED_PREVIEW_DAYS_MEMBER : SCHEDULED_PREVIEW_DAYS_NORMAL;
+        LocalDateTime cutoff = now.plusDays(previewDays);
+        return groupBuyRepository
+                .findByStatusAndStartAtBeforeOrderByStartAtAsc(GroupBuyStatus.SCHEDULED, cutoff).stream()
                 .map(g -> toSummary(g, now, true))
                 .toList();
     }

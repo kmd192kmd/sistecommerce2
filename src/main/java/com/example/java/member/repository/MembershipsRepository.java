@@ -15,6 +15,9 @@ public interface MembershipsRepository extends JpaRepository<Memberships, Long> 
 
     Optional<Memberships> findByMemberAndStatus(Member member, String status);
 
+    /** memberSeq로 멤버십 조회 (멤버십 혜택 판별 등 공용). */
+    Optional<Memberships> findByMember_Seq(Long memberSeq);
+
     /** 자동갱신 스케줄러용: 갱신 시각이 지난 active 멤버십 조회 */
     List<Memberships> findByStatusAndNextBillingAtBefore(String status, LocalDateTime now);
 

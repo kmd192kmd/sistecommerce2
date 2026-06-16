@@ -1,0 +1,55 @@
+name: EC2 Spring Boot CI/CD
+
+on:
+  push:
+    branches: [ "dev" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Build with Gradle
+      run: |
+        chmod +x gradlew
+        ./gradlew clean build -x test
+
+    - name: Copy Docker files to EC2
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "Dockerfile, docker-compose.yml"
+        target: "/home/ubuntu/"
+
+    - name: Copy JAR to EC2
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "build/libs/*-SNAPSHOT.jar"
+        target: "/home/ubuntu/build/libs/"
+        strip_components: 2
+
+    - name: Execute Docker Commands on EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/ubuntu
+          docker rm -f my-shop || true
+          docker build -t shop-app .
+          docker run -d -p 8080:8080 --env-file .env --name my-shop shop-app

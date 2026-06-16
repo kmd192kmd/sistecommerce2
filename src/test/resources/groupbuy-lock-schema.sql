@@ -72,9 +72,35 @@ CREATE TABLE waiting_queue (
     created_at timestamp NOT NULL
 );
 
--- participation / waiting_queue 둘 다 save()로 INSERT 되므로 시퀀스가 필요하다 (allocationSize=1 → NOCACHE).
+CREATE TABLE notification (
+    seq number NOT NULL PRIMARY KEY,
+    type varchar2(50) NOT NULL,
+    title varchar2(50) NOT NULL,
+    content varchar2(100) NOT NULL,
+    recipient_type varchar2(20) NOT NULL,
+    recipient_seq number,
+    reference_type varchar2(20) NOT NULL,
+    reference_seq number,
+    created_at timestamp DEFAULT sysdate NOT NULL,
+    read_at timestamp
+);
+
+-- 공구와 무관하지만, 앱 시작 시 SecurityConfig.initAdminUser(CommandLineRunner)가
+-- admin 테이블을 조회/INSERT 하므로(없으면 startup 예외로 컨텍스트 로드 실패) 최소 형태로 둔다.
+CREATE TABLE admin (
+    seq number NOT NULL PRIMARY KEY,
+    id varchar2(30) NOT NULL UNIQUE,
+    password varchar2(300) NOT NULL,
+    adm_role number DEFAULT 0 NOT NULL,
+    adm_status number DEFAULT 0 NOT NULL,
+    role varchar2(250) DEFAULT 'ROLE_ADMIN' NOT NULL
+);
+
+-- participation / waiting_queue / notification 모두 save()로 INSERT 되므로 시퀀스가 필요하다 (allocationSize=1 → NOCACHE).
 CREATE SEQUENCE participation_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 CREATE SEQUENCE waiting_queue_seq START WITH 1 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE notification_seq START WITH 1 INCREMENT BY 1 NOCACHE;
+CREATE SEQUENCE admin_seq START WITH 1 INCREMENT BY 1 NOCACHE;
 
 -- 취소 테스트는 시나리오별로 공구/옵션을 동적 생성한다(특히 T_lock 검증은 '마감 임박' 공구가 필요).
 -- 아래 더미(seq=1)와 겹치지 않도록 100부터 시작.
