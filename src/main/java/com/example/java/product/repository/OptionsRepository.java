@@ -16,6 +16,9 @@ import jakarta.persistence.LockModeType;
 public interface OptionsRepository extends JpaRepository<Options, Long> {
     // Paging version for product options
     Page<Options> findByProductSeq(Long productSeq, Pageable pageable);
+
+    @Query("select sum(o.stock) from Options o where o.product.seq = :productSeq")
+    Integer sumStockByProductSeq(@Param("productSeq") Long productSeq);
     
     /**
      * 결제 승인 시 재고 차감을 안전하게 처리하기 위한 잠금 조회.

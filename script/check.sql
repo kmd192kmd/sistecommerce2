@@ -1,4 +1,4 @@
-select * from options where seq = 1;
+select * from options where product_seq = 1680;
 
 
 
@@ -16,7 +16,7 @@ select * from CART_log order by seq desc;
 
 select * from orders order by seq desc;
 
-select * from orders where MEMBER_SEQ = 9 order by seq desc;
+select * from orders;
 
 select * from ORDER_ITEM order by seq desc;
 

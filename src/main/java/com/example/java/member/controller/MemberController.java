@@ -32,7 +32,11 @@ public class MemberController {
                             @RequestParam(value = "logout", required = false) String logout,
                             Model model) {
         if (error != null) {
-            model.addAttribute("error", "아이디 또는 비밀번호가 올바르지 않습니다.");
+            if ("suspended".equals(error)) {
+                model.addAttribute("error", "정지된 계정입니다. 고객센터(admin@shop.com)로 문의해 주세요.");
+            } else {
+                model.addAttribute("error", "아이디 또는 비밀번호가 올바르지 않습니다.");
+            }
         }
         return "member/login";
     }

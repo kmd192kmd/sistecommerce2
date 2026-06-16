@@ -217,26 +217,36 @@ public class ProductListService {
                     ObjectNode matchChosung = mapper.createObjectNode();
                     matchChosung.set("productNameChosung", mapper.createObjectNode()
                             .put("query", trimmedKeyword)
-                            .put("boost", 3.0));
+                            .put("boost", 50.0));
                     keywordShould.add(mapper.createObjectNode().set("match", matchChosung));
                 } else {
+                    // 1. 완전 일치 (match_phrase)에 가장 높은 가중치를 주어 어순까지 같은 상품을 최우선 노출
+                    ObjectNode matchPhrase = mapper.createObjectNode();
+                    matchPhrase.set("productName", mapper.createObjectNode()
+                            .put("query", trimmedKeyword)
+                            .put("boost", 100.0));
+                    keywordShould.add(mapper.createObjectNode().set("match_phrase", matchPhrase));
+
+                    // 2. 기본 형태소 매칭 (match) 가중치 상향
                     ObjectNode matchName = mapper.createObjectNode();
                     matchName.set("productName", mapper.createObjectNode()
                             .put("query", trimmedKeyword)
-                            .put("boost", 3.0));
+                            .put("boost", 50.0));
                     keywordShould.add(mapper.createObjectNode().set("match", matchName));
                     
+                    // 3. 자동완성 및 부분 매칭 (autocomplete) 가중치 상향
                     ObjectNode matchAuto = mapper.createObjectNode();
                     matchAuto.set("productName.autocomplete", mapper.createObjectNode()
                             .put("query", trimmedKeyword)
-                            .put("boost", 1.5));
+                            .put("boost", 20.0));
                     keywordShould.add(mapper.createObjectNode().set("match", matchAuto));
                     
+                    // 4. 오타 및 퍼지 매칭 (fuzzy) 가중치 상향
                     ObjectNode fuzzyName = mapper.createObjectNode();
                     fuzzyName.set("productName", mapper.createObjectNode()
                             .put("value", trimmedKeyword)
                             .put("fuzziness", "AUTO")
-                            .put("boost", 0.5));
+                            .put("boost", 5.0));
                     keywordShould.add(mapper.createObjectNode().set("fuzzy", fuzzyName));
                 }
                 ObjectNode boolInner = mapper.createObjectNode();
@@ -259,8 +269,10 @@ public class ProductListService {
                 ObjectNode scriptScore = mapper.createObjectNode();
                 ObjectNode script = mapper.createObjectNode();
                 
-                String scriptSource = "doc['salesCount'].value * 50.0 + doc['viewCount'].value * 30.0 + doc['avgRating'].value * 10.0 + doc['reviewCount'].value * 10.0";
+                String scriptSource;
                 if (keyword != null && !keyword.trim().isEmpty()) {
+                    // 검색어가 있는 경우: 검색어 매칭(임베딩 유사도 등)의 비중이 훨씬 높도록 가중치를 조정하고, 인기 지수는 로그 스케일로 극도로 제한(최대 약 5점)합니다.
+                    scriptSource = "Math.log1p(doc['salesCount'].value) * 0.2 + Math.log1p(doc['viewCount'].value) * 0.1 + doc['avgRating'].value * 0.05 + Math.log1p(doc['reviewCount'].value) * 0.05";
                     scriptSource += " + (doc['embedding'].size() == 0 ? 0.0 : (cosineSimilarity(params.queryVector, 'embedding') + 1.0) * 100.0)";
                     
                     float[] queryVector = com.example.java.product.util.EmbeddingUtil.getEmbedding(keyword.trim());
@@ -271,6 +283,9 @@ public class ProductListService {
                     ObjectNode paramsNode = mapper.createObjectNode();
                     paramsNode.set("queryVector", vectorArray);
                     script.set("params", paramsNode);
+                } else {
+                    // 검색어가 없는 경우: 기존의 단순 인기 지표 합산 수식을 유지합니다.
+                    scriptSource = "doc['salesCount'].value * 50.0 + doc['viewCount'].value * 30.0 + doc['avgRating'].value * 10.0 + doc['reviewCount'].value * 10.0";
                 }
                 
                 script.put("source", scriptSource);
