@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>상품 요청 관리</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
+
+    <style>
+        .btn-more {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-body);
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-more:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-white);
+            border-color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased overflow-hidden">
+
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+    <h4 class="text-title mb-4">상품 요청 관리</h4>
+
+    <!-- ================= 검색 ================= -->
+    <div class="card">
+
+        <form method="get"
+              th:action="@{/admin/product-requests}"
+              class="space-y-4">
+
+            <!-- 판매 상태 -->
+            <div class="flex items-center gap-4">
+		    	<span class="text-label w-24">승인 상태</span>
+			    <div class="flex gap-2">
+			        <label class="filter-btn">
+			            <input type="radio"
+			                   name="approvalStatus"
+			                   value="ALL"
+			                   th:checked="${approvalStatus == 'ALL'}">
+			            전체
+			        </label>
+			        <label class="filter-btn">
+			            <input type="radio"
+			                   name="approvalStatus"
+			                   value=""
+			                   th:checked="${approvalStatus == null or approvalStatus == ''}">
+			            승인대기
+			        </label>
+			        <label class="filter-btn">
+			            <input type="radio"
+			                   name="approvalStatus"
+			                   value="APPROVED"
+			                   th:checked="${approvalStatus == 'APPROVED'}">
+			            승인
+			        </label>
+			        <label class="filter-btn">
+			            <input type="radio"
+			                   name="approvalStatus"
+			                   value="REJECTED"
+			                   th:checked="${approvalStatus == 'REJECTED'}">
+			            반려
+			        </label>
+			    </div>
+			</div>
+
+
+            <!-- 검색 -->
+            <div class="flex items-center gap-4">
+            <span class="text-label w-24">검색</span>
+            <select name="searchType"
+			        class="form-input w-40">		
+			    <option value="productName"
+			            th:selected="${searchType == 'productName'}">
+			        상품명
+			    </option>
+			    <option value="sellerName"
+			            th:selected="${searchType == 'sellerName'}">
+			        판매처명
+			    </option>
+			</select>
+                <div class="flex gap-2 w-full">
+                    <input type="text"
+				       name="keyword"
+				       th:value="${keyword}"
+				       class="form-input w-[28rem]"
+				       placeholder="상품명 검색">
+
+                    <button type="submit"
+                            class="btn btn-primary px-12 py-2 text-base">
+                        검색
+                    </button>
+
+                </div>
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- ================= 목록 ================= -->
+
+	<div class="flex justify-between items-center mb-4">
+	    <h4 class="text-title">
+	        상품 요청 목록
+	    </h4>
+	    <div class="flex gap-2">
+	        <button id="approveBtn"
+	                type="button"
+	                class="btn btn-primary">
+	            선택 승인
+	        </button>
+	        <button id="rejectBtn"
+	                type="button"
+	                class="btn btn-danger">
+	            선택 반려
+	        </button>
+	    </div>
+	</div>
+
+    <div class="card">
+
+        <div class="overflow-x-auto">
+
+            <table class="w-full text-sm text-center">
+				<thead class="text-label border-b border-[var(--border-color)]">
+				<tr>				
+				    <th class="p-2">
+				        <input type="checkbox" id="checkAll">
+				    </th>
+				    <th class="p-2">요청번호</th>
+				    <th class="p-2">요청구분</th>
+				    <th class="p-2">처리상태</th>
+				    <th class="p-2">상품명</th>
+				    <th class="p-2">판매처</th>
+				    <th class="p-2">요청일</th>
+				    <th class="p-2">처리일</th>
+				    <th class="p-2">반려사유</th>
+				    <th class="p-2">상세</th>
+				</tr>
+				</thead>
+				<tbody>
+					<tr th:each="item : ${products}"
+					    class="border-b border-[var(--border-color)]">
+					    <td class="p-2">
+					        <input type="checkbox"
+					               class="row-check"
+					               th:value="${item.productRequestSeq}">
+					    </td>
+					    <!-- 요청번호 -->
+					    <td class="p-2"
+					        th:text="${item.productRequestSeq}">
+					    </td>
+					    <!-- 요청구분 -->
+					    <td class="p-2 font-bold"
+					        th:text="${item.requestType == 'REGISTER' ? '등록' : '수정'}">
+					    </td>
+					    <!-- 처리상태 -->
+					    <td class="p-2 font-bold"
+					        th:text="${
+					            item.requestStatus == 'PENDING' ? '승인대기' :
+					            item.requestStatus == 'APPROVED' ? '승인' :
+					            '반려'
+					        }"
+					        th:classappend="${
+					            item.requestStatus == 'PENDING' ? ' text-gray-500' :
+					            item.requestStatus == 'APPROVED' ? ' text-green-500' :
+					            ' text-red-500'
+					        }">
+					    </td>
+					    <!-- 상품명 -->
+					    <td class="p-2"
+					        th:text="${item.productName}">
+					    </td>
+					    <!-- 판매처 -->
+					    <td class="p-2"
+					        th:text="${item.sellerName}">
+					    </td>
+					    <!-- 요청일 -->
+					    <td class="p-2"
+					        th:text="${#temporals.format(item.requestDate, 'yyyy.MM.dd')}">
+					    </td>
+					    <!-- 처리일 -->
+					    <td class="p-2"
+					        th:text="${item.processDate != null ? #temporals.format(item.processDate, 'yyyy.MM.dd') : '-'}">
+					    </td>
+					    <!-- 반려사유 -->
+					    <td class="p-2"
+						    th:text="${item.requestStatus == 'REJECTED' ? item.rejectReason : '-'}">
+						</td>
+					    <!-- 상세 -->
+					    <td class="p-2">
+					        <a th:href="@{/products/{seq}(seq=${item.productSeq})}"
+					           class="btn btn-primary text-sm px-3 py-1">
+					            상세보기
+					        </a>
+					    </td>
+					</tr>
+					<tr th:if="${#lists.isEmpty(products)}">
+					    <td colspan="10"
+					        class="p-8 text-center text-label">
+					        조회된 상품 요청이 없습니다.
+					    </td>
+					</tr>
+					</tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+    <!-- ================= 더보기 ================= -->
+
+    <div class="mt-6">
+        <button id="loadMoreBtn"
+                th:if="${hasNext}"
+                class="btn btn-more">
+            더보기
+        </button>
+    </div>
+    </main>
+    </div>
+</div>
+
+<script src="/admin/admin.js"></script>
+<script>
+
+let page = 1;
+
+const saleStatusMap = {
+    ON_SALE: { text: "판매중", color: "text-green-500" },
+    SOLD_OUT: { text: "품절", color: "text-gray-500" },
+    STOPPED: { text: "판매중지", color: "text-red-500" }
+};
+
+const loadMoreBtn = document.getElementById("loadMoreBtn");
+
+if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", loadMore);
+}
+
+async function loadMore() {
+
+	const params = new URLSearchParams(window.location.search);
+	params.set("page", page);
+
+	const response =
+        await fetch(`/api/inventories?${params.toString()}`);
+
+    const slice = await response.json();
+
+    const tbody = document.querySelector("tbody");
+
+    slice.content.forEach(item => {
+
+        const status = saleStatusMap[item.saleStatus] || {
+            text: item.saleStatus,
+            color: ""
+        };
+
+        const stockColor =
+            item.stock <= item.safetyStock
+                ? "text-red-500"
+                : "";
+        const isUnderSafe = item.stock <= item.safetyStock;
+
+        tbody.insertAdjacentHTML("beforeend", `
+            <tr class="border-b border-[var(--border-color)]">
+
+                <td class="p-2">${item.optionsSeq}</td>
+
+                <td class="p-2">${item.sellerName}</td>
+
+                <td class="p-2">${item.productName}</td>
+
+                <td class="p-2">${item.optionsName}</td>
+
+                <td class="p-2 font-bold ${status.color}">
+                    ${status.text}
+                </td>
+
+                <td class="p-2">
+                    ${item.price.toLocaleString()}원
+                </td>
+
+                <td class="p-2 font-bold ${stockColor}">
+                    ${item.stock}
+                </td>
+                <td class="p-2">
+                    ${item.safetyStock}
+                </td>
+                <td class="p-2">
+                    ${item.createdDate
+                        ? item.createdDate.substring(0,10).replaceAll("-", ".")
+                        : "-"}
+                </td>
+                <td class="p-2 font-bold ${isUnderSafe ? 'text-red-500' : 'text-green-500'}">
+				    ${isUnderSafe ? '발주 필요' : '정상'}
+				</td>				
+				<td class="p-2">
+				    <a href="/admin/purchase-orders/new/${item.optionsSeq}"
+				       class="btn btn-primary text-sm px-3 py-1">
+				       <i class="fa-solid fa-cart-plus"></i> 발주 등록
+				    </a>
+				</td>
+
+            </tr>
+        `);
+
+    });
+
+    if (slice.last) {
+        loadMoreBtn.style.display = "none";
+    }
+
+    page++;
+}
+
+document.getElementById("checkAll")
+    .addEventListener("change", function () {
+
+        document.querySelectorAll(".row-check")
+            .forEach(item => item.checked = this.checked);
+
+    });
+
+document.getElementById("approveBtn")
+    .addEventListener("click", async function () {
+
+        const requestSeqList =
+            [...document.querySelectorAll(".row-check:checked")]
+                .map(item => Number(item.value));
+
+        if (requestSeqList.length === 0) {
+            alert("선택된 요청이 없습니다.");
+            return;
+        }
+
+        await fetch("/api/product-requests/approve", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                adminSeq: 1,
+                requestSeqList
+            })
+        });
+
+        location.reload();
+    });
+
+document.getElementById("rejectBtn")
+    .addEventListener("click", async function () {
+
+        const requestSeqList =
+            [...document.querySelectorAll(".row-check:checked")]
+                .map(item => Number(item.value));
+
+        if (requestSeqList.length === 0) {
+            alert("선택된 요청이 없습니다.");
+            return;
+        }
+
+        const rejectReason =
+            prompt("반려 사유를 입력해주세요.");
+
+        if (!rejectReason) {
+            return;
+        }
+
+        await fetch("/api/product-requests/reject", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                adminSeq: 1,
+                requestSeqList,
+                rejectReason
+            })
+        });
+
+        location.reload();
+    });
+
+</script>
+
+</body>
+</html>

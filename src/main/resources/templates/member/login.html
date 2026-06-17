@@ -13,59 +13,165 @@
             <h2 class="text-2xl font-black text-slate-900 mb-1">로그인</h2>
             <p class="text-xs text-gray-400 mb-8">Gold Market에 오신 것을 환영합니다.</p>
 
+            <!-- 비밀번호 재설정 완료 메시지 -->
+            <div th:if="${resetSuccess}" class="mb-6 bg-amber-50 border border-amber-200 px-4 py-3">
+                <p class="text-xs text-amber-700 font-semibold">비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.</p>
+            </div>
+
             <!-- 에러 메시지 -->
             <div th:if="${error}" class="mb-6 bg-red-50 border border-red-200 px-4 py-3">
                 <p th:text="${error}" class="text-xs text-red-600"></p>
             </div>
 
-            <form th:action="@{/member/login}" method="post" class="space-y-5">
+            <form th:action="@{/member/login}" method="post" class="space-y-5" onsubmit="return submitLogin();">
+
+                <!-- Spring Security로 실제 전송되는 username -->
+                <input type="hidden" id="loginUsername" name="username">
+
+                <!-- 선택된 로그인 유형 -->
+                <input type="hidden" id="loginType" value="MEMBER">
+
+                <!-- 역할 선택 버튼 -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button"
+                            id="memberTypeBtn"
+                            onclick="selectLoginType('MEMBER')"
+                            class="login-type-btn bg-slate-900 text-white font-bold text-xs py-2.5 transition-colors">
+                        회원
+                    </button>
+
+                    <button type="button"
+                            id="sellerTypeBtn"
+                            onclick="selectLoginType('SELLER')"
+                            class="login-type-btn bg-white border border-gray-300 text-gray-600 font-bold text-xs py-2.5 transition-colors">
+                        판매처
+                    </button>
+
+                    <button type="button"
+                            id="adminTypeBtn"
+                            onclick="selectLoginType('ADMIN')"
+                            class="login-type-btn bg-white border border-gray-300 text-gray-600 font-bold text-xs py-2.5 transition-colors">
+                        관리자
+                    </button>
+                </div>
+
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">아이디</label>
-                    <input type="text" name="username"
-                        class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="아이디를 입력하세요" />
+                    <!-- 화면에 보이는 아이디 입력칸. name을 주면 안 됨 -->
+                    <input type="text" id="username"
+                           class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                           placeholder="아이디를 입력하세요" />
                 </div>
 
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-gray-700">비밀번호</label>
-                    <input type="password" name="password"
-                        class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
-                        placeholder="비밀번호를 입력하세요" />
+                    <input type="password" id="password" name="password"
+                           class="w-full border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                           placeholder="비밀번호를 입력하세요" />
+                    <p id="capslock-msg" class="hidden text-xs text-red-600 mt-1">⚠ Caps Lock이 켜져 있습니다.</p>
                 </div>
 
+                <div class="flex items-center">
+                    <input type="checkbox" id="remember-me" name="remember-me" value="true"
+                           class="h-4 w-4 border-gray-300 text-amber-500 focus:ring-amber-500" />
+                    <label for="remember-me" class="ml-2 text-xs text-gray-600 select-none">자동 로그인</label>
+                </div>
+
+                <!-- 실제 로그인 버튼 -->
                 <button type="submit"
-                    class="w-full bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 font-bold text-sm py-3 transition-colors">
+                        class="w-full bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-900 font-bold text-sm py-3 transition-colors">
                     로그인
                 </button>
             </form>
 
             <div class="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
-                <a href="#" class="hover:text-amber-600">아이디 찾기</a>
+                <a th:href="@{/member/find-username}" class="hover:text-amber-600">아이디 찾기</a>
                 <span>|</span>
-                <a href="#" class="hover:text-amber-600">비밀번호 찾기</a>
+                <a th:href="@{/member/find-password}" class="hover:text-amber-600">비밀번호 찾기</a>
                 <span>|</span>
                 <a th:href="@{/member/signup/type}" class="hover:text-amber-600">회원가입</a>
             </div>
 
-            <div class="mt-8 border-t border-gray-100 pt-6 space-y-3">
-                <button
-                    class="w-full border border-gray-200 bg-yellow-300 hover:bg-yellow-400 text-slate-900 font-bold text-sm py-2.5 transition-colors">
-                    카카오 로그인
-                </button>
-                <button
-                    class="w-full border border-gray-200 bg-green-500 hover:bg-green-600 text-white font-bold text-sm py-2.5 transition-colors">
-                    네이버 로그인
-                </button>
-                <button
-                    class="w-full border border-gray-200 bg-white-500 hover:bg-green-600 text-black font-bold text-sm py-2.5 transition-colors">
+            <div class="mt-8 border-t border-gray-100 pt-6">
+                <a th:href="@{/oauth2/authorization/google}"
+                   class="block w-full border border-gray-200 bg-white hover:bg-gray-50 text-slate-900 font-bold text-sm py-2.5 transition-colors text-center">
                     구글 로그인
-                </button>
+                </a>
             </div>
         </div>
     </main>
 
     <div th:replace="~{fragments/footer :: footer}"></div>
     <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+    <script>
+        // 로그인 유형 선택
+        function selectLoginType(type) {
+            document.getElementById('loginType').value = type;
+
+            const memberBtn = document.getElementById('memberTypeBtn');
+            const sellerBtn = document.getElementById('sellerTypeBtn');
+            const adminBtn = document.getElementById('adminTypeBtn');
+
+            const buttons = [memberBtn, sellerBtn, adminBtn];
+
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-slate-900', 'text-white');
+                btn.classList.add('bg-white', 'border', 'border-gray-300', 'text-gray-600');
+            });
+
+            let activeBtn = memberBtn;
+
+            if (type === 'SELLER') {
+                activeBtn = sellerBtn;
+            } else if (type === 'ADMIN') {
+                activeBtn = adminBtn;
+            }
+
+            activeBtn.classList.remove('bg-white', 'border', 'border-gray-300', 'text-gray-600');
+            activeBtn.classList.add('bg-slate-900', 'text-white');
+        }
+
+        // 로그인 제출 시 hidden username에 MEMBER:, SELLER:, ADMIN: 붙여서 전송
+        function submitLogin() {
+            const loginTypeInput = document.getElementById('loginType');
+            const usernameInput = document.getElementById('username');
+            const loginUsernameInput = document.getElementById('loginUsername');
+
+            if (!loginTypeInput.value) {
+                alert('로그인 유형을 선택해 주세요.');
+                return false;
+            }
+
+            if (!usernameInput.value.trim()) {
+                alert('아이디를 입력해 주세요.');
+                usernameInput.focus();
+                return false;
+            }
+
+            loginUsernameInput.value = loginTypeInput.value + ':' + usernameInput.value.trim();
+
+            return true;
+        }
+
+        // Caps Lock 감지: 비밀번호 입력 중 켜져 있으면 경고 표시
+        (function () {
+            const pw = document.getElementById('password');
+            const msg = document.getElementById('capslock-msg');
+            if (!pw || !msg) return;
+
+            function toggleCaps(e) {
+                const on = e.getModifierState && e.getModifierState('CapsLock');
+                msg.classList.toggle('hidden', !on);
+            }
+
+            pw.addEventListener('keydown', toggleCaps);
+            pw.addEventListener('keyup', toggleCaps);
+            pw.addEventListener('blur', function () {
+                msg.classList.add('hidden');
+            });
+        })();
+    </script>
 </body>
 
 </html>

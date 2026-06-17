@@ -1,8 +1,13 @@
 package com.example.java.product.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.example.java.product.dto.CloudinaryUploadResult;
 import com.example.java.product.dto.ProductCreateRequestDto;
 import com.example.java.product.dto.ProductCreateRequestDto.ProductImageRequestDto;
 import com.example.java.product.dto.ProductCreateRequestDto.ProductOptionRequestDto;
@@ -16,69 +21,59 @@ import lombok.RequiredArgsConstructor;
 public class ProductRegisterService {
 
     private final ProductRegisterRepository productRegisterRepository;
+    private final CloudinaryUploadService cloudinaryUploadService;
 
-
-    /*
-        상품 등록 처리
-
-        한 번의 상품 등록에서 처리하는 작업:
-
-        1. 입력값 검증
-        2. product 테이블 INSERT
-        3. product_image 테이블 INSERT
-        4. options 테이블 INSERT
-           - 옵션은 없어도 됨
-           - 옵션이 있을 때만 저장
-        5. product_request 테이블 INSERT
-
-        @Transactional
-        - 중간에 하나라도 실패하면 전체 INSERT가 취소됩니다.
-    */
     @Transactional
-    public ProductCreateResponseDto createProduct(ProductCreateRequestDto dto) {
+    public ProductCreateResponseDto createProduct(
+            ProductCreateRequestDto dto,
+            List<MultipartFile> images,
+            List<MultipartFile> detailImages,
+            int thumbnailIndex) {
+
+        convertFormOptionsToOptionList(dto);
 
         validateCreateProduct(dto);
+        validateImageFiles(images, thumbnailIndex);
 
         Long productSeq = productRegisterRepository.getNextSeq("product");
+        Long requestSeq = productRegisterRepository.getNextSeq("product_request");
 
-        /*
-            현재 테스트에서는 사용하지 않음
-            - admin 데이터가 없어서 product_request 등록을 임시 제외함
-        */
-        // Long requestSeq = productRegisterRepository.getNextSeq("product_request");
+        String thumbnailUrl = null;
+        List<ProductImageRequestDto> uploadedImageList = new ArrayList<>();
 
-        productRegisterRepository.insertProduct(productSeq, dto);
+        for (int i = 0; i < images.size(); i++) {
 
-        /*
-            이미지 등록
+            MultipartFile image = images.get(i);
 
-            이미지는 상품 등록 화면에서 대표 이미지가 필요하므로
-            최소 1개 이상 필요하게 유지합니다.
-        */
-        if (dto.getImageList() != null) {
-            for (ProductImageRequestDto imageDto : dto.getImageList()) {
+            CloudinaryUploadResult uploadResult =
+                    cloudinaryUploadService.uploadProductImage(image);
 
-                Long imageSeq = productRegisterRepository.getNextSeq("product_image");
+            ProductImageRequestDto imageDto = new ProductImageRequestDto();
+            imageDto.setImageUrl(uploadResult.getImageUrl());
+            imageDto.setPublicId(uploadResult.getPublicId());
+            imageDto.setThumbnailYn(i == thumbnailIndex ? "Y" : "N");
+            imageDto.setImageOrder(i + 1);
 
-                productRegisterRepository.insertProductImage(
-                        imageSeq,
-                        productSeq,
-                        imageDto
-                );
+            uploadedImageList.add(imageDto);
+
+            if (i == thumbnailIndex) {
+                thumbnailUrl = uploadResult.getImageUrl();
             }
         }
 
-        /*
-            옵션 등록
+        productRegisterRepository.insertProduct(productSeq, dto, thumbnailUrl);
 
-            수정된 부분:
-            옵션은 없어도 됩니다.
+        for (ProductImageRequestDto imageDto : uploadedImageList) {
 
-            dto.getOptionList()가 null이거나 비어 있으면
-            옵션 저장 과정을 건너뜁니다.
+            Long imageSeq = productRegisterRepository.getNextSeq("product_image");
 
-            옵션 목록이 있을 때만 반복문을 돌면서 options 테이블에 저장합니다.
-        */
+            productRegisterRepository.insertProductImage(
+                    imageSeq,
+                    productSeq,
+                    imageDto
+            );
+        }
+
         if (dto.getOptionList() != null && !dto.getOptionList().isEmpty()) {
 
             for (ProductOptionRequestDto optionDto : dto.getOptionList()) {
@@ -91,31 +86,158 @@ public class ProductRegisterService {
                         optionDto
                 );
             }
+
+        } else {
+
+            ProductOptionRequestDto defaultOption = new ProductOptionRequestDto();
+            defaultOption.setStock(dto.getStock());
+            defaultOption.setSafetyStock(0);
+            defaultOption.setAdditionalPrice(0);
+
+            Long optionSeq = productRegisterRepository.getNextSeq("options");
+
+            productRegisterRepository.insertProductOption(
+                    optionSeq,
+                    productSeq,
+                    defaultOption
+            );
         }
 
-        /*
-            현재 테스트에서는 사용하지 않음
-            - admin 데이터가 없어서 product_request 등록을 임시 제외함
-        */
-        /*
         productRegisterRepository.insertProductRequest(
                 requestSeq,
                 productSeq,
                 dto
         );
-        */
 
         return new ProductCreateResponseDto(
                 productSeq,
-                null,
-                "상품 등록 테스트가 완료되었습니다. 현재 product_request 등록은 생략되었습니다."
+                requestSeq,
+                "상품 등록 요청이 관리자에게 전송되었습니다."
         );
     }
 
+    /*
+        옵션 조합 데이터를 ProductOptionRequestDto 목록으로 변환합니다.
+
+        예:
+        optionCombinationTypes = 색상||사이즈
+        optionCombinationNames = 블랙||S
+
+        결과:
+        color = 블랙
+        optionsSize = S
+    */
+    private void convertFormOptionsToOptionList(ProductCreateRequestDto dto) {
+
+        if (dto.getOptionCombinationTypes() == null
+                || dto.getOptionCombinationTypes().isEmpty()) {
+            return;
+        }
+
+        List<ProductOptionRequestDto> optionList = new ArrayList<>();
+
+        for (int i = 0; i < dto.getOptionCombinationTypes().size(); i++) {
+
+            String typeText = getStringValue(dto.getOptionCombinationTypes(), i);
+            String nameText = getStringValue(dto.getOptionCombinationNames(), i);
+
+            Integer additionalPrice = getIntegerValue(dto.getOptionCombinationPrices(), i, 0);
+            Integer stock = getIntegerValue(dto.getOptionCombinationStocks(), i, 0);
+            Integer safetyStock = getIntegerValue(dto.getOptionCombinationSafeStocks(), i, 0);
+
+            ProductOptionRequestDto optionDto = new ProductOptionRequestDto();
+
+            setCombinationOptionValues(optionDto, typeText, nameText);
+
+            optionDto.setAdditionalPrice(additionalPrice);
+            optionDto.setStock(stock);
+            optionDto.setSafetyStock(safetyStock);
+
+            optionList.add(optionDto);
+        }
+
+        dto.setOptionList(optionList);
+    }
 
     /*
-        상품 등록 입력값 검증
+        조합 문자열을 실제 options 테이블 컬럼에 맞게 넣습니다.
     */
+    private void setCombinationOptionValues(ProductOptionRequestDto optionDto,
+                                            String typeText,
+                                            String nameText) {
+
+        if (typeText == null || nameText == null) {
+            return;
+        }
+
+        String[] types = typeText.split("\\|\\|");
+        String[] names = nameText.split("\\|\\|");
+
+        for (int i = 0; i < types.length; i++) {
+
+            if (i >= names.length) {
+                continue;
+            }
+
+            String optionType = types[i].trim();
+            String optionName = names[i].trim();
+
+            setOptionValue(optionDto, optionType, optionName);
+        }
+    }
+
+    private String getStringValue(List<String> list, int index) {
+
+        if (list == null || index >= list.size()) {
+            return null;
+        }
+
+        String value = list.get(index);
+
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
+    }
+
+    private Integer getIntegerValue(List<Integer> list, int index, int defaultValue) {
+
+        if (list == null || index >= list.size() || list.get(index) == null) {
+            return defaultValue;
+        }
+
+        return list.get(index);
+    }
+
+    private void setOptionValue(ProductOptionRequestDto optionDto,
+                                String optionType,
+                                String optionName) {
+
+        if (optionType == null || optionName == null) {
+            return;
+        }
+
+        switch (optionType) {
+            case "색상" -> optionDto.setColor(optionName);
+            case "사이즈" -> optionDto.setOptionsSize(optionName);
+            case "용량/중량" -> optionDto.setVolumeWeight(optionName);
+            case "맛" -> optionDto.setTaste(optionName);
+            case "보관방식" -> optionDto.setStorageType(optionName);
+            case "향/성분" -> optionDto.setScentIngredient(optionName);
+            case "전력" -> optionDto.setVoltage(optionName);
+            case "수량/구성" -> optionDto.setQuantitySet(optionName);
+            case "크기/규격" -> optionDto.setSizeSpec(optionName);
+            case "저장 용량" -> optionDto.setStorageCapacity(optionName);
+            case "메모리" -> optionDto.setMemory(optionName);
+            case "스위치/축" -> optionDto.setSwitchAxis(optionName);
+            case "연결 방식" -> optionDto.setConnectionType(optionName);
+            case "케어제품 구성" -> optionDto.setWearableSpec(optionName);
+            case "재질" -> optionDto.setMaterialType(optionName);
+            case "기타 유형" -> optionDto.setOptionsType(optionName);
+        }
+    }
+
     private void validateCreateProduct(ProductCreateRequestDto dto) {
 
         if (dto.getSellerSeq() == null) {
@@ -125,20 +247,6 @@ public class ProductRegisterService {
         if (!productRegisterRepository.existsSeller(dto.getSellerSeq())) {
             throw new IllegalArgumentException("존재하지 않거나 활성 상태가 아닌 판매자입니다.");
         }
-
-        /*
-            현재 테스트에서는 사용하지 않음
-            - admin 데이터가 없어서 관리자 검증을 임시 제외함
-        */
-        /*
-        if (dto.getAdminSeq() == null) {
-            throw new IllegalArgumentException("관리자 번호는 필수입니다.");
-        }
-
-        if (!productRegisterRepository.existsAdmin(dto.getAdminSeq())) {
-            throw new IllegalArgumentException("존재하지 않거나 비활성 상태인 관리자입니다.");
-        }
-        */
 
         if (dto.getCategorySeq() == null) {
             throw new IllegalArgumentException("카테고리 번호는 필수입니다.");
@@ -160,95 +268,82 @@ public class ProductRegisterService {
             throw new IllegalArgumentException("상품 설명은 필수입니다.");
         }
 
-        /*
-            이미지 검증은 유지합니다.
-            상품 등록 화면에서 대표 이미지는 필요하기 때문입니다.
-        */
-        validateImages(dto);
-
-        /*
-            수정된 부분:
-            옵션은 없어도 되므로 optionList 필수 검증은 하지 않습니다.
-
-            단, 옵션 목록이 전달된 경우에는
-            재고, 안전재고, 추가금액 값이 정상인지 검증합니다.
-        */
         if (dto.getOptionList() != null && !dto.getOptionList().isEmpty()) {
             validateOptions(dto);
+        } else {
+            if (dto.getStock() == null || dto.getStock() < 0) {
+                throw new IllegalArgumentException("상품 수량은 0개 이상이어야 합니다.");
+            }
         }
     }
 
+    private void validateImageFiles(List<MultipartFile> images, int thumbnailIndex) {
 
-    /*
-        이미지 검증
-
-        대표 이미지는 정확히 1개만 있어야 합니다.
-    */
-    private void validateImages(ProductCreateRequestDto dto) {
-
-        if (dto.getImageList() == null || dto.getImageList().isEmpty()) {
-            throw new IllegalArgumentException("상품 이미지는 최소 1개 이상 필요합니다.");
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("상품 이미지는 1장 이상 등록해야 합니다.");
         }
 
-        int thumbnailCount = 0;
-
-        for (ProductImageRequestDto imageDto : dto.getImageList()) {
-
-            if (imageDto.getImageUrl() == null || imageDto.getImageUrl().isBlank()) {
-                throw new IllegalArgumentException("이미지 URL은 필수입니다.");
-            }
-
-            if (imageDto.getThumbnailYn() == null || imageDto.getThumbnailYn().isBlank()) {
-                imageDto.setThumbnailYn("N");
-            }
-
-            if (!imageDto.getThumbnailYn().equals("Y")
-                    && !imageDto.getThumbnailYn().equals("N")) {
-                throw new IllegalArgumentException("대표 이미지 여부는 Y 또는 N만 가능합니다.");
-            }
-
-            if (imageDto.getThumbnailYn().equals("Y")) {
-                thumbnailCount++;
-            }
-
-            if (imageDto.getImageOrder() == null) {
-                imageDto.setImageOrder(1);
-            }
+        if (thumbnailIndex < 0 || thumbnailIndex >= images.size()) {
+            throw new IllegalArgumentException("대표 이미지 선택값이 올바르지 않습니다.");
         }
 
-        if (thumbnailCount != 1) {
-            throw new IllegalArgumentException("대표 이미지는 반드시 1개여야 합니다.");
+        for (MultipartFile image : images) {
+
+            if (image == null || image.isEmpty()) {
+                throw new IllegalArgumentException("비어 있는 이미지 파일은 등록할 수 없습니다.");
+            }
+
+            String contentType = image.getContentType();
+
+            if (contentType == null || !contentType.startsWith("image/")) {
+                throw new IllegalArgumentException("이미지 파일만 등록할 수 있습니다.");
+            }
         }
     }
 
-
-    /*
-        옵션 검증
-
-        옵션이 있을 때만 실행됩니다.
-
-        옵션 자체는 선택사항이지만,
-        옵션을 입력했다면 재고, 안전재고, 추가금액 값은 정상이어야 합니다.
-    */
     private void validateOptions(ProductCreateRequestDto dto) {
 
         for (ProductOptionRequestDto optionDto : dto.getOptionList()) {
 
             if (optionDto.getStock() == null || optionDto.getStock() < 0) {
-                throw new IllegalArgumentException("재고는 0개 이상이어야 합니다.");
+                throw new IllegalArgumentException("옵션 재고는 0개 이상이어야 합니다.");
             }
 
             if (optionDto.getSafetyStock() == null || optionDto.getSafetyStock() < 0) {
-                throw new IllegalArgumentException("안전재고는 0개 이상이어야 합니다.");
+                throw new IllegalArgumentException("옵션 안전재고는 0개 이상이어야 합니다.");
             }
 
-            if (optionDto.getAdditionalPrice() == null) {
-                optionDto.setAdditionalPrice(0);
+            if (optionDto.getAdditionalPrice() == null || optionDto.getAdditionalPrice() < 0) {
+                throw new IllegalArgumentException("옵션 추가금액은 0원 이상이어야 합니다.");
             }
 
-            if (optionDto.getAdditionalPrice() < 0) {
-                throw new IllegalArgumentException("추가 금액은 0원 이상이어야 합니다.");
+            if (!hasAnyOptionValue(optionDto)) {
+                throw new IllegalArgumentException("옵션명을 입력해주세요.");
             }
         }
+    }
+
+    private boolean hasAnyOptionValue(ProductOptionRequestDto optionDto) {
+
+        return hasText(optionDto.getColor())
+                || hasText(optionDto.getOptionsSize())
+                || hasText(optionDto.getVolumeWeight())
+                || hasText(optionDto.getTaste())
+                || hasText(optionDto.getStorageType())
+                || hasText(optionDto.getScentIngredient())
+                || hasText(optionDto.getVoltage())
+                || hasText(optionDto.getQuantitySet())
+                || hasText(optionDto.getSizeSpec())
+                || hasText(optionDto.getStorageCapacity())
+                || hasText(optionDto.getMemory())
+                || hasText(optionDto.getSwitchAxis())
+                || hasText(optionDto.getConnectionType())
+                || hasText(optionDto.getWearableSpec())
+                || hasText(optionDto.getMaterialType())
+                || hasText(optionDto.getOptionsType());
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

@@ -113,79 +113,11 @@
  <script th:inline="javascript">
       document.addEventListener("DOMContentLoaded", function () {
         
-        /* 1. 사이드바 토글 로직 */
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const desktopSidebarToggle = document.getElementById('desktopSidebarToggle');
-        const sidebarClose = document.getElementById('sidebarClose');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        
-        // --- 2. 대시보드 토글 로직 (여기로 이동) ---
-        sidebarToggle.addEventListener('click', () => {
-          sidebar.classList.remove('-translate-x-full');
-          sidebarOverlay.classList.remove('hidden');
-        });
-        
+        /* 1. 사이드바 및 테마 토글 공통 로직은 admin.js에서 처리합니다. */
+        // ==========================================
+        // 사이드바 및 테마 토글 공통 로직은 admin.js에서 처리합니다.
+        // ==========================================
 
-        const closeSidebar = () => {
-          sidebar.classList.add('-translate-x-full');
-          sidebarOverlay.classList.add('hidden');
-        };
-        
-        sidebarClose.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
-    
-        desktopSidebarToggle.addEventListener('click', () => {
-          sidebar.classList.toggle('md:translate-x-0');
-          sidebar.classList.toggle('md:-translate-x-full');
-          if(sidebar.classList.contains('md:-translate-x-full')) {
-            sidebar.classList.add('md:hidden');
-          } else {
-            setTimeout(() => sidebar.classList.remove('md:hidden'), 10);
-          }
-        });
- 
-        const menuToggles = document.querySelectorAll('.menu-toggle');
-
-        // 1. 가져온 버튼 리스트를 forEach로 하나씩 순회
-        menuToggles.forEach(toggle => {
-          toggle.addEventListener('click', function() {
-            // 2. this는 방금 클릭한 바로 그 버튼을 뜻함
-            // 내 바로 다음 동생 요소(서브메뉴)를 찾음
-            const submenu = this.nextElementSibling;
-            
-            // 내 안쪽에 있는 화살표 아이콘을 찾음
-            // (HTML에서 class를 arrowIcon으로 썼는지 arrow-icon으로 썼는지 확인 후 맞춰서 적어)
-            const arrowIcon = this.querySelector('.arrowIcon'); 
-        
-            // 3. 찾은 짝꿍 요소들에만 숨김/회전 클래스 토글
-            if (submenu) {
-              submenu.classList.toggle('hidden');
-            }
-            if (arrowIcon) {
-              arrowIcon.classList.toggle('rotate-180');
-            }
-          });
-        });
-    
-     
-        // 라이트모드 다크모드 변경 설정한 javascript
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        const body = document.body;
-        
-        themeToggle.addEventListener('click', () => {
-          body.classList.toggle('light-mode');
-          
-          // 아이콘 변경
-          if (body.classList.contains('light-mode')) {
-            themeIcon.textContent = '🌙'; // 라이트모드일 땐 달 아이콘
-          } else {
-            themeIcon.textContent = '☀️'; // 다크모드일 땐 해 아이콘
-          }
-        });
-        
-        
         /* 2. 차트 렌더링 로직 (한 곳으로 통합) */
         
         // 백엔드에서 넘어온 데이터
@@ -223,5 +155,6 @@
         
       });
     </script>
+    <script src="/admin/admin.js"></script>
 </body>
 </html>

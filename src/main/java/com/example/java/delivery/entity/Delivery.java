@@ -2,7 +2,7 @@ package com.example.java.delivery.entity;
 
 import java.time.LocalDateTime;
 import com.example.java.delivery.dto.DeliveryDto;
-import com.example.java.orders.controller.entity.Orders;
+import com.example.java.orders.entity.Orders;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -44,7 +44,7 @@ public class Delivery {
     private String recipient_phone;
     
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // READY, SHIPPING, DELIVERED, FAILED, DELAYED
+    private String status; // READY, SHIPPING, DELIVERED, FAILED, DELAYED, CANCELED
     
     @Column(name = "request_memo", length = 255)
     private String request_memo;
@@ -95,5 +95,9 @@ public class Delivery {
                        .total_delivery_fee(this.total_delivery_fee)
                        .delayHours(this.delayHours)
                        .build();
+    }
+    
+    public String getTrackingNumber() {
+        return this.tracking_number;
     }
 }

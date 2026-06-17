@@ -12,4 +12,12 @@ public class AdminPaymentDTO {
     private PaymentType type;
     private Integer status;
     private Long purchaseOrderSeq;
+    
+    // 추가된 필드들
+    private String sellerName;
+    private String sellerAccount;
+    private String productName;
+    private Integer quantity;
+    private Long supplyPrice;
+    private Long totalPrice;
 }

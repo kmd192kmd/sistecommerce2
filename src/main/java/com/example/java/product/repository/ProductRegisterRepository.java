@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductRegisterRepository {
 
     private final JdbcTemplate jdbcTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
 
     /*
@@ -45,8 +46,15 @@ public class ProductRegisterRepository {
 
         sale_status는 일단 ON_SALE로 넣지만,
         승인 전에는 화면에 노출되지 않게 approval_status로 제어합니다.
+
+        수정된 부분:
+        - product 테이블에 thumbnail_url 컬럼이 추가되었기 때문에
+          대표 이미지 URL도 같이 저장합니다.
+        - thumbnailUrl 값은 Cloudinary에서 업로드 후 반환받은 secure_url입니다.
     */
-    public void insertProduct(Long productSeq, ProductCreateRequestDto dto) {
+    public void insertProduct(Long productSeq,
+                              ProductCreateRequestDto dto,
+                              String thumbnailUrl) {
 
         String sql = """
                 INSERT INTO product (
@@ -65,7 +73,8 @@ public class ProductRegisterRepository {
                     sales_count,
                     created_date,
                     updated_date,
-                    status
+                    status,
+                    thumbnail_url
                 ) VALUES (
                     ?,
                     ?,
@@ -82,7 +91,8 @@ public class ProductRegisterRepository {
                     0,
                     SYSDATE,
                     NULL,
-                    'NORMAL'
+                    'NORMAL',
+                    ?
                 )
                 """;
 
@@ -93,8 +103,10 @@ public class ProductRegisterRepository {
                 dto.getCategorySeq(),
                 dto.getProductName(),
                 dto.getPrice(),
-                dto.getContent()
+                dto.getContent(),
+                thumbnailUrl
         );
+        eventPublisher.publishEvent(new com.example.java.product.event.ProductUpdatedEvent(productSeq));
     }
 
 
@@ -165,82 +177,82 @@ public class ProductRegisterRepository {
         전자제품이면 memory, storage_capacity 사용
     */
     public void insertProductOption(Long optionSeq,
-            Long productSeq,
-            ProductOptionRequestDto optionDto) {
+                                    Long productSeq,
+                                    ProductOptionRequestDto optionDto) {
 
-		String sql = """
-			INSERT INTO options (
-			seq,
-			product_seq,
-			color,
-			options_size,
-			volume_weight,
-			taste,
-			storage_type,
-			scent_ingredient,
-			voltage,
-			quantity_set,
-			size_spec,
-			storage_capacity,
-			memory,
-			switch_axis,
-			connection_type,
-			wearable_spec,
-			material_type,
-			options_type,
-			stock,
-			safety_stock,
-			additional_price
-		) VALUES (
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?,
-			?
-		)
-		""";
-		
-		jdbcTemplate.update(
-			sql,
-			optionSeq,
-			productSeq,
-			optionDto.getColor(),
-			optionDto.getOptionsSize(),
-			optionDto.getVolumeWeight(),
-			optionDto.getTaste(),
-			optionDto.getStorageType(),
-			optionDto.getScentIngredient(),
-			optionDto.getVoltage(),
-			optionDto.getQuantitySet(),
-			optionDto.getSizeSpec(),
-			optionDto.getStorageCapacity(),
-			optionDto.getMemory(),
-			optionDto.getSwitchAxis(),
-			optionDto.getConnectionType(),
-			optionDto.getWearableSpec(),
-			optionDto.getMaterialType(),
-			optionDto.getOptionsType(),
-			optionDto.getStock(),
-			optionDto.getSafetyStock(),
-			optionDto.getAdditionalPrice()
-			);
-		}
+        String sql = """
+                INSERT INTO options (
+                    seq,
+                    product_seq,
+                    color,
+                    options_size,
+                    volume_weight,
+                    taste,
+                    storage_type,
+                    scent_ingredient,
+                    voltage,
+                    quantity_set,
+                    size_spec,
+                    storage_capacity,
+                    memory,
+                    switch_axis,
+                    connection_type,
+                    wearable_spec,
+                    material_type,
+                    options_type,
+                    stock,
+                    safety_stock,
+                    additional_price
+                ) VALUES (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+                """;
+
+        jdbcTemplate.update(
+                sql,
+                optionSeq,
+                productSeq,
+                optionDto.getColor(),
+                optionDto.getOptionsSize(),
+                optionDto.getVolumeWeight(),
+                optionDto.getTaste(),
+                optionDto.getStorageType(),
+                optionDto.getScentIngredient(),
+                optionDto.getVoltage(),
+                optionDto.getQuantitySet(),
+                optionDto.getSizeSpec(),
+                optionDto.getStorageCapacity(),
+                optionDto.getMemory(),
+                optionDto.getSwitchAxis(),
+                optionDto.getConnectionType(),
+                optionDto.getWearableSpec(),
+                optionDto.getMaterialType(),
+                optionDto.getOptionsType(),
+                optionDto.getStock(),
+                optionDto.getSafetyStock(),
+                optionDto.getAdditionalPrice()
+        );
+    }
 
 
     /*
@@ -310,26 +322,6 @@ public class ProductRegisterRepository {
                 """;
 
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, sellerSeq);
-
-        return count != null && count > 0;
-    }
-
-
-    /*
-        관리자 존재 여부 확인
-
-        admin_seq가 실제 admin 테이블에 있는지 확인합니다.
-    */
-    public boolean existsAdmin(Long adminSeq) {
-
-        String sql = """
-                SELECT COUNT(*)
-                FROM admin
-                WHERE seq = ?
-                  AND adm_status = 0
-                """;
-
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, adminSeq);
 
         return count != null && count > 0;
     }

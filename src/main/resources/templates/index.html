@@ -18,12 +18,6 @@
                 진행 중인 공구 보러가기
             </a>
         </div>
-        <div class="hidden lg:block w-72 h-52 bg-white/5 border border-white/10 p-5 backdrop-blur-sm">
-            <p class="text-xs font-bold text-amber-400">GOLD LIVE ZONE</p>
-            <div class="mt-4 w-full h-32 bg-black/40 flex items-center justify-center text-[11px] text-gray-500">
-                실시간 라이브 특가 송출 중
-            </div>
-        </div>
     </div>
 </div>
 
@@ -35,7 +29,7 @@
             <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <span class="w-1.5 h-5 bg-amber-500"></span> 🔥 오늘만 이 가격! 핫딜 상품
             </h3>
-            <a th:href="@{/hotdeals}" class="text-xs font-bold text-gray-500 hover:text-amber-600">전체보기 &gt;</a>
+            <a th:href="@{/products(showHotDealsOnly=true)}" class="text-xs font-bold text-gray-500 hover:text-amber-600">전체보기 &gt;</a>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -79,7 +73,19 @@
                class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors">
                 <div class="aspect-square bg-gray-50 relative overflow-hidden">
                     <img th:src="${p.image}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-                    <span th:text="${stat.count}" class="absolute top-0 left-0 bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">1</span>
+                    <!-- 좌상단: 순위 번호 및 살짝 떨어진 HOT 배지 -->
+                    <div class="absolute top-0 left-0 flex items-center gap-1.5">
+                        <span th:text="${stat.count}" class="bg-slate-900 text-white text-[11px] font-bold px-2 py-0.5">1</span>
+                        <span th:if="${p.hot}" class="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm shadow-sm animate-pulse">HOT</span>
+                    </div>
+                    
+                    <!-- 우상단: 순위 변동 배지 (배경색 없이 기호 및 글자색만 표시) -->
+                    <span th:if="${p.rankChange != null}" 
+                          th:text="${p.rankChange}"
+                          th:class="${p.rankChange == 'NEW'} ? 'absolute top-1 right-2 text-emerald-500 font-black text-[10px]' :
+                                    (${#strings.startsWith(p.rankChange, '▲')} ? 'absolute top-1 right-2 text-red-500 font-extrabold text-[10px]' :
+                                    (${#strings.startsWith(p.rankChange, '▼')} ? 'absolute top-1 right-2 text-blue-500 font-extrabold text-[10px]' :
+                                    'absolute top-1 right-2 text-slate-400 font-extrabold text-[10px]'))">NEW</span>
                 </div>
                 <div class="pt-2 space-y-1">
                     <h4 th:text="${p.name}" class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">상품명</h4>
@@ -91,11 +97,34 @@
                 </div>
             </a>
         </div>
+    <!-- [인공지능 맞춤 추천 상품] -->
+    <section class="space-y-4" th:if="${recommendations != null and !recommendations.isEmpty()}">
+        <div class="flex items-end justify-between border-b-2 border-amber-500 pb-2">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span class="w-1.5 h-5 bg-amber-500"></span> ✨ 구글 AI 맞춤 추천 상품
+            </h3>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <a th:each="p, stat : ${recommendations}" th:if="${stat.index < 4}" th:href="@{/products/{seq}(seq=${p.seq})}"
+               class="bg-white p-2 flex flex-col justify-between group cursor-pointer border border-transparent hover:border-amber-400 transition-colors shadow-sm">
+                <div class="aspect-square bg-gray-50 relative overflow-hidden">
+                    <img th:src="${p.thumbnailUrl != null ? p.thumbnailUrl : '/images/no-image.png'}" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                </div>
+                <div class="pt-2 space-y-1">
+                    <h4 th:text="${p.productName}" class="text-xs text-gray-700 font-normal line-clamp-2 group-hover:underline">상품명</h4>
+                    <p th:text="${#numbers.formatInteger(p.price, 0, 'COMMA')} + '원'" class="text-sm font-black text-amber-600">549,000원</p>
+                </div>
+            </a>
+        </div>
     </section>
 
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<th:block sec:authorize="isAuthenticated()">
+    <div th:replace="~{fragments/chat :: chatWidget}"></div>
+</th:block>
 </body>
 </html>

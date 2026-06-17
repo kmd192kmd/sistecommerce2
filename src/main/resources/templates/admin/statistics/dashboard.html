@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>정산 통계 대시보드 - Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <link rel="stylesheet" href="/admin/style.css">
+  <style>
+    .theme-bg-body { background-color: var(--bg-body); }
+    .theme-bg-panel { background-color: var(--bg-panel); }
+    .theme-text-main { color: var(--text-main); }
+    .theme-text-muted { color: var(--text-muted); }
+    .theme-text-white { color: var(--text-white); }
+    .theme-border { border-color: var(--border-color); }
+
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .stat-card { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 1rem; padding: 2rem; position: relative; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+    .card-revenue::before { background: #3b82f6; }
+    .card-payout::before { background: #8b5cf6; }
+    .card-profit::before { background: #10b981; }
+    .stat-title { font-size: 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .stat-value { font-size: 2.2rem; font-weight: 800; margin-top: 0.8rem; color: var(--text-white); }
+    
+    .period-btn { padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 9999px; border: 1px solid var(--border-color); color: var(--text-muted); background: transparent; cursor: pointer; transition: all 0.2s; }
+    .period-btn:hover { background: rgba(255,255,255,0.05); }
+    .period-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+  </style>
+</head>
+<body class="font-sans antialiased overflow-hidden theme-bg-body theme-text-main">
+  <div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+      <div th:replace="~{admin/header :: header}"></div>
+      
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div class="mb-4">
+          <h2 class="text-title text-2xl font-bold tracking-tight">정산 통계 대시보드</h2>
+          <p class="text-label text-sm mt-1 theme-text-muted">실시간 수익 현황과 차트를 확인합니다.</p>
+        </div>
+
+        <div class="dashboard-grid mb-6">
+            <div class="stat-card card-revenue">
+                <div class="stat-title">고객 결제 총 매출액</div>
+                <div class="stat-value" th:text="${#numbers.formatInteger(stats.totalRevenue, 3, 'COMMA')} + ' 원'">0 원</div>
+            </div>
+            <div class="stat-card card-payout">
+                <div class="stat-title">판매처 누적 정산액</div>
+                <div class="stat-value" th:text="${#numbers.formatInteger(stats.totalPayout, 3, 'COMMA')} + ' 원'">0 원</div>
+            </div>
+            <div class="stat-card card-profit">
+                <div class="stat-title">쇼핑몰 최종 순수익</div>
+                <div class="stat-value" style="color: #10b981" th:text="${#numbers.formatInteger(stats.netProfit, 3, 'COMMA')} + ' 원'">0 원</div>
+            </div>
+        </div>
+
+        <!-- ApexCharts 영역 -->
+        <div class="p-6 rounded-2xl theme-border border" style="background: var(--bg-panel);">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold theme-text-white" id="chartTitle">일별 고객 결제 총 매출액 추이 (DB 연동)</h3>
+                <div class="flex gap-2">
+                    <button onclick="loadChart(7, this)" class="period-btn">7일</button>
+                    <button onclick="loadChart(14, this)" class="period-btn active">14일</button>
+                    <button onclick="loadChart(30, this)" class="period-btn">1개월</button>
+                    <button onclick="loadChart(90, this)" class="period-btn">3개월</button>
+                    <button onclick="loadChart(180, this)" class="period-btn">6개월</button>
+                    <button onclick="loadChart(365, this)" class="period-btn">12개월</button>
+                </div>
+            </div>
+            <div id="profitChart"></div>
+        </div>
+
+      </main>
+      
+      <script>
+          let chartInstance = null;
+
+          function loadChart(days, btnElement) {
+              if(btnElement) {
+                  document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+                  btnElement.classList.add('active');
+              }
+              document.getElementById('chartTitle').innerText = `최근 ${days}일 일별 고객 결제 총 매출액 추이`;
+
+              fetch(`/admin/statistics/chart?days=${days}`)
+                  .then(res => {
+                      if(!res.ok) throw new Error("서버 연동 실패 (재구동 필요)");
+                      return res.json();
+                  })
+                  .then(data => {
+                      if(chartInstance) {
+                          chartInstance.destroy();
+                      }
+                      
+                      var options = {
+                        series: [{ name: '일일 고객 결제 총 매출액 (원)', data: data.revenues }],
+                        chart: { type: 'area', height: 400, zoom: { enabled: true, type: 'x' }, background: 'transparent', toolbar: { show: true }, animations: { enabled: false } },
+                        colors: ['#3b82f6'], dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2 },
+                        xaxis: { categories: data.dates, labels: { show: false }, tooltip: { enabled: false } },
+                        yaxis: { labels: { style: { colors: '#94a3b8' }, formatter: (value) => value.toLocaleString() + "원" } },
+                        theme: { mode: 'dark' },
+                        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.5, opacityTo: 0.1, stops: [0, 90, 100] } },
+                        grid: { borderColor: 'rgba(255,255,255,0.05)' }
+                      };
+                      chartInstance = new ApexCharts(document.querySelector("#profitChart"), options);
+                      chartInstance.render();
+                  })
+                  .catch(err => {
+                      console.error("차트 로딩 에러:", err);
+                      document.getElementById('profitChart').innerHTML = `<div style="color:#ef4444; padding:2rem; text-align:center; font-weight:bold;">🚨 차트를 그리지 못했습니다.<br><br>새로운 Java API가 추가되었습니다. 반드시 켜져 있는 서버(Spring Boot)를 껐다가 다시 실행해 주세요!</div>`;
+                  });
+          }
+
+          document.addEventListener('DOMContentLoaded', () => {
+              loadChart(14, document.querySelector('.period-btn.active'));
+          });
+      </script>
+      <script src="/admin/admin.js"></script>
+    </div>
+  </div>
+</body>
+</html>

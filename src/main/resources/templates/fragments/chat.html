@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <div th:fragment="chatWidget" class="fixed bottom-6 right-6 z-[999999]">
+        
+        <div id="chat-window" class="hidden w-80 h-[26rem] bg-white border border-gray-200 rounded-xl shadow-2xl flex-col overflow-hidden mb-4 transition-all duration-300">
+            
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white px-4 py-3 font-bold flex justify-between items-center border-b-2 border-amber-500">
+                <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 💬 1:1 라이브 상담</span>
+                <button onclick="toggleChat()" class="text-gray-300 hover:text-white transition-colors text-xl leading-none">&times;</button>
+            </div>
+            
+            <div id="chat-list-view" class="flex-1 overflow-y-auto p-4 bg-slate-50">
+                <div class="space-y-3" id="chat-rooms">
+                    <div class="text-center text-gray-400 text-sm py-10">이전 상담 내역이 없습니다.</div>
+                </div>
+            </div>
+            
+            <div id="chat-type-view" class="hidden flex-col items-center justify-center flex-1 p-6 space-y-4 bg-white">
+                <h3 class="font-bold text-gray-800 mb-4">어떤 상담을 원하시나요?</h3>
+                <button onclick="createRoom('AI')" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-transform active:scale-95">🤖 AI 챗봇 상담</button>
+                <button onclick="createRoom('ADMIN')" class="w-full bg-amber-500 text-slate-900 py-4 rounded-xl font-bold hover:bg-amber-600 transition-transform active:scale-95">👤 상담원 연결</button>
+                <button onclick="showListView()" class="text-gray-400 text-sm underline mt-2">돌아가기</button>
+            </div>
+            
+            <div id="chat-list-footer" class="p-3 border-t border-gray-200 bg-white shadow-inner">
+                <button onclick="showTypeView()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-black py-2.5 rounded-lg transition-colors text-sm">
+                    새로운 문의 시작하기
+                </button>
+            </div>
+
+            <div id="chat-message-view" class="hidden flex-1 flex-col min-h-0 bg-slate-50">
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+                
+                <div class="border-t border-gray-200 p-3 bg-white flex gap-2 shrink-0">
+                    <input type="text" id="chat-input" placeholder="메시지를 입력하세요" onkeypress="handleChatEnter(event)" 
+                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                    <button onclick="sendChatMessage()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors">전송</button>
+                </div>
+            </div>
+        </div>
+
+        <button id="chat-toggle-btn" onclick="toggleChat()" class="w-14 h-14 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-full shadow-xl flex items-center justify-center transition-transform hover:scale-110 ml-auto border-2 border-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+        </button>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+        <script th:inline="javascript">
+            // 현재 로그인한 회원의 PK (비로그인 시 null)
+            const currentMemberSeq = /*[[${#authentication.principal != 'anonymousUser' ? #authentication.principal.memberSeq : null}]]*/ 1;
+            
+            let stompClient = null;
+            let currentRoomId = null;
+
+            function toggleChat() {
+                const windowEl = document.getElementById('chat-window');
+                windowEl.classList.toggle('hidden');
+                windowEl.classList.toggle('flex');
+                if (!windowEl.classList.contains('hidden')) loadChatList();
+            }
+
+            function showTypeView() {
+                document.getElementById('chat-list-view').style.display = 'none';
+                document.getElementById('chat-list-footer').style.display = 'none';
+                document.getElementById('chat-type-view').classList.remove('hidden');
+                document.getElementById('chat-type-view').classList.add('flex');
+            }
+
+            function showListView() {
+                document.getElementById('chat-type-view').classList.add('hidden');
+                document.getElementById('chat-list-view').style.display = 'block';
+                document.getElementById('chat-list-footer').style.display = 'block';
+            }
+
+            function loadChatList() {
+                fetch(`/api/chat/rooms`)
+                    .then(res => res.json())
+                    .then(rooms => {
+                        const listDiv = document.getElementById('chat-rooms');
+                        listDiv.innerHTML = rooms.length === 0 ? '<div class="text-center text-gray-400 text-sm py-10">내역이 없습니다.</div>' : '';
+                        rooms.forEach(room => {
+                            const btn = document.createElement('button');
+                            btn.className = 'w-full text-left bg-white p-3 rounded-lg shadow-sm border border-gray-200 hover:border-amber-400';
+                            btn.innerHTML = `<div class="font-bold text-sm text-slate-900">${room.title}</div>`;
+                            btn.onclick = () => enterRoom(room.seq);
+                            listDiv.appendChild(btn);
+                        });
+                    });
+            }
+
+            function createRoom(category) {
+                let title = (category === 'AI') ? "🤖 AI 챗봇 상담" : "👤 상담원 연결";
+                fetch(`/api/chat/rooms?title=${encodeURIComponent(title)}&category=${category}`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(room => enterRoom(room.seq)); 
+            }
+
+            function enterRoom(roomId) {
+                if(!roomId) return;
+                currentRoomId = roomId;
+                document.getElementById('chat-list-view').style.display = 'none';
+                document.getElementById('chat-list-footer').style.display = 'none';
+                document.getElementById('chat-type-view').classList.add('hidden');
+                document.getElementById('chat-message-view').classList.remove('hidden');
+                document.getElementById('chat-message-view').classList.add('flex');
+                document.getElementById('chat-messages').innerHTML = '';
+                
+                fetch(`/api/chat/rooms/${roomId}/messages`)
+                    .then(res => res.json())
+                    .then(messages => messages.forEach(msg => appendMessage(msg)));
+                
+                connectWebSocket(roomId);
+            }
+
+            function connectWebSocket(roomId) {
+                if(stompClient) stompClient.disconnect();
+                stompClient = Stomp.over(new SockJS('/ws-chat'));
+                stompClient.connect({}, () => {
+                    stompClient.subscribe(`/topic/chat/${roomId}`, (msg) => appendMessage(JSON.parse(msg.body)));
+                });
+            }
+
+            function sendChatMessage() {
+                if(!currentRoomId || currentRoomId === 'undefined') {
+                    alert("채팅방을 선택해주세요.");
+                    return;
+                }
+                const input = document.getElementById('chat-input');
+                if(!input.value.trim()) return;
+                
+                stompClient.send(`/app/chat/${currentRoomId}/send`, {}, JSON.stringify({
+                    senderType: 'USER',
+                    senderId: currentMemberSeq, 
+                    content: input.value
+                }));
+                input.value = '';
+            }
+
+			function appendMessage(msg) {
+			                const div = document.getElementById('chat-messages');
+			                const isMe = (msg.senderType === 'USER');
+			                let displayContent = msg.content; // 일단 원본 내용을 가져옴
+
+			                // 만약 이 메시지가 AI가 보낸 것이라면 껍데기(JSON)를 벗기는 작업을 시도합니다.
+			                if (msg.senderType === 'AI') {
+			                    try {
+			                        // 백엔드에서 날아온 문자열이 JSON 껍데기인지 확인하고 파싱합니다.
+			                        let parsedContent = JSON.parse(msg.content);
+			                        
+			                        // OpenAI/Gemini 형태의 껍데기가 맞다면 안쪽의 진짜 텍스트만 쏙 빼냅니다.
+			                        if (parsedContent.candidates && parsedContent.candidates[0].content.parts[0].text) {
+			                            displayContent = parsedContent.candidates[0].content.parts[0].text;
+			                        }
+			                    } catch (e) {
+			                        // 만약 파싱에 실패했다면(애초에 백엔드에서 껍데기 없이 순수 텍스트만 보냈다면)
+			                        // 에러를 무시하고 원본 텍스트(displayContent)를 그대로 씁니다.
+			                        console.log("AI 메시지가 단순 텍스트 형태입니다.");
+			                    }
+			                }
+
+			                // 뽑아낸 텍스트(displayContent)를 화면에 예쁘게 그립니다.
+			                div.innerHTML += `<div class="flex flex-col w-full ${isMe ? 'items-end' : 'items-start'}">
+			                    <div class="${isMe ? 'bg-amber-500' : 'bg-white border text-gray-800'} px-3 py-2 rounded-2xl text-sm max-w-[80%] break-words">
+			                        ${displayContent}
+			                    </div>
+			                </div>`;
+			                
+			                // 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
+			                div.scrollTop = div.scrollHeight;
+			            }
+            
+            function handleChatEnter(e) { if(e.key === 'Enter') sendChatMessage(); }
+        </script>
+    </div>
+</body>
+</html>

@@ -197,4 +197,23 @@ public class Product {
                 .image(thumb)
                 .build();
     }
+    
+    // 상품요청 승인 메서드
+    public void approve() {
+        this.approvalStatus = "APPROVED";
+    }
+    // 상품요청 거절 메서드
+    public void reject() {
+        this.approvalStatus = "REJECTED";
+    }
+    
+    // 상품 판매상태 변경 메서드
+    public void updateSaleStatus(String saleStatus) {
+        this.saleStatus = saleStatus;
+    }
+    // 상품 상태 변경 메서드
+    public void updateStatus(String status) {
+    	this.status = status;
+    }
+    
 }

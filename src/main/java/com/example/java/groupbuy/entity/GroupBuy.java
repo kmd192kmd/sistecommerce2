@@ -66,4 +66,37 @@ public class GroupBuy {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private GroupBuyStatus status;
+
+    /**
+     * 공구 시작: 시작 시각이 도래해 모집을 개시한다. SCHEDULED → ONGOING.
+     */
+    public void open() {
+        this.status = GroupBuyStatus.ONGOING;
+    }
+
+    /**
+     * 마감 확정: 최소 인원을 달성해 공구가 성사됨. ONGOING → CONFIRMED.
+     * finishedAt에 실제 마감 처리 시각을 기록한다.
+     */
+    public void confirm(LocalDateTime finishedAt) {
+        this.status = GroupBuyStatus.CONFIRMED;
+        this.finishedAt = finishedAt;
+    }
+
+    /**
+     * 마감 무산: 최소 인원 미달로 공구가 무산됨. ONGOING → FAILED.
+     * 결제 완료자 전원 환불은 서비스에서 처리한다.
+     */
+    public void fail(LocalDateTime finishedAt) {
+        this.status = GroupBuyStatus.FAILED;
+        this.finishedAt = finishedAt;
+    }
+
+    /**
+     * 관리자 강제 중단: ONGOING/SCHEDULED → STOPPED
+     */
+    public void forceStop(LocalDateTime finishedAt) {
+        this.status = GroupBuyStatus.STOPPED;
+        this.finishedAt = finishedAt;
+    }
 }

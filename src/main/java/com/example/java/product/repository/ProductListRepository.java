@@ -40,11 +40,21 @@ public class ProductListRepository {
             Integer maxPrice,
             Double minRating,
             String saleStatus,
-            Pageable pageable) {
+            Pageable pageable,
+            List<Long> activeHotDealProductSeqs,
+            boolean showHotDealsOnly) {
 
         BooleanExpression condition = product.hideYn.eq("N")
                 .and(product.saleStatus.ne("STOPPED"))
                 .and(product.status.eq("NORMAL"));
+
+        if (showHotDealsOnly) {
+            if (activeHotDealProductSeqs == null || activeHotDealProductSeqs.isEmpty()) {
+                condition = condition.and(product.seq.in(-1L));
+            } else {
+                condition = condition.and(product.seq.in(activeHotDealProductSeqs));
+            }
+        }
 
         if (categorySeqs != null && !categorySeqs.isEmpty()) {
             condition = condition.and(product.categorySeq.in(categorySeqs));

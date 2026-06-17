@@ -47,13 +47,25 @@ public class Review {
     private Product product;
 
     /*
-        리뷰 작성자 회원 번호
+        리뷰 작성자 회원 번호입니다.
 
-        아직 Member/User 엔티티 연관관계가 확실하지 않으면
-        일단 Long 타입으로 두는 게 안전함
+        ReviewRepository에서는 member_seq 컬럼을 기준으로
+        리뷰 작성자 확인, 수정, 삭제를 처리하고 있습니다.
+
+        따라서 user_seq가 아니라 member_seq로 맞춰야 합니다.
     */
-    @Column(name = "user_seq", nullable = false)
-    private Long userSeq;
+    @Column(name = "member_seq", nullable = false)
+    private Long memberSeq;
+
+    /*
+        리뷰를 작성한 주문상품 번호입니다.
+
+        ReviewRepository.insertReview()에서
+        order_item_seq 컬럼에 값을 INSERT하고 있으므로
+        엔티티에도 컬럼을 맞춰줍니다.
+    */
+    @Column(name = "order_item_seq")
+    private Long orderItemSeq;
 
     /*
         별점

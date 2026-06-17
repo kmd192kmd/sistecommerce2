@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('판매자 상품 관리')}"></head>
+
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 판매자 상품 관리 화면 -->
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+
+    <!-- 페이지 제목 -->
+    <div class="mb-4">
+        <h1 class="text-2xl font-bold text-gray-900">
+            상품 관리
+        </h1>
+    </div>
+
+    <!-- 검색 영역 -->
+    <section class="bg-gray-200 px-8 py-5 mb-8">
+
+        <form id="searchForm"
+              th:action="@{/products/manage}"
+              method="get">
+
+            <!-- 승인 여부 -->
+            <div class="flex items-center gap-4 mb-4 text-sm">
+                <span class="w-20 font-bold text-gray-700">승인 여부</span>
+
+                <label class="flex items-center gap-1 cursor-pointer">
+					<input type="radio"
+					       name="approvalStatus"
+					       value="ALL"
+					       th:checked="${approvalStatus == null or approvalStatus == '' or approvalStatus == 'ALL'}">
+					<span>전체</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+					<input type="radio"
+					       name="approvalStatus"
+					       value="PENDING"
+					       th:checked="${approvalStatus == 'PENDING'}">
+					<span>승인 대기</span>
+                </label>
+
+                <label class="flex items-center gap-1 cursor-pointer">
+                    <input type="radio"
+                           name="approvalStatus"
+                           value="APPROVED"
+                           th:checked="${approvalStatus == 'APPROVED'}">
+                    <span>승인</span>
+                </label>
+
+                <label class="flex items-center gap-1 cursor-pointer">
+                    <input type="radio"
+                           name="approvalStatus"
+                           value="REJECTED"
+                           th:checked="${approvalStatus == 'REJECTED'}">
+                    <span>반려</span>
+                </label>
+
+            </div>
+
+            <!-- 기간 검색 -->
+            <div class="flex items-center gap-3 mb-4 text-sm">
+                <span class="w-20 font-bold text-gray-700">기간 검색</span>
+
+                <input type="date"
+                       name="startDate"
+                       th:value="${startDate}"
+                       class="h-9 border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:border-gray-500">
+
+                <span>~</span>
+
+                <input type="date"
+                       name="endDate"
+                       th:value="${endDate}"
+                       class="h-9 border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:border-gray-500">
+
+                <button type="button"
+                        class="period-btn h-9 px-4 bg-black text-white text-xs font-bold"
+                        data-period="7">
+                    7일
+                </button>
+
+                <button type="button"
+                        class="period-btn h-9 px-4 bg-black text-white text-xs font-bold"
+                        data-period="30">
+                    1개월
+                </button>
+
+                <button type="button"
+                        class="period-btn h-9 px-4 bg-black text-white text-xs font-bold"
+                        data-period="90">
+                    3개월
+                </button>
+
+                <button type="button"
+                        class="period-btn h-9 px-4 bg-black text-white text-xs font-bold"
+                        data-period="180">
+                    6개월
+                </button>
+
+                <button type="button"
+                        class="period-btn h-9 px-4 bg-black text-white text-xs font-bold"
+                        data-period="365">
+                    1년
+                </button>
+            </div>
+
+            <!-- 검색어 -->
+            <div class="flex items-center gap-3 text-sm">
+                <span class="w-20 font-bold text-gray-700">검색어</span>
+
+                <select name="searchType"
+                        class="h-9 w-28 border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:border-gray-500">
+                    <option value="productName"
+                            th:selected="${searchType == 'productName'}">
+                        상품명
+                    </option>
+
+                    <option value="sellerName"
+                            th:selected="${searchType == 'sellerName'}">
+                        판매처명
+                    </option>
+
+                    <option value="productSeq"
+                            th:selected="${searchType == 'productSeq'}">
+                        상품번호
+                    </option>
+                </select>
+
+                <input type="text"
+                       name="keyword"
+                       th:value="${keyword}"
+                       placeholder="검색어를 입력하세요."
+                       class="h-9 flex-1 max-w-xl border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:border-gray-500">
+
+                <!--
+                    판매자가 상품 목록을 정렬할 수 있는 선택 박스입니다.
+
+                    정렬 조건:
+                    - 판매량순
+                    - 최신순
+                    - 가격순
+                    - 별점순
+
+                    선택값은 GET 파라미터 sortType으로 Controller에 전달됩니다.
+                -->
+                <select name="sortType"
+                        id="sortTypeSelect"
+                        class="h-9 w-28 border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:border-gray-500">
+                    <option value="salesDesc"
+                            th:selected="${sortType == 'salesDesc'}">
+                        판매량순
+                    </option>
+
+                    <option value="latestDesc"
+                            th:selected="${sortType == null or sortType == 'latestDesc'}">
+                        최신순
+                    </option>
+
+                    <option value="priceAsc"
+                            th:selected="${sortType == 'priceAsc'}">
+                        가격순
+                    </option>
+
+                    <option value="ratingDesc"
+                            th:selected="${sortType == 'ratingDesc'}">
+                        별점순
+                    </option>
+                </select>
+
+                <button type="submit"
+                        class="h-9 px-5 bg-black text-white text-xs font-bold hover:bg-gray-800">
+                    검색
+                </button>
+            </div>
+
+        </form>
+    </section>
+
+    <!-- 목록 상단 -->
+    <section class="mb-3 flex items-center justify-between">
+
+        <div class="text-sm font-bold">
+            검색결과 :
+            <span class="text-red-500"
+                  th:text="${totalCount != null ? totalCount : 0}">
+                0
+            </span>건
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- 새 상품 등록 -->
+            <a th:href="@{/products/register}"
+               class="inline-flex h-9 items-center px-5 bg-black text-white text-xs font-bold hover:bg-gray-800">
+                새 상품 등록
+            </a>
+
+            <!-- 삭제 -->
+            <button type="button"
+                    id="deleteSelectedBtn"
+                    class="h-9 px-5 border border-gray-300 bg-white text-xs font-bold text-gray-700 hover:bg-gray-50">
+                삭제
+            </button>
+        </div>
+
+    </section>
+
+    <!-- 상품 목록 -->
+    <section class="bg-white border border-gray-200">
+
+        <table class="w-full text-sm text-center">
+            <thead class="bg-gray-100 border-b border-gray-200">
+            <tr class="h-11 text-xs text-gray-700">
+                <th class="w-12">
+                    <input type="checkbox" id="checkAll">
+                </th>
+                <th class="w-16">번호</th>
+                <th class="w-24">승인상태</th>
+                <th>상품명</th>
+                <th class="w-28">대표 이미지</th>
+                <th class="w-24">판매처</th>
+                <th class="w-28">요청일</th>
+                <th class="w-32">반려 상세</th>
+                <th class="w-32">상품 상세</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <!-- 상품 목록 있음 -->
+            <tr th:each="product : ${products}"
+                class="h-16 border-b border-gray-100 hover:bg-gray-50">
+
+                <td>
+                    <input type="checkbox"
+                           name="productSeqs"
+                           th:value="${product.seq}"
+                           class="row-check">
+                </td>
+
+                <td th:text="${product.seq}">
+                    1
+                </td>
+
+                <td>
+                    <span th:if="${product.requestStatus == 'PENDING'}"
+                          class="text-gray-700 font-bold">
+                        승인대기
+                    </span>
+
+                    <span th:if="${product.requestStatus == 'APPROVED'}"
+                          class="text-blue-600 font-bold">
+                        승인
+                    </span>
+
+                    <span th:if="${product.requestStatus == 'REJECTED'}"
+                          class="text-red-500 font-bold">
+                        반려
+                    </span>
+                </td>
+
+                <td class="text-center px-4"
+                    th:text="${product.productName}">
+                    상품명
+                </td>
+
+                <td>
+                    <!-- 대표 이미지 있음 -->
+                    <img th:if="${product.thumbnailUrl != null}"
+                         th:src="${product.thumbnailUrl}"
+                         th:alt="${product.productName}"
+                         class="mx-auto w-10 h-10 object-cover border border-gray-200">
+
+                    <!-- 대표 이미지 없음 -->
+                    <div th:if="${product.thumbnailUrl == null}"
+                         class="mx-auto w-10 h-10 bg-gray-800 text-white flex items-center justify-center text-[10px]">
+                        이미지
+                    </div>
+                </td>
+
+                <td>
+                    <button type="button"
+                            class="seller-detail-btn hover:underline"
+                            th:data-seller-name="${product.sellerName}"
+                            th:data-seller-email="${product.sellerEmail}"
+                            th:data-seller-phone="${product.sellerPhone}"
+                            th:text="${product.sellerName}">
+                        판매처
+                    </button>
+                </td>
+
+                <td th:text="${#temporals.format(product.createdDate, 'yyyy.MM.dd')}">
+                    2026.05.24
+                </td>
+
+                <td>
+                    <!--
+                        반려 사유도 product_request 기준으로 확인합니다.
+                    -->
+                    <button type="button"
+                            th:if="${product.requestStatus == 'REJECTED'}"
+                            class="reject-reason-btn bg-black text-white text-xs px-4 py-1.5 hover:bg-gray-800"
+                            th:data-reject-reason="${product.rejectReason}">
+                        사유보기
+                    </button>
+
+                    <span th:unless="${product.requestStatus == 'REJECTED'}"
+                          class="text-gray-300">
+                        -
+                    </span>
+                </td>
+
+                <td>
+                    <a th:href="@{/products/{seq}(seq=${product.seq})}"
+                       class="inline-flex items-center bg-black text-white text-xs px-4 py-1.5 hover:bg-gray-800">
+                        상세보기
+                    </a>
+                </td>
+            </tr>
+
+            <!-- 상품 목록 없음 -->
+            <tr th:if="${products == null or #lists.isEmpty(products)}">
+                <td colspan="9"
+                    class="py-16 text-gray-400 text-sm">
+                    조회된 상품이 없습니다.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+    </section>
+
+    <!-- 페이지네이션 -->
+    <nav class="bg-gray-200 py-5 flex items-center justify-center gap-2 text-xs">
+
+        <a th:if="${page > 1}"
+           th:href="@{/products/manage(page=${page - 1}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword}, sortType=${sortType})}"
+           class="px-2 py-1 text-gray-500 hover:text-black">
+            ← Previous
+        </a>
+
+        <span th:unless="${page > 1}"
+              class="px-2 py-1 text-gray-400">
+            ← Previous
+        </span>
+
+        <a th:each="pageNum : ${#numbers.sequence(startPage, endPage)}"
+           th:href="@{/products/manage(page=${pageNum}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword}, sortType=${sortType})}"
+           th:text="${pageNum}"
+           th:classappend="${pageNum == page} ? 'bg-black text-white' : 'text-gray-600 hover:bg-white'"
+           class="w-7 h-7 flex items-center justify-center">
+            1
+        </a>
+
+        <a th:if="${page < totalPage}"
+           th:href="@{/products/manage(page=${page + 1}, approvalStatus=${approvalStatus}, startDate=${startDate}, endDate=${endDate}, searchType=${searchType}, keyword=${keyword}, sortType=${sortType})}"
+           class="px-2 py-1 text-gray-500 hover:text-black">
+            Next →
+        </a>
+
+        <span th:unless="${page < totalPage}"
+              class="px-2 py-1 text-gray-400">
+            Next →
+        </span>
+
+    </nav>
+
+</main>
+
+<!-- 판매처 상세 모달 -->
+<div id="sellerModal"
+     class="hidden fixed inset-0 bg-black/40 z-50 items-center justify-center">
+
+    <div class="bg-white w-[420px] border border-gray-300 shadow-lg">
+
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+            <h2 class="font-bold text-lg">
+                판매처 상세 정보
+            </h2>
+
+            <button type="button"
+                    id="sellerModalCloseBtn"
+                    class="text-gray-400 hover:text-black text-xl">
+                ×
+            </button>
+        </div>
+
+        <div class="p-5 space-y-4 text-sm">
+            <div>
+                <p class="text-xs text-gray-400 mb-1">판매처명</p>
+                <p id="modalSellerName" class="font-bold">-</p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-400 mb-1">이메일</p>
+                <p id="modalSellerEmail">-</p>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-400 mb-1">연락처</p>
+                <p id="modalSellerPhone">-</p>
+            </div>
+        </div>
+
+        <div class="px-5 py-4 bg-gray-50 text-right">
+            <button type="button"
+                    id="sellerModalOkBtn"
+                    class="bg-black text-white text-xs font-bold px-5 py-2 hover:bg-gray-800">
+                확인
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<script>
+    /*
+        승인 여부 radio 클릭 시 자동 검색
+    */
+    document.querySelectorAll('input[name="approvalStatus"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            document.getElementById('searchForm').submit();
+        });
+    });
+
+    /*
+        정렬 조건을 바꾸면 자동으로 검색 form을 제출합니다.
+
+        예:
+        판매량순 선택
+        → /products/manage?sortType=salesDesc 로 다시 조회
+    */
+    const sortTypeSelect = document.getElementById('sortTypeSelect');
+
+    if (sortTypeSelect) {
+        sortTypeSelect.addEventListener('change', function () {
+            document.getElementById('searchForm').submit();
+        });
+    }
+
+    /*
+        기간 버튼 클릭
+
+        7일, 1개월, 3개월, 6개월, 1년 버튼 클릭 시
+        시작일과 종료일을 자동으로 세팅합니다.
+    */
+    document.querySelectorAll('.period-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const period = Number(this.dataset.period);
+
+            const endDate = new Date();
+            const startDate = new Date();
+
+            startDate.setDate(endDate.getDate() - period);
+
+            document.querySelector('input[name="startDate"]').value = formatDate(startDate);
+            document.querySelector('input[name="endDate"]').value = formatDate(endDate);
+
+            document.getElementById('searchForm').submit();
+        });
+    });
+
+    /*
+        날짜 yyyy-MM-dd 형식 변환
+    */
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
+
+    /*
+        전체 체크박스
+    */
+    const checkAll = document.getElementById('checkAll');
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            document.querySelectorAll('.row-check').forEach(function (checkbox) {
+                checkbox.checked = checkAll.checked;
+            });
+        });
+    }
+
+    /*
+        삭제 버튼
+
+        선택된 상품 번호를 /products/manage/delete 로 전송합니다.
+    */
+    document.getElementById('deleteSelectedBtn').addEventListener('click', async function () {
+        const checkedProducts = Array.from(document.querySelectorAll('.row-check:checked'))
+            .map(function (checkbox) {
+                return checkbox.value;
+            });
+
+        if (checkedProducts.length === 0) {
+            alert('삭제할 상품을 선택해주세요.');
+            return;
+        }
+
+        if (!confirm('선택한 상품을 삭제하시겠습니까?')) {
+            return;
+        }
+
+        const formData = new FormData();
+
+        checkedProducts.forEach(function (productSeq) {
+            formData.append('productSeqs', productSeq);
+        });
+
+        try {
+            const response = await fetch('/products/manage/delete', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error('상품 삭제 실패');
+            }
+
+            alert('삭제되었습니다.');
+            location.reload();
+
+        } catch (error) {
+            console.error(error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    });
+
+    /*
+        판매처 상세 모달
+    */
+    const sellerModal = document.getElementById('sellerModal');
+    const sellerModalCloseBtn = document.getElementById('sellerModalCloseBtn');
+    const sellerModalOkBtn = document.getElementById('sellerModalOkBtn');
+
+    document.querySelectorAll('.seller-detail-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById('modalSellerName').textContent = this.dataset.sellerName || '-';
+            document.getElementById('modalSellerEmail').textContent = this.dataset.sellerEmail || '-';
+            document.getElementById('modalSellerPhone').textContent = this.dataset.sellerPhone || '-';
+
+            sellerModal.classList.remove('hidden');
+            sellerModal.classList.add('flex');
+        });
+    });
+
+    function closeSellerModal() {
+        sellerModal.classList.add('hidden');
+        sellerModal.classList.remove('flex');
+    }
+
+    sellerModalCloseBtn.addEventListener('click', closeSellerModal);
+    sellerModalOkBtn.addEventListener('click', closeSellerModal);
+
+    sellerModal.addEventListener('click', function (event) {
+        if (event.target === sellerModal) {
+            closeSellerModal();
+        }
+    });
+
+    /*
+        반려 사유 보기
+    */
+    document.querySelectorAll('.reject-reason-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const reason = this.dataset.rejectReason || '등록된 반려 사유가 없습니다.';
+            alert(reason);
+        });
+    });
+</script>
+
+</body>
+</html>

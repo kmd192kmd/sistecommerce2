@@ -24,11 +24,56 @@
             }
         };
     </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        html { overflow-y: scroll; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.400.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
 <th:block th:fragment="scripts">
     <script>lucide.createIcons();</script>
+    <script th:inline="javascript">
+        // 로그인 상태일 때만 SSE 연결
+        const isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+        if (isAuthenticated) {
+            const sse = new EventSource('/sse/connect');
+
+            sse.addEventListener('force-logout', function (e) {
+                sse.close();
+                alert('다른 기기에서 동일 플랫폼으로 로그인하여 이 세션이 종료됩니다.');
+                window.location.href = '/member/logout';
+            });
+
+            sse.onerror = function () {
+                sse.close();
+            };
+
+            // ── 비로그인 장바구니(localStorage) → 서버 병합 ──────────
+            (async function mergeGuestCart() {
+                const raw = localStorage.getItem('guestCart');
+                if (!raw) return;
+
+                let guestCart;
+                try { guestCart = JSON.parse(raw); } catch (e) { localStorage.removeItem('guestCart'); return; }
+                if (!guestCart || guestCart.length === 0) { localStorage.removeItem('guestCart'); return; }
+
+                for (const item of guestCart) {
+                    try {
+                        await fetch('/api/cart', {
+                            method : 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body   : JSON.stringify({ optionsSeq: item.optionsSeq, quantity: item.quantity })
+                        });
+                    } catch (e) {
+                        // 개별 실패는 무시하고 계속 진행
+                    }
+                }
+
+                localStorage.removeItem('guestCart');
+            })();
+        }
+    </script>
 </th:block>
 </body>
 </html>

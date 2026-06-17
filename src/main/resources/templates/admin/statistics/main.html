@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>관리자 메인 통계</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="/admin/style.css">
+    <style>
+		.chart-box {
+		    height: 280px;
+		}
+		.pie-chart-box {
+		    height: 350px;
+		}
+		.pie-chart-box canvas {
+		    width: 100% !important;
+		    height: 260px !important;
+		}
+		.chart-caption {
+		    margin-top: 10px;
+		    font-size: 18px;
+		    font-weight: 600;
+		}
+    </style>
+</head>
+<body class="font-sans antialiased overflow-hidden">
+
+<div class="flex h-screen w-screen relative">
+    <div th:replace="~{admin/sidebar :: sidebar}"></div>
+    <div id="sidebarOverlay"
+         class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity">
+    </div>
+    <div class="flex-1 flex flex-col h-full overflow-hidden">
+        <div th:replace="~{admin/header :: header}"></div>
+        <main class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        <h4 class="text-title mb-4">메인 통계</h4>
+        
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    <div class="card flex items-center justify-between">
+	        <div>
+	            <p class="text-sm text-gray-500">총 회원 수</p>
+	            <h4 class="text-3xl font-bold mt-2"
+	                th:text="${dashboard.memberTotalCount} + '명'">
+	            </h4>
+	        </div>
+	        <div class="w-14 h-14 rounded-full bg-indigo-100
+	                    flex items-center justify-center">
+	            <i class="fa-solid fa-users text-indigo-600 text-2xl"></i>
+	        </div>
+	    </div>
+	    <div class="card flex items-center justify-between">
+	        <div>
+	            <p class="text-sm text-gray-500">총 상품 수</p>
+	            <h4 class="text-3xl font-bold mt-2"
+	                th:text="${dashboard.productTotalCount} + '개'">
+	            </h4>
+	        </div>
+	        <div class="w-14 h-14 rounded-full bg-yellow-100
+	                    flex items-center justify-center">
+	            <i class="fa-solid fa-box text-yellow-600 text-2xl"></i>
+	        </div>
+	    </div>
+	    <div class="card flex items-center justify-between">
+	        <div>
+	            <p class="text-sm text-gray-500">총 주문 수</p>
+	            <h4 class="text-3xl font-bold mt-2"
+	                th:text="${dashboard.ordersTotalCount} + '건'">
+	            </h4>
+	        </div>
+	        <div class="w-14 h-14 rounded-full bg-green-100
+	                    flex items-center justify-center">
+	            <i class="fa-solid fa-cart-shopping text-green-600 text-2xl"></i>
+	        </div>
+	    </div>
+	</div>
+	
+	<div id="sales-dashboard-root"></div>
+	<script type="module" src="/js/sales-dashboard.js"></script>
+	
+	<h4 class="text-title mb-4">인기상품 통계</h4>
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">	
+	    <div class="card chart-box">
+	        <canvas id="productChart"></canvas>
+	    </div>
+	    <div class="card chart-box">
+	        <canvas id="categoryChart"></canvas>
+	    </div>
+	    <div class="card chart-box">
+	        <canvas id="sellerChart"></canvas>
+	    </div>
+	</div>
+	
+	<h4 class="text-title mb-4">상품현황 차트</h4>
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">	
+	    <div class="card pie-chart-box">
+	        <canvas id="productStatusChart"></canvas>
+	        <h4 class="text-title text-center mt-4">
+	            상품 현황
+	        </h4>
+	    </div>
+	    <div class="card pie-chart-box">
+	        <canvas id="deliveryStatusChart"></canvas>
+	        <h4 class="text-title text-center mt-4">
+	            배송 현황
+	        </h4>
+	    </div>
+	</div>
+
+	</main>
+  </div>
+</div>
+
+<script src="/admin/admin-common.js"></script>
+<script th:inline="javascript">
+    // 상품별 판매량 TOP5
+	const productLabels =
+	    [[${productRating.![name]}]];
+	
+	const productData =
+	    [[${productRating.![totalSales]}]];
+	
+	
+	// 카테고리별 판매량 TOP5
+	const categoryLabels =
+	    [[${categoryRating.![name]}]];
+	
+	const categoryData =
+	    [[${categoryRating.![totalSales]}]];
+	
+	
+	// 판매처별 판매량 TOP5
+	const sellerLabels =
+	    [[${sellerRating.![name]}]];
+	
+	const sellerData =
+	    [[${sellerRating.![totalSales]}]];
+
+	new Chart(document.getElementById('productChart'), {
+	    type: 'bar',
+	    data: {
+	        labels: productLabels,
+	        datasets: [{
+	            label: '판매량',
+	            data: productData
+	        }]
+	    },
+	    options: {
+	        responsive: true,
+	        maintainAspectRatio: false,
+	
+	        indexAxis: 'y', // ← 90도 회전
+	
+	        plugins: {
+	        	title: {
+			        display: true,
+			        text: '상품 판매량 TOP 5'
+			    },
+	            legend: {
+	                display: false
+	            }
+	        }
+	    }
+	});
+	
+	new Chart(document.getElementById('categoryChart'), {
+	    type: 'bar',
+	    data: {
+	        labels: categoryLabels,
+	        datasets: [{
+	            label: '판매량',
+	            data: categoryData
+	        }]
+	    },
+   	    options: {
+	       responsive: true,
+	       maintainAspectRatio: false,
+	
+	       indexAxis: 'y', // ← 90도 회전
+	
+	       plugins: {
+	       		title: {
+			        display: true,
+			        text: '카테고리 판매량 TOP 5'
+			    },
+	           legend: {
+	               display: false
+	           }
+	       }
+	   }
+	});
+	
+	new Chart(document.getElementById('sellerChart'), {
+	    type: 'bar',
+	    data: {
+	        labels: sellerLabels,
+	        datasets: [{
+	            label: '판매량',
+	            data: sellerData
+	        }]
+	    },
+	    options: {
+	        responsive: true,
+	        maintainAspectRatio: false,
+	
+	        indexAxis: 'y', // ← 90도 회전
+	
+	        plugins: {
+	        	title: {
+			        display: true,
+			        text: '판매처 판매량 TOP 5'
+			    },
+	            legend: {
+	                display: false
+	            }
+	        }
+	    }
+	});
+	
+	const productStatusLabels =
+    [[${productStatusPie.![label]}]];
+	const productStatusData =
+	    [[${productStatusPie.![value]}]];
+	const deliveryStatusLabels =
+	    [[${deliveryStatusPie.![label]}]];
+	const deliveryStatusData =
+	    [[${deliveryStatusPie.![value]}]];
+	    
+	new Chart(
+	    document.getElementById('productStatusChart'),
+	    {
+	        type: 'pie',
+	        data: {
+	            labels: productStatusLabels,
+	            datasets: [{
+	                data: productStatusData
+	            }]
+	        },
+	        options: {
+	            responsive: true,
+	            maintainAspectRatio: false,
+	            plugins: {
+	                legend: {
+	                    display: false
+	                }
+	            }
+	        }
+	    }
+	);
+	new Chart(
+	    document.getElementById('deliveryStatusChart'),
+	    {
+	        type: 'pie',
+	        data: {
+	            labels: deliveryStatusLabels,
+	            datasets: [{
+	                data: deliveryStatusData
+	            }]
+	        },
+	        options: {
+	            responsive: true,
+	            maintainAspectRatio: false,
+	            plugins: {
+	                legend: {
+	                    display: false
+	                }
+	            }
+	        }
+	    }
+	);
+
+</script>
+
+</body>
+</html>

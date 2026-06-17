@@ -1,0 +1,60 @@
+spring:
+  datasource:
+    url: ${PROD_DB_URL}
+    username: ${PROD_DB_USERNAME}
+    password: ${PROD_DB_PASSWORD}
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+  data:
+    redis:
+      host: ${PROD_REDIS_HOST:prod-redis-host}
+      port: ${PROD_REDIS_PORT:6379}
+  elasticsearch:
+    uris: ${PROD_ES_URIS:http://prod-es-host:9200}
+  mail:
+    username: ${PROD_MAIL_USERNAME}
+    password: ${PROD_MAIL_PASSWORD}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${PROD_GOOGLE_CLIENT_ID}
+            client-secret: ${PROD_GOOGLE_CLIENT_SECRET}
+
+cloudinary:
+  cloud-name: ${PROD_CLOUDINARY_CLOUD_NAME}
+  api-key: ${PROD_CLOUDINARY_API_KEY}
+  api-secret: ${PROD_CLOUDINARY_API_SECRET}
+
+holiday:
+  api:
+    key: ${PROD_HOLIDAY_API_KEY}
+
+kakao:
+  map:
+    api-key: ${PROD_KAKAO_MAP_API_KEY}
+
+toss:
+  client-key: ${PROD_TOSS_CLIENT_KEY}
+  secret-key: ${PROD_TOSS_SECRET_KEY}
+  success-url: ${PROD_TOSS_SUCCESS_URL}
+  fail-url: ${PROD_TOSS_FAIL_URL}
+
+app:
+  mail:
+    from: ${PROD_APP_MAIL_FROM}
+  base-url: ${PROD_APP_BASE_URL}
+
+logging:
+  level:
+    org:
+      hibernate:
+        sql: info
+        orm:
+          jdbc:
+            bind: info

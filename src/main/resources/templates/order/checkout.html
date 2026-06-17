@@ -1,63 +1,811 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('결제')}"></head>
+<head th:replace="~{fragments/layout :: head('주문/결제')}"></head>
+
 <body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
 
 <div th:replace="~{fragments/header :: header}"></div>
 
-<!-- 결제 화면 -->
-<main class="max-w-3xl mx-auto px-4 mt-8 pb-32">
+<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
 
-    <h2 class="text-xl font-black mb-6">결제</h2>
-
-    <!-- 결제 상품 (#1) -->
-    <section class="bg-white border border-gray-200 divide-y divide-gray-100">
-        <div th:each="item : ${cartItems}" class="flex items-center gap-4 p-5">
-            <div class="w-20 h-20 bg-gray-50 shrink-0 overflow-hidden">
-                <img th:src="${item.image}" alt="" class="w-full h-full object-cover">
-            </div>
-            <div class="flex-1 text-sm">
-                <h4 th:text="${item.name}" class="font-semibold">상품명</h4>
-                <p class="text-xs text-gray-500 mt-0.5" th:text="'선택 옵션: ' + ${item.option} + ' / ' + ${item.qty} + '개'">선택 옵션</p>
-            </div>
-            <p class="font-black" th:text="${#numbers.formatInteger(item.price * item.qty, 0, 'COMMA')} + '원'">가격</p>
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
+        <div>
+            <p class="text-xs font-bold text-amber-600 mb-1">GOLD MARKET CHECKOUT</p>
+            <h1 class="text-2xl font-black tracking-tight">주문/결제</h1>
         </div>
-    </section>
 
-    <!-- 쿠폰 선택 (#2) -->
-    <section class="bg-white border border-gray-200 mt-4 p-5 space-y-3">
-        <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-            <option value="">쿠폰 선택 (보유 쿠폰)</option>
-            <option value="1">5,000원 할인 쿠폰</option>
-            <option value="2">10% 할인 쿠폰</option>
-        </select>
-        <div class="flex justify-between text-sm">
-            <span class="text-gray-500">쿠폰 할인 가격</span>
-            <span class="font-semibold text-red-500">- 0원</span>
+        <ol class="flex items-center text-xs font-bold text-gray-400 bg-white border border-gray-200 px-4 py-3 w-fit">
+            <li class="text-gray-500">장바구니</li>
+            <li class="mx-2 text-gray-300">›</li>
+            <li class="text-amber-600">주문/결제</li>
+            <li class="mx-2 text-gray-300">›</li>
+            <li>주문완료</li>
+        </ol>
+    </div>
+
+    <form th:action="@{/order/checkout}"
+          method="post"
+          id="checkoutForm"
+          class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+
+        <div class="space-y-5">
+
+            <!-- 주문 상품 -->
+            <section class="bg-white border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-base font-black">주문 상품</h2>
+                    <span class="text-xs text-gray-500"
+                          th:text="${#lists.size(cartItems)} + '개 상품'">
+                        0개 상품
+                    </span>
+                </div>
+
+                <div class="divide-y divide-gray-100">
+                    <article th:each="item : ${cartItems}"
+                             class="flex items-center gap-4 p-5">
+
+                        <div class="w-24 h-24 bg-gray-50 shrink-0 overflow-hidden border border-gray-100">
+                            <img th:src="${item.image}"
+                                 alt=""
+                                 class="w-full h-full object-cover">
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <h3 th:text="${item.name}"
+                                class="text-sm font-bold leading-snug line-clamp-2">
+                                상품명
+                            </h3>
+
+                            <p class="text-xs text-gray-500 mt-1"
+                               th:text="'옵션: ' + ${item.option}">
+                                옵션
+                            </p>
+
+                            <p class="text-xs text-gray-500 mt-0.5"
+                               th:text="'수량: ' + ${item.quantity} + '개'">
+                                수량
+                            </p>
+                        </div>
+
+                        <div class="text-right shrink-0">
+                            <p class="text-xs text-gray-400">상품금액</p>
+
+                            <p th:if="${item.hotdealDiscountTotal() > 0}"
+                               class="text-xs text-gray-400 line-through"
+                               th:text="${#numbers.formatInteger(item.originalTotalPrice(), 0, 'COMMA')} + '원'">
+                                0원
+                            </p>
+
+                            <p class="text-lg font-black"
+                               th:text="${#numbers.formatInteger(item.totalPrice(), 0, 'COMMA')} + '원'">
+                                0원
+                            </p>
+
+                            <p th:if="${item.hotdealDiscountTotal() > 0}"
+                               class="text-xs text-red-500 font-bold"
+                               th:text="'핫딜 -' + ${#numbers.formatInteger(item.hotdealDiscountTotal(), 0, 'COMMA')} + '원'">
+                                핫딜 할인
+                            </p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- 배송지 -->
+            <section class="bg-white border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="text-base font-black">배송지</h2>
+                    <span class="text-xs text-gray-400">주문 시 사용할 배송지를 선택하세요</span>
+                </div>
+
+                <div class="p-5 space-y-5">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                        <!-- 기존 배송지 선택 -->
+                        <label id="existingDeliveryCard"
+                               class="relative border p-4 cursor-pointer hover:border-amber-400"
+                               th:classappend="${#lists.isEmpty(deliveryAddresses)} ? ' border-gray-200 bg-gray-100 opacity-60' : ' border-amber-500 bg-amber-50/40'">
+
+                            <input type="radio"
+                                   name="deliveryTypeRadio"
+                                   value="EXISTING"
+                                   class="absolute top-4 right-4 accent-amber-500"
+                                   th:checked="${!#lists.isEmpty(deliveryAddresses)}"
+                                   th:disabled="${#lists.isEmpty(deliveryAddresses)}"
+                                   onclick="selectExistingDelivery()">
+
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-black">기존 배송지</span>
+                                <span class="text-[10px] font-bold bg-slate-900 text-amber-400 px-1.5 py-0.5">
+                                    저장주소
+                                </span>
+                            </div>
+
+                            <p class="text-xs text-gray-600 font-semibold">
+                                저장된 배송지 목록에서 선택합니다.
+                            </p>
+
+                            <p class="text-xs text-gray-500 mt-1">
+                                선택한 배송지 정보가 주문 배송지로 저장됩니다.
+                            </p>
+                        </label>
+
+                        <!-- 새 배송지 입력 -->
+                        <label id="newDeliveryCard"
+                               class="relative border p-4 cursor-pointer hover:border-amber-400"
+                               th:classappend="${#lists.isEmpty(deliveryAddresses)} ? ' border-amber-500 bg-amber-50/40' : ' border-gray-200 bg-white'">
+
+                            <input type="radio"
+                                   name="deliveryTypeRadio"
+                                   value="NEW"
+                                   class="absolute top-4 right-4 accent-amber-500"
+                                   th:checked="${#lists.isEmpty(deliveryAddresses)}"
+                                   onclick="selectNewDelivery()">
+
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-black">새 배송지 입력</span>
+                                <span class="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5">
+                                    직접입력
+                                </span>
+                            </div>
+
+                            <p class="text-xs text-gray-600 font-semibold">
+                                이번 주문에 사용할 배송지를 직접 입력합니다.
+                            </p>
+
+                            <p class="text-xs text-gray-500 mt-1">
+                                저장된 배송지가 없으면 새 배송지를 입력해 주세요.
+                            </p>
+                        </label>
+                    </div>
+
+                    <input type="hidden"
+                           id="deliveryType"
+                           name="deliveryType"
+                           th:value="${#lists.isEmpty(deliveryAddresses)} ? 'NEW' : 'EXISTING'">
+
+                    <!-- 기존 배송지 목록 -->
+                    <div id="existingDeliveryListArea"
+                         class="border border-gray-200 bg-gray-50/60 p-5 space-y-3"
+                         th:classappend="${#lists.isEmpty(deliveryAddresses)} ? ' hidden' : ''">
+
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-black">기존 배송지 목록</h3>
+                            <span class="text-xs text-gray-500"
+                                  th:text="${#lists.size(deliveryAddresses)} + '개 배송지'">
+                                0개 배송지
+                            </span>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(deliveryAddresses)}"
+                             class="bg-white border border-gray-200 p-4 text-sm text-gray-500">
+                            저장된 배송지가 없습니다. 새 배송지 입력을 선택해 주세요.
+                        </div>
+
+                        <div class="space-y-3" th:if="${!#lists.isEmpty(deliveryAddresses)}">
+                            <label th:each="addr, stat : ${deliveryAddresses}"
+                                   class="block bg-white border p-4 cursor-pointer hover:border-amber-400"
+                                   th:classappend="${stat.index == 0} ? ' border-amber-500' : ' border-gray-200'">
+
+                                <div class="flex items-start gap-3">
+                                    <input type="radio"
+                                           name="deliveryAddressSeq"
+                                           th:value="${addr.seq}"
+                                           th:checked="${stat.index == 0}"
+                                           class="mt-1 accent-amber-500 existing-delivery-radio">
+
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span th:text="${addr.alias}"
+                                                  class="text-sm font-black">
+                                                집
+                                            </span>
+
+                                            <span th:if="${addr.defaultYn == 'Y'}"
+                                                  class="text-[10px] font-bold bg-slate-900 text-amber-400 px-1.5 py-0.5">
+                                                기본
+                                            </span>
+                                        </div>
+
+                                        <p th:text="${addr.recipientName} + ' / ' + ${addr.recipientPhone}"
+                                           class="text-xs text-gray-600 font-semibold">
+                                            수령인 / 연락처
+                                        </p>
+
+                                        <p class="text-xs text-gray-500 mt-1 leading-relaxed">
+                                            <span th:text="'(' + ${addr.zipcode} + ') ' + ${addr.address}">
+                                                주소
+                                            </span>
+                                            <span th:text="${addr.addressDetail}">
+                                                상세주소
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!--<p class="text-[11px] text-gray-400 leading-relaxed">
+                            로그인 회원이 저장한 배송지 목록입니다. 선택한 배송지 정보가 주문 배송지로 저장됩니다.
+                        </p>-->
+                    </div>
+
+                    <!-- 새 배송지 입력 -->
+                    <div id="newDeliveryInputArea"
+                         class="border border-amber-200 bg-amber-50/30 p-5 space-y-4"
+                         th:classappend="${#lists.isEmpty(deliveryAddresses)} ? '' : ' hidden'">
+
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-black">새 배송지 정보</h3>
+                            <span class="text-xs text-gray-500">* 필수 입력</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="recipientName"
+                                       class="block text-xs font-bold text-gray-500 mb-1">
+                                    받는 사람 *
+                                </label>
+                                <input type="text"
+                                       id="recipientName"
+                                       name="recipientName"
+                                       class="new-delivery-field w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                                       th:required="${#lists.isEmpty(deliveryAddresses)}"
+                                       placeholder="예: 홍길동">
+                            </div>
+
+                            <div>
+                                <label for="recipientPhone"
+                                       class="block text-xs font-bold text-gray-500 mb-1">
+                                    연락처 *
+                                </label>
+                                <input type="text"
+                                       id="recipientPhone"
+                                       name="recipientPhone"
+                                       class="new-delivery-field w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                                       th:required="${#lists.isEmpty(deliveryAddresses)}"
+                                       placeholder="예: 010-1234-5678">
+                            </div>
+                        </div>
+
+						<div>
+						    <label for="zipcode"
+						           class="block text-xs font-bold text-gray-500 mb-1">
+						        우편번호 *
+						    </label>
+
+						    <div class="flex gap-2">
+						        <input type="text"
+						               id="zipcode"
+						               name="zipcode"
+						               class="new-delivery-field w-40 border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+						               th:required="${#lists.isEmpty(deliveryAddresses)}"
+						               placeholder="우편번호"
+						               maxlength="5"
+						               readonly>
+
+						        <button type="button"
+						                onclick="openCheckoutPostcode()"
+						                class="px-4 py-2.5 bg-slate-900 text-amber-400 text-sm font-bold hover:bg-slate-800">
+						            주소 검색
+						        </button>
+						    </div>
+						</div>
+
+						<div>
+						    <label for="address"
+						           class="block text-xs font-bold text-gray-500 mb-1">
+						        주소 *
+						    </label>
+						    <input type="text"
+						           id="address"
+						           name="address"
+						           class="new-delivery-field w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+						           th:required="${#lists.isEmpty(deliveryAddresses)}"
+						           placeholder="주소 검색 버튼을 눌러 주소를 선택해 주세요"
+						           readonly>
+						</div>
+
+                        <div>
+                            <label for="addressDetail"
+                                   class="block text-xs font-bold text-gray-500 mb-1">
+                                상세주소
+                            </label>
+                            <input type="text"
+                                   id="addressDetail"
+                                   name="addressDetail"
+                                   class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                                   placeholder="예: 101동 1001호">
+                        </div>
+
+                        <!--<div>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox"
+                                       name="saveDeliveryAddress"
+                                       value="true"
+                                       class="accent-amber-500">
+                                <span class="text-sm font-semibold">
+                                    이 배송지를 배송지 목록에 저장
+                                </span>
+                            </label>
+                        </div>-->
+                    </div>
+
+                    <div>
+                        <label for="requestMemo"
+                               class="block text-xs font-bold text-gray-500 mb-1">
+                            배송 요청사항
+                        </label>
+
+                        <select id="requestMemo"
+                                name="requestMemo"
+                                class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white">
+                            <option value="">배송 요청사항을 선택하세요</option>
+                            <option value="문 앞에 놓아주세요">문 앞에 놓아주세요</option>
+                            <option value="부재 시 경비실에 맡겨주세요">부재 시 경비실에 맡겨주세요</option>
+                            <option value="배송 전 연락 부탁드립니다">배송 전 연락 부탁드립니다</option>
+                            <option value="직접 입력">직접 입력</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 쿠폰/할인 -->
+            <section class="bg-white border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="text-base font-black">쿠폰/할인</h2>
+                </div>
+
+                <div class="p-5 space-y-3">
+                    <label for="memberCouponSeq"
+                           class="block text-xs font-bold text-gray-500 mb-1">
+                        쿠폰 선택
+                    </label>
+
+                    <select id="memberCouponSeq"
+                            name="memberCouponSeq"
+                            class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500 bg-white"
+                            onchange="applyCouponWithoutReload()">
+                        <option value=""
+                                data-discount-type=""
+                                data-discount-price="0"
+                                data-discount-rate="0">
+                            쿠폰 사용 안 함
+                        </option>
+
+                        <option th:each="coupon : ${coupons}"
+                                th:value="${coupon.seq}"
+                                th:selected="${selectedMemberCouponSeq != null and selectedMemberCouponSeq == coupon.seq}"
+                                th:data-discount-type="${coupon.discountType}"
+                                th:data-discount-price="${coupon.discountPrice != null ? coupon.discountPrice : 0}"
+                                th:data-discount-rate="${coupon.discountRate != null ? coupon.discountRate : 0}"
+                                th:text="${coupon.name} + ' (' + ${coupon.discountText} + ')'">
+                            쿠폰
+                        </option>
+                    </select>
+
+                    <!--<div class="bg-gray-50 border border-gray-100 p-4 text-xs text-gray-500 leading-relaxed">
+                        실제 주문 생성 시에는 서버에서 쿠폰 유효성, 할인금액, 최종 결제금액을 다시 검증합니다.
+                    </div>-->
+                </div>
+            </section>
+
+			<!-- 결제 수단 -->
+			<section class="bg-white border border-gray-200">
+			    <div class="px-5 py-4 border-b border-gray-100">
+			        <h2 class="text-base font-black">결제 수단</h2>
+			    </div>
+
+			    <div class="p-5 space-y-4">
+			        <input type="hidden"
+			               name="paymentMethod"
+			               value="CARD">
+
+			        <div class="border border-amber-500 bg-amber-50/40 p-4 flex items-center justify-between gap-3">
+			            <span class="text-sm font-black">카드 결제</span>
+			            <span class="text-xs font-bold text-amber-700">토스페이먼츠</span>
+			        </div>
+
+			        <!--<div class="border border-dashed border-gray-300 bg-gray-50 p-5 text-center">
+			            <p class="text-sm font-black">토스페이먼츠 결제창 연동</p>
+			            <p class="text-xs text-gray-500 mt-1">
+			                결제하기 버튼을 누르면 주문 데이터를 생성한 뒤 카드 결제창을 호출합니다.
+			            </p>
+			        </div>-->
+			    </div>
+			</section>
+
+            <!-- 주문자 동의 -->
+            <section class="bg-white border border-gray-200 p-5">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox"
+                           name="agreeRequired"
+                           value="true"
+                           class="mt-1 w-5 h-5 accent-amber-500"
+                           required>
+
+                    <span class="text-sm leading-relaxed">
+                        <strong>주문 상품 정보, 가격, 배송정보, 결제 진행에 동의합니다.</strong><br>
+                        <span class="text-xs text-gray-500">
+                            결제 완료 후 주문 상태와 결제 상태가 갱신됩니다.
+                        </span>
+                    </span>
+                </label>
+            </section>
         </div>
-        <div class="flex justify-between text-base font-black border-t border-gray-100 pt-3">
-            <span>최종 총 결제 금액</span>
-            <span class="text-amber-700">49,600원</span>
-        </div>
-    </section>
 
-    <!-- 배송지 선택 (#3) -->
-    <section class="bg-white border border-gray-200 mt-4 p-5 space-y-2">
-        <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-            <option value="">배송지 선택</option>
-            <option value="1">집 (서울시 강남구 …)</option>
-            <option value="new">+ 새 배송지 입력</option>
-        </select>
-        <input type="text" placeholder="상세 주소" class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-        <input type="text" placeholder="전달 사항 (예: 부재 시 경비실)" class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-    </section>
+        <!-- 결제 요약 -->
+        <aside class="lg:sticky lg:top-36 h-fit">
+            <section class="bg-white border border-gray-200">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="text-base font-black">결제 금액</h2>
+                </div>
 
-    <!-- 결제하기 (#4) -->
-    <button type="button" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 mt-6 text-base">결제하기</button>
+                <div class="p-5 space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">상품금액</span>
+                        <span id="productTotalPriceText"
+                              class="font-semibold"
+                              th:text="${#numbers.formatInteger(priceSummary.productTotalPrice, 0, 'COMMA')} + '원'">
+                            0원
+                        </span>
+                    </div>
 
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">배송비</span>
+                        <span id="deliveryFeeText"
+                              class="font-semibold"
+                              th:text="${#numbers.formatInteger(priceSummary.deliveryFee, 0, 'COMMA')} + '원'">
+                            0원
+                        </span>
+                    </div>
+
+                    <div class="flex justify-between text-red-500">
+                        <span>쿠폰 할인</span>
+                        <span id="couponDiscountText"
+                              class="font-semibold"
+                              th:text="'- ' + ${#numbers.formatInteger(priceSummary.couponDiscount, 0, 'COMMA')} + '원'">
+                            - 0원
+                        </span>
+                    </div>
+
+                    <div class="flex justify-between text-red-500">
+                        <span>핫딜 할인</span>
+                        <span id="hotdealDiscountText"
+                              class="font-semibold"
+                              th:text="'- ' + ${#numbers.formatInteger(priceSummary.hotdealDiscount, 0, 'COMMA')} + '원'">
+                            - 0원
+                        </span>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4 mt-4">
+                        <div class="flex justify-between items-end">
+                            <span class="text-base font-black">최종 결제금액</span>
+                            <span id="finalPriceText"
+                                  class="text-2xl font-black text-amber-700"
+                                  th:text="${#numbers.formatInteger(priceSummary.finalPrice, 0, 'COMMA')} + '원'">
+                                0원
+                            </span>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="orderUid" th:value="${order.orderUid}">
+                    <input type="hidden" id="amount" name="amount" th:value="${priceSummary.finalPrice}">
+
+					<input type="hidden" name="directBuyYn" th:value="${directBuyYn}">
+					<input type="hidden" name="optionsSeq" th:value="${directOptionsSeq}">
+					<input type="hidden" name="quantity" th:value="${directQuantity}">
+					
+                    <th:block th:each="cartSeq : ${selectedCartSeqList}">
+                        <input type="hidden" name="cartSeq" th:value="${cartSeq}">
+                    </th:block>
+					
+					<input type="hidden"
+					       name="directBuy"
+					       th:value="${directBuy}">
+
+					<input type="hidden"
+					       name="optionsSeq"
+					       th:if="${directBuy}"
+					       th:value="${directOptionsSeq}">
+
+					<input type="hidden"
+					       name="quantity"
+					       th:if="${directBuy}"
+					       th:value="${directQuantity}">
+
+                    <input type="hidden" id="baseProductTotalPrice" th:value="${priceSummary.productTotalPrice}">
+                    <input type="hidden" id="baseDeliveryFee" th:value="${priceSummary.deliveryFee}">
+                    <input type="hidden" id="baseHotdealDiscount" th:value="${priceSummary.hotdealDiscount}">
+
+                    <button type="button"
+                            id="paymentButton"
+                            onclick="requestTossPayment()"
+                            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 mt-5 text-base transition-colors">
+                        <span id="paymentButtonText"
+                              th:text="${#numbers.formatInteger(priceSummary.finalPrice, 0, 'COMMA')} + '원 결제하기'">
+                            결제하기
+                        </span>
+                    </button>
+
+                    <!--<p class="text-[11px] text-gray-400 leading-relaxed">
+                        결제하기 클릭 시 주문 데이터가 생성되고, 이후 토스페이먼츠 결제창이 열립니다.
+                    </p>-->
+                </div>
+            </section>
+        </aside>
+    </form>
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script src="https://js.tosspayments.com/v2/standard"></script>
+
+<script th:inline="javascript">
+    const tossClientKey = /*[[${tossClientKey}]]*/ "";
+    const tossSuccessUrl = /*[[${tossSuccessUrl}]]*/ "";
+    const tossFailUrl = /*[[${tossFailUrl}]]*/ "";
+    const loginMemberSeq = /*[[${loginMemberSeq}]]*/ "guest";
+
+    const tossCustomerKey = "member-" + loginMemberSeq;
+	
+	function openCheckoutPostcode() {
+	    if (typeof daum === "undefined" || !daum.Postcode) {
+	        alert("주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+	        return;
+	    }
+
+	    new daum.Postcode({
+	        oncomplete: function(data) {
+	            const zipcodeInput = document.getElementById("zipcode");
+	            const addressInput = document.getElementById("address");
+	            const addressDetailInput = document.getElementById("addressDetail");
+
+	            const selectedAddress = data.roadAddress || data.jibunAddress || "";
+
+	            if (zipcodeInput) {
+	                zipcodeInput.value = data.zonecode || "";
+	            }
+
+	            if (addressInput) {
+	                addressInput.value = selectedAddress;
+	            }
+
+	            if (addressDetailInput) {
+	                addressDetailInput.focus();
+	            }
+	        }
+	    }).open();
+	}
+	
+	async function requestTossPayment() {
+	    const form = document.getElementById("checkoutForm");
+
+	    if (!form.reportValidity()) {
+	        return;
+	    }
+
+	    const deliveryType = document.getElementById("deliveryType")?.value || "";
+
+	    if (deliveryType === "NEW") {
+	        const zipcode = document.getElementById("zipcode")?.value.trim() || "";
+	        const address = document.getElementById("address")?.value.trim() || "";
+	        const addressDetail = document.getElementById("addressDetail")?.value.trim() || "";
+
+	        if (!zipcode || !address) {
+	            alert("주소 검색을 통해 배송지를 입력해 주세요.");
+	            return;
+	        }
+
+	        if (!addressDetail) {
+	            alert("상세주소를 입력해 주세요.");
+	            document.getElementById("addressDetail")?.focus();
+	            return;
+	        }
+	    }
+
+	    const paymentButton = document.getElementById("paymentButton");
+	    paymentButton.disabled = true;
+	    paymentButton.classList.add("opacity-60", "cursor-not-allowed");
+
+	    try {
+	        const formData = new FormData(form);
+
+	        const memberCouponSeq = document.getElementById("memberCouponSeq")?.value || "";
+	        formData.set("memberCouponSeq", memberCouponSeq);
+
+	        formData.set("deliveryType", deliveryType);
+
+	        const selectedPaymentMethod =
+	            document.querySelector("input[name='paymentMethod']:checked")?.value || "CARD";
+
+	        formData.set("paymentMethod", selectedPaymentMethod);
+
+	        const response = await fetch("/order/checkout", {
+	            method: "POST",
+	            body: formData
+	        });
+
+	        if (!response.ok) {
+	            const message = await response.text();
+	            alert("주문 생성에 실패했습니다.\n" + message);
+	            return;
+	        }
+
+	        const order = await response.json();
+
+	        const tossPayments = TossPayments(tossClientKey);
+	        const payment = tossPayments.payment({
+	            customerKey: tossCustomerKey
+	        });
+
+	        await payment.requestPayment({
+	            method: selectedPaymentMethod,
+	            amount: {
+	                currency: "KRW",
+	                value: Number(order.finalPrice)
+	            },
+	            orderId: order.orderUid,
+	            orderName: order.orderName,
+	            successUrl: tossSuccessUrl,
+	            failUrl: tossFailUrl
+	        });
+
+	    } catch (error) {
+	        console.error(error);
+	        alert("결제 요청 중 오류가 발생했습니다. 브라우저 콘솔의 오류 메시지를 확인하세요.");
+	    } finally {
+	        paymentButton.disabled = false;
+	        paymentButton.classList.remove("opacity-60", "cursor-not-allowed");
+	    }
+	}
+
+    function applyCouponWithoutReload() {
+        const couponSelect = document.getElementById("memberCouponSeq");
+        const selectedOption = couponSelect.options[couponSelect.selectedIndex];
+
+        const productTotalPrice = Number(document.getElementById("baseProductTotalPrice").value || 0);
+        const deliveryFee = Number(document.getElementById("baseDeliveryFee").value || 0);
+        const hotdealDiscount = Number(document.getElementById("baseHotdealDiscount").value || 0);
+
+        /*
+            쿠폰 할인은 상품 원가가 아니라
+            핫딜 적용 후 상품금액 기준으로 계산한다.
+         */
+        let afterHotdealProductPrice = productTotalPrice - hotdealDiscount;
+
+        if (afterHotdealProductPrice < 0) {
+            afterHotdealProductPrice = 0;
+        }
+
+        const discountType = selectedOption.dataset.discountType;
+        const discountPrice = Number(selectedOption.dataset.discountPrice || 0);
+        const discountRate = Number(selectedOption.dataset.discountRate || 0);
+
+        let couponDiscount = 0;
+
+        if (discountType === "0") {
+            couponDiscount = Math.floor(afterHotdealProductPrice * discountRate / 100);
+        }
+
+        if (discountType === "1") {
+            couponDiscount = discountPrice;
+        }
+
+        if (couponDiscount > afterHotdealProductPrice) {
+            couponDiscount = afterHotdealProductPrice;
+        }
+
+        let finalPrice = afterHotdealProductPrice + deliveryFee - couponDiscount;
+
+        if (finalPrice < 0) {
+            finalPrice = 0;
+        }
+
+        document.getElementById("productTotalPriceText").textContent = formatWon(productTotalPrice);
+        document.getElementById("deliveryFeeText").textContent = formatWon(deliveryFee);
+        document.getElementById("couponDiscountText").textContent = "- " + formatWon(couponDiscount);
+        document.getElementById("hotdealDiscountText").textContent = "- " + formatWon(hotdealDiscount);
+        document.getElementById("finalPriceText").textContent = formatWon(finalPrice);
+        document.getElementById("paymentButtonText").textContent = formatWon(finalPrice) + " 결제하기";
+
+        document.getElementById("amount").value = finalPrice;
+    }
+
+    function formatWon(value) {
+        return Number(value).toLocaleString("ko-KR") + "원";
+    }
+
+    function selectNewDelivery() {
+        const deliveryType = document.getElementById("deliveryType");
+        const existingArea = document.getElementById("existingDeliveryListArea");
+        const newArea = document.getElementById("newDeliveryInputArea");
+        const existingCard = document.getElementById("existingDeliveryCard");
+        const newCard = document.getElementById("newDeliveryCard");
+        const requiredFields = document.querySelectorAll(".new-delivery-field");
+        const existingRadios = document.querySelectorAll(".existing-delivery-radio");
+
+        if (deliveryType) {
+            deliveryType.value = "NEW";
+        }
+
+        if (existingArea) {
+            existingArea.classList.add("hidden");
+        }
+
+        if (newArea) {
+            newArea.classList.remove("hidden");
+        }
+
+        if (existingCard) {
+            existingCard.classList.remove("border-amber-500", "bg-amber-50/40");
+            existingCard.classList.add("border-gray-200", "bg-white");
+        }
+
+        if (newCard) {
+            newCard.classList.remove("border-gray-200", "bg-white");
+            newCard.classList.add("border-amber-500", "bg-amber-50/40");
+        }
+
+        existingRadios.forEach(radio => {
+            radio.checked = false;
+        });
+
+        requiredFields.forEach(field => {
+            field.setAttribute("required", "required");
+        });
+    }
+
+    function selectExistingDelivery() {
+        const deliveryType = document.getElementById("deliveryType");
+        const existingArea = document.getElementById("existingDeliveryListArea");
+        const newArea = document.getElementById("newDeliveryInputArea");
+        const existingCard = document.getElementById("existingDeliveryCard");
+        const newCard = document.getElementById("newDeliveryCard");
+        const requiredFields = document.querySelectorAll(".new-delivery-field");
+        const existingRadios = document.querySelectorAll(".existing-delivery-radio");
+
+        if (existingRadios.length === 0) {
+            selectNewDelivery();
+            return;
+        }
+
+        if (deliveryType) {
+            deliveryType.value = "EXISTING";
+        }
+
+        if (existingArea) {
+            existingArea.classList.remove("hidden");
+        }
+
+        if (newArea) {
+            newArea.classList.add("hidden");
+        }
+
+        if (existingCard) {
+            existingCard.classList.remove("border-gray-200", "bg-white");
+            existingCard.classList.add("border-amber-500", "bg-amber-50/40");
+        }
+
+        if (newCard) {
+            newCard.classList.remove("border-amber-500", "bg-amber-50/40");
+            newCard.classList.add("border-gray-200", "bg-white");
+        }
+
+        const hasChecked = Array.from(existingRadios).some(radio => radio.checked);
+
+        if (!hasChecked && existingRadios.length > 0) {
+            existingRadios[0].checked = true;
+        }
+
+        requiredFields.forEach(field => {
+            field.removeAttribute("required");
+        });
+    }
+</script>
+
 </body>
 </html>

@@ -50,4 +50,18 @@ public class Coupon {
 	
 	@Column(name = "expire_date", insertable=false, updatable=false)
 	private LocalDate expireDate;
+	
+	 public void updateStatus(int status) {
+	        this.status = status;
+	    }
+	 
+	 public void update(String name, Integer discountType, Integer discountPrice, Integer discountRate, java.time.
+	  LocalDate startDate, Integer validDays) {
+	            this.name = name;
+	            this.discountType = discountType;
+	            this.discountPrice = discountPrice;
+	            this.discountRate = discountRate;
+	            this.startDate = startDate;
+	            this.validDays = validDays;
+	        }
 }

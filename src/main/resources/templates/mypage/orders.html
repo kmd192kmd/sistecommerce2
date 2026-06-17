@@ -1,103 +1,84 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('마이페이지 | 주문목록')}"></head>
-<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Inter', -apple-system, sans-serif; background-color: #f8fafc; }
+
+    .premium-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+    }
+    .premium-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        transform: translateY(-2px);
+    }
+
+    .delivery-company-group {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: inset 4px 0 0 #f59e0b, 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .btn-action {
+        transition: all 0.2s;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    .btn-action:hover { transform: translateY(-1px); }
+    .btn-action:active { transform: translateY(0); }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .status-DELIVERED { background-color: #dcfce7; color: #16a34a; }
+    .status-SHIPPING { background-color: #dbeafe; color: #2563eb; }
+    .status-READY { background-color: #fef3c7; color: #d97706; }
+    .status-CANCELED { background-color: #fee2e2; color: #ef4444; }
+    .status-DELAYED { background-color: #ffedd5; color: #ea580c; }
+    .status-FAILED { background-color: #f1f5f9; color: #64748b; }
+
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+        z-index: 50; display: flex; justify-content: center; align-items: center;
+        opacity: 0; visibility: hidden; pointer-events: none;
+        transition: opacity 0.15s ease, visibility 0.15s ease;
+    }
+    .modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+    .modal-content {
+        background: white; padding: 2rem; border-radius: 24px;
+        width: 90%; max-width: 400px; text-align: center;
+        transform: scale(0.95); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+</style>
 
 <div th:replace="~{fragments/header :: header}"></div>
 
-<!-- 마이페이지 메인 = 주문목록 (MYP-MAIN-01 / MEM-ORD-01) -->
-<main class="max-w-screen-wide mx-auto px-4 mt-8 pb-32">
+<main class="max-w-7xl mx-auto px-4 mt-10 mb-32 flex-1 w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
+        <div th:replace="~{fragments/mypage-aside :: aside('orders')}"></div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6">
-
-        <!-- 좌측 사이드 메뉴 (MYP-MAIN-01 #2) -->
-        <aside class="bg-white border border-gray-200 text-sm h-fit">
-            <h2 class="px-4 py-3 font-black border-b border-gray-100">마이골드</h2>
-            <nav class="py-2">
-                <a th:href="@{/mypage/orders}" class="block px-4 py-2.5 font-bold text-amber-600 bg-amber-50 border-l-2 border-amber-500">주문목록/배송조회</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">취소/반품/교환/환불내역</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">멤버십</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">영수증 조회/출력</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">쿠폰</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">문의</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">리뷰관리</a>
-                <a th:href="@{/cart}" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">장바구니</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">개인정보확인/수정</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">결제수단 관리</a>
-                <a href="#" class="block px-4 py-2.5 text-gray-600 hover:bg-gray-50">배송지 관리</a>
-            </nav>
-        </aside>
-
-        <!-- 우측 컨텐츠: 주문목록 -->
-        <section>
-            <h1 class="text-xl font-black mb-4">주문목록 / 배송조회</h1>
-
-            <!-- 검색 (#2): 상품명 + 기간(최근6개월/년도) -->
-            <div class="bg-white border border-gray-200 p-4 mb-5">
-                <form th:action="@{/mypage/orders}" method="get" class="flex border-2 border-amber-500 mb-3">
-                    <input type="text" name="keyword" placeholder="주문한 상품명 검색"
-                           class="w-full px-4 py-2 text-sm focus:outline-none">
-                    <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-white px-6 text-sm font-bold">검색</button>
-                </form>
-                <div class="flex flex-wrap gap-2 text-xs font-semibold">
-                    <button type="button" class="px-3 py-1 bg-slate-900 text-white">✓ 최근 6개월</button>
-                    <button type="button" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">2026</button>
-                    <button type="button" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">2025</button>
-                    <button type="button" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">2024</button>
-                    <button type="button" class="px-3 py-1 bg-gray-100 text-gray-600 hover:bg-gray-200">2023</button>
-                </div>
-            </div>
-
-            <!-- 주문 목록 (#3 #4 #5) -->
-            <div class="space-y-4">
-                <article th:each="o : ${orders}" class="bg-white border border-gray-200">
-                    <!-- 주문일자 -->
-                    <div class="px-5 py-3 border-b border-gray-100 text-sm font-bold text-gray-700" th:text="${o.orderDate}">주문일자</div>
-                    <div class="p-5 flex items-center gap-4">
-                        <div class="flex-1">
-                            <!-- 배송상태(도착일) -->
-                            <p class="text-sm font-bold text-amber-600 mb-2" th:text="${o.status}">배송상태</p>
-                            <div class="flex items-center gap-4">
-                                <div class="w-20 h-20 bg-gray-50 shrink-0 overflow-hidden">
-                                    <img th:src="${o.image}" alt="" class="w-full h-full object-cover">
-                                </div>
-                                <div class="text-sm">
-                                    <h4 th:text="${o.name}" class="font-semibold">상품명</h4>
-                                    <p class="text-gray-500 mt-1">
-                                        <span th:text="${#numbers.formatInteger(o.price, 0, 'COMMA')} + '원'">상품가격</span>
-                                        <span th:text="' / ' + ${o.qty} + '개'"> / 구매갯수</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 배송조회/반품신청/주문취소 (#5) -->
-                        <div class="flex flex-col gap-2 w-28 shrink-0 text-xs font-bold">
-                            <button type="button" class="border border-gray-300 py-2 hover:bg-gray-50">배송조회</button>
-                            <button type="button" class="border border-gray-300 py-2 hover:bg-gray-50"
-                                    onclick="return confirm('반품을 신청하시겠습니까?');">반품신청</button>
-                            <button type="button" class="border border-gray-300 py-2 text-red-500 hover:bg-red-50"
-                                    onclick="return confirm('주문을 취소하시겠습니까?');">주문취소</button>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
-            <!-- 페이징 (10개 단위) (#6) -->
-            <nav class="flex items-center justify-center gap-1 mt-8 text-sm">
-                <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white text-gray-400 hover:bg-gray-50">← 이전</a>
-                <a href="#" class="px-3 py-1.5 border border-amber-500 bg-amber-500 text-white font-bold">1</a>
-                <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">2</a>
-                <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">3</a>
-                <span class="px-2 text-gray-400">…</span>
-                <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">10</a>
-                <a href="#" class="px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50">다음 →</a>
-            </nav>
-        </section>
+        <!-- React Mount Target -->
+        <div id="orders-root" class="space-y-6"></div>
     </div>
-
 </main>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script type="module" src="/js/mypage-orders.js"></script>
 </body>
 </html>

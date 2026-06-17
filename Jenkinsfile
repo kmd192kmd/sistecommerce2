@@ -1,3 +1,14 @@
+/*
+ * =============================================================================
+ * 🚨 JENKINS PIPELINE INACTIVE (DISABLED)
+ * =============================================================================
+ * [비활성화 사유]
+ * - 현재 인프라 환경: AWS EC2 Small (RAM 2GB) 및 Elasticsearch 구동 중.
+ * - Jenkins 구동 시 발생하는 심각한 OOM (Out Of Memory) 및 CPU/디스크 병목(I/O Wait)을 
+ *   방지하기 위해 Jenkins 파이프라인 및 배송 배치 트리거 스케줄러를 비활성화합니다.
+ * - 추후 빌드 및 배포 자동화는 GitHub Actions(클라우드 런너 빌드 방식)로 대체할 것을 권장합니다.
+ * =============================================================================
+
 pipeline {
     agent any
 
@@ -12,7 +23,7 @@ pipeline {
     }
 
     stages {
-        stage('Trigger Spring Batch') {
+        stage('Trigger Spring Batch') {aaaaa
             steps {
                 script {
                     echo "================================================="
@@ -20,7 +31,6 @@ pipeline {
                     echo "================================================="
 
                     // 호스트 PC(스프링 부트 서버)의 API를 호출하여 배치를 실행합니다.
-                    // Jenkins Docker 컨테이너에서 로컬 윈도우 PC로 접근하기 위해 host.docker.internal 사용
                     try {
                         def response = sh(script: "curl -s -X POST http://host.docker.internal:8080/api/batch/run-delivery", returnStdout: true).trim()
                         echo "API Response: ${response}"
@@ -30,7 +40,6 @@ pipeline {
                         }
                     } catch (Exception e) {
                         echo "❌ Error triggering batch: ${e.getMessage()}"
-                        // 스프링 부트 서버가 꺼져있을 경우 등 예외 처리
                         error("Failed to reach Spring Boot Batch API. Is the server running on port 8080?")
                     }
                 }
@@ -47,3 +56,4 @@ pipeline {
         }
     }
 }
+*/

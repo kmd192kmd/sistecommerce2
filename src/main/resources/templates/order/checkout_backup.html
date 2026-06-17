@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('결제')}"></head>
+<body class="bg-[#f5f6f9] text-gray-900 font-sans antialiased min-h-screen">
+
+<div th:replace="~{fragments/header :: header}"></div>
+
+<!-- 결제 화면 -->
+<main class="max-w-3xl mx-auto px-4 mt-8 pb-32">
+
+    <h2 class="text-xl font-black mb-6">결제</h2>
+
+    <!-- 결제 상품 (#1) -->
+    <section class="bg-white border border-gray-200 divide-y divide-gray-100">
+        <div th:each="item : ${cartItems}" class="flex items-center gap-4 p-5">
+            <div class="w-20 h-20 bg-gray-50 shrink-0 overflow-hidden">
+                <img th:src="${item.image}" alt="" class="w-full h-full object-cover">
+            </div>
+            <div class="flex-1 text-sm">
+                <h4 th:text="${item.name}" class="font-semibold">상품명</h4>
+                <p class="text-xs text-gray-500 mt-0.5" th:text="'선택 옵션: ' + ${item.option} + ' / ' + ${item.qty} + '개'">선택 옵션</p>
+            </div>
+            <p class="font-black" th:text="${#numbers.formatInteger(item.price * item.qty, 0, 'COMMA')} + '원'">가격</p>
+        </div>
+    </section>
+
+    <!-- 쿠폰 선택 (#2) -->
+    <section class="bg-white border border-gray-200 mt-4 p-5 space-y-3">
+        <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+            <option value="">쿠폰 선택 (보유 쿠폰)</option>
+            <option value="1">5,000원 할인 쿠폰</option>
+            <option value="2">10% 할인 쿠폰</option>
+        </select>
+        <div class="flex justify-between text-sm">
+            <span class="text-gray-500">쿠폰 할인 가격</span>
+            <span class="font-semibold text-red-500">- 0원</span>
+        </div>
+        <div class="flex justify-between text-base font-black border-t border-gray-100 pt-3">
+            <span>최종 총 결제 금액</span>
+            <span class="text-amber-700">49,600원</span>
+        </div>
+    </section>
+
+    <!-- 배송지 선택 (#3) -->
+    <section class="bg-white border border-gray-200 mt-4 p-5 space-y-2">
+        <select class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+            <option value="">배송지 선택</option>
+            <option value="1">집 (서울시 강남구 …)</option>
+            <option value="new">+ 새 배송지 입력</option>
+        </select>
+        <input type="text" placeholder="상세 주소" class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+        <input type="text" placeholder="전달 사항 (예: 부재 시 경비실)" class="w-full border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+    </section>
+
+    <!-- 결제하기 (#4) -->
+    <button type="button" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 mt-6 text-base">결제하기</button>
+
+</main>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
