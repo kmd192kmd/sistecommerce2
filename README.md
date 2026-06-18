@@ -13,8 +13,9 @@ Gold Market은 실시간 공동구매 대기열 관리, 타임 세일 핫딜, 1:
 
 ## 🛠️ 기술 스택
 ### Back-end
-* **Core**: Java 17, Spring Boot 3.x, Spring Security
-* **Data Access**: Spring Data JPA (Hibernate), QueryDSL, MyBatis
+* **Core**: Java 21, Spring Boot 3.x, Spring Security
+* **Message Broker**: Apache Kafka
+* **Data Access**: Spring Data JPA (Hibernate), QueryDSL
 * **Database**: Oracle Cloud Autonomous Database, Redis (Spring Cache)
 * **Search Engine**: Elasticsearch (Nori Analyzer)
 * **Build Tool**: Gradle
@@ -25,7 +26,7 @@ Gold Market은 실시간 공동구매 대기열 관리, 타임 세일 핫딜, 1:
 * **Styling**: Tailwind CSS
 
 ### Infra & DevOps
-* **Containerization**: Docker Compose
+* **Containerization**: Docker Compose (Redis, Elasticsearch, Kafka)
 * **CI/CD**: GitHub Actions (AWS EC2 배포 파이프라인 자동화)
 * **Third Party APIs**: Toss Payments (결제/환불), Kakao Mobility API (배송 경로), 한국천문연구원 특일 정보 API (공휴일 배송 제외 연산)
 
@@ -92,12 +93,18 @@ Gold Market은 실시간 공동구매 대기열 관리, 타임 세일 핫딜, 1:
   * **이중 정산 방어**: DB 낙관적 락(`Optimistic Lock`)을 도입하여 다수 어드민의 동시 승인 시 한 명만 성공하도록 구현.
   * **벌크 쿼리 최적화**: 수천 명 대상 쿠폰 일괄 발급 시 싱글 인서트 루프의 성능 저하를 해결하기 위해 `JDBC Batch Insert` 방식을 연동하여 벌크 쿼리 단축 및 JPA Dirty Checking 최적화 적용.
 
-### 7. AWS EC2 Small (RAM 2GB)을 위한 인프라 리소스 다이어트
+### 7. 인프라 리소스 다이어트와 AWS 배포 환경의 메모리 확장
 * **문제 상황**: 물리 RAM 2GB인 AWS EC2 Small 배포 환경에서 Spring Boot, Elasticsearch, Jenkins, Kibana, Redis 등을 동시에 구동하면 OOM(Out Of Memory)으로 인해 인프라가 주기적으로 다운됨.
 * **해결 방법**:
-  * **무거운 컨테이너 비활성화**: 상시 800MB 이상 메모리를 점유하며 빌드 시 부하를 주던 젠킨스(Jenkins) 컨테이너를 비활성화하고, 이를 **GitHub Actions** 파이프라인으로 전환. 검색 시각화 도구인 Kibana 역시 비활성화(Elasticsearch만 기동하여 약 1.5GB RAM 확보).
-  * **ES JVM 메모리 강제 제한**: `docker-compose.yml`에서 elasticsearch 서비스 환경변수로 `ES_JAVA_OPTS=-Xms512m -Xmx512m`을 명시하여 강제 제한 적용.
-  * **안전장치 수립**: 트래픽 폭주 시 순간적인 메모리 부하에 대처하기 위해 우분투 OS 레벨에서 2~4GB의 **스왑 메모리(Swap Memory)** 설정을 필수 반영하도록 인프라 아키텍처 가이드 반영.
+  * **리소스 다이어트**: 상시 800MB 이상 메모리를 점유하며 빌드 시 부하를 주던 젠킨스(Jenkins) 컨테이너를 비활성화하고 GitHub Actions 파이프라인으로 전환. Kibana 비활성화 및 Elasticsearch JVM 메모리 강제 제한(`ES_JAVA_OPTS=-Xms512m -Xmx512m`).
+  * **인스턴스 확장과 최적화**: 필사적인 리소스 다이어트에도 불구하고 신규 Kafka 브로커 등 다양한 인프라 컨테이너가 동시에 가동되면서 물리적 2GB 메모리로는 가동 불가능 상태에 직면하여 결국 인스턴스 사양을 확장함. 최종 배포 환경에서는 안전하게 **8GB RAM 인스턴스**를 사용했으나, 추가적인 세부 튜닝 시 **4GB RAM** 사양으로도 충분히 안정적인 실서비스 기동이 가능했을 것으로 실측됨.
+  * **안전장치 수립**: 우분투 OS 레벨에서 2~4GB의 **스왑 메모리(Swap Memory)** 설정을 필수 반영하도록 설계 가이드 구축.
+
+### 8. Apache Kafka 도입을 통한 결제 완료 비동기 분리 및 장애 격리
+* **문제 상황**: 사용자가 결제를 완료하면 주문 생성, 공구 참여 상태 확정, 알림(SSE) 발송 등의 여러 도메인 서비스가 하나의 동기식 트랜잭션으로 강결합되어, 외부 연동 지연이나 예외 발생 시 전체 결제가 실패하거나 응답 시간이 현격히 늘어나는 위험이 존재함.
+* **해결 방법**:
+  * **이벤트 기반 디커플링**: 결제 완료 및 실패 사실을 로컬 Spring 이벤트(`OrderPaidEvent` / `OrderPaymentFailedEvent`)로 발행하고, `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`를 활용해 데이터베이스 커밋 성공 시점에만 안전하게 Kafka로 이벤트를 발행 (`payment-success-topic`, `payment-failed-topic`).
+  * **비동기 컨슈머 연동**: Kafka 컨슈머(`PaymentKafkaConsumer`)가 이 메시지들을 비동기 구독하여 공구 참여 승인 및 주문 확정 로직을 별도 트랜잭션으로 안전하게 비동기 처리하여 결제 메인 비즈니스의 지연을 제거하고 장애 전파를 완벽히 격리함.
 
 ---
 

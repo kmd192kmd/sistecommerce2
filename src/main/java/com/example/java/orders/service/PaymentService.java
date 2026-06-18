@@ -34,6 +34,7 @@ import com.example.java.stockhistory.enums.StockHistorySourceType;
 import com.example.java.stockhistory.enums.StockHistoryType;
 import com.example.java.stockhistory.repository.StockHistoryRepository;
 import com.example.java.orders.repository.OrdersQueryRepository;
+import jakarta.persistence.EntityManager;
 
 import java.util.LinkedHashMap;
 
@@ -88,6 +89,7 @@ public class PaymentService {
     private final com.example.java.common.util.SnowflakeIdGenerator snowflakeIdGenerator;
     private final OrdersQueryRepository ordersQueryRepository;
     private final com.example.java.product.service.OptionsService optionsService;
+    private final EntityManager entityManager;
     
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -343,8 +345,10 @@ public class PaymentService {
 
         String reason = isBlank(cancelReason) ? "고객 부분 주문 취소" : cancelReason;
 
-        Orders order = ordersRepository.findById(orderSeq)
+        Orders order = ordersRepository.findBySeqForUpdate(orderSeq)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다. orderSeq=" + orderSeq));
+
+        entityManager.refresh(order); // 대기 중 다른 트랜잭션에 의해 변경된 최신 상태를 DB로부터 동기화
 
         if (!order.getMemberSeq().equals(memberSeq)) {
             throw new IllegalArgumentException("본인의 주문만 취소할 수 있습니다.");
@@ -461,7 +465,16 @@ public class PaymentService {
             Toss 부분취소 API 호출.
             cancelAmount를 보내므로 선택 상품 금액만 취소된다.
          */
-        requestTossCancel(payment.getExternalPaymentId(), reason, cancelAmount);
+        try {
+            requestTossCancel(payment.getExternalPaymentId(), reason, cancelAmount);
+        } catch (ResponseStatusException e) {
+            String errorMsg = e.getReason();
+            if (errorMsg != null && (errorMsg.contains("ALREADY_CANCELED_PAYMENT") || errorMsg.contains("이미 취소된 결제"))) {
+                log.warn("[Toss API] Payment is already canceled. Proceeding with DB update for idempotency: {}", errorMsg);
+            } else {
+                throw e;
+            }
+        }
 
         /*
             결제 취소 성공 후 취소한 주문상품 수량만큼 재고를 복구한다.
@@ -1218,7 +1231,16 @@ public class PaymentService {
 
         // 4. 토스 취소 API 호출 및 즉시 환불 처리
         String cancelReason = reason != null && !reason.isBlank() ? reason : "고객 반품 신청";
-        requestTossCancel(payment.getExternalPaymentId(), cancelReason, cancelAmount);
+        try {
+            requestTossCancel(payment.getExternalPaymentId(), cancelReason, cancelAmount);
+        } catch (ResponseStatusException e) {
+            String errorMsg = e.getReason();
+            if (errorMsg != null && (errorMsg.contains("ALREADY_CANCELED_PAYMENT") || errorMsg.contains("이미 취소된 결제"))) {
+                log.warn("[Toss API] Payment is already canceled. Proceeding with DB update for idempotency: {}", errorMsg);
+            } else {
+                throw e;
+            }
+        }
 
         // 5. 재고 복원 처리
         increaseStockForOrderItems(targetItems, order.getSeq());

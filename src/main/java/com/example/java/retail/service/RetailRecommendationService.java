@@ -81,6 +81,11 @@ public class RetailRecommendationService {
         }
 
         // 3. Predict 요청 생성
+        if (projectId == null || projectId.trim().isEmpty() || projectId.contains("your-")) {
+            log.debug("Google Cloud Project ID is dummy or empty. Skipping Retail API call and using default recommendations.");
+            return productDetailRepository.findProductsByPaging(0, 4);
+        }
+
         String placement = String.format("projects/%s/locations/%s/catalogs/%s/servingConfigs/%s",
                 projectId, location, catalog, servingConfig);
 
