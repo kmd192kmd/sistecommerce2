@@ -13,7 +13,7 @@ Gold Market은 실시간 공동구매 대기열 관리, 타임 세일 핫딜, 1:
 
 ## 🛠️ 기술 스택
 ### Back-end
-* **Core**: Java 21, Spring Boot 3.x, Spring Security
+* **Core**: Java 21, Spring Boot 3.5.14, Spring Security
 * **Message Broker**: Apache Kafka
 * **Data Access**: Spring Data JPA (Hibernate), QueryDSL
 * **Database**: Oracle Cloud Autonomous Database, Redis (Spring Cache)
