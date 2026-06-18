@@ -105,22 +105,40 @@ public class DeliveryBatchConfig {
                     .orElseThrow(() -> new IllegalStateException("시스템 치명적 오류: DB에 '본사허브' 데이터가 없습니다!"));
 
             for (Delivery delivery : readyDeliveries) {
-                // 본사 출발 (지연 없음)
-                delivery.setStatus("SHIPPING");
-                delivery.setDelayHours(0);
-                deliveryRepository.save(delivery);
-
-                // 연관 주문 및 주문상품의 배송상태 업데이트 (orderStatus = 5 : 배송중, itemStatus = 2 : 배송중)
                 Orders order = delivery.getOrders();
                 if (order != null) {
-                    order.setOrderStatus(5);
-                    ordersRepository.save(order);
+                    // 비관적 락으로 조회하여 주문 취소 로직과 줄을 서게 함
+                    Orders lockedOrder = ordersRepository.findBySeqForUpdate(order.getSeq())
+                            .orElse(order);
 
-                    List<OrderItem> items = orderItemRepository.findByOrderSeq(order.getSeq());
+                    // 대기 중 이미 취소된 주문(9)인 경우 배송을 진행하지 않고 CANCELED 처리
+                    if (lockedOrder.getOrderStatus() != null && lockedOrder.getOrderStatus() == 9) {
+                        delivery.setStatus("CANCELED");
+                        deliveryRepository.save(delivery);
+                        continue;
+                    }
+
+                    // 본사 출발 (지연 없음)
+                    delivery.setStatus("SHIPPING");
+                    delivery.setDelayHours(0);
+                    deliveryRepository.save(delivery);
+
+                    lockedOrder.setOrderStatus(5);
+                    ordersRepository.save(lockedOrder);
+
+                    List<OrderItem> items = orderItemRepository.findByOrderSeq(lockedOrder.getSeq());
                     for (OrderItem item : items) {
+                        // 이미 취소된 주문상품(6)은 배송중으로 상태를 변경하지 않음
+                        if (item.getItemStatus() != null && item.getItemStatus() == 6) {
+                            continue;
+                        }
                         item.setItemStatus(2); // 배송중
                     }
                     orderItemRepository.saveAll(items);
+                } else {
+                    delivery.setStatus("SHIPPING");
+                    delivery.setDelayHours(0);
+                    deliveryRepository.save(delivery);
                 }
 
                 // Add delivery history: 본사 허브 도착 기록
@@ -164,6 +182,18 @@ public class DeliveryBatchConfig {
             for (Delivery delivery : activeDeliveries) {
                 Orders order = delivery.getOrders();
                 if (order == null || midHubs.isEmpty() || delivery.getDispatch_at() == null) continue;
+
+                // 비관적 락으로 조회하여 주문 취소 로직과 줄을 서게 함
+                Orders lockedOrder = ordersRepository.findBySeqForUpdate(order.getSeq())
+                        .orElse(order);
+
+                // 대기 중 이미 취소된 주문(9)인 경우 더 배송 진행을 하지 않고 CANCELED 처리
+                if (lockedOrder.getOrderStatus() != null && lockedOrder.getOrderStatus() == 9) {
+                    delivery.setStatus("CANCELED");
+                    deliveryRepository.save(delivery);
+                    continue;
+                }
+                order = lockedOrder;
 
                 // 1. 중간 허브 찾기 및 예상 도착 시간 계산
                 Hub optimalHub = deliveryService.findOptimalIntermediateHub(

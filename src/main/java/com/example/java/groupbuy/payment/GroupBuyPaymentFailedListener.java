@@ -16,13 +16,13 @@ import lombok.RequiredArgsConstructor;
  *
  * @EventListener는 동기라 발행 지점(markPaymentFail)의 트랜잭션 안에서 실행된다.
  */
-@Component
+// @Component
 @RequiredArgsConstructor
 public class GroupBuyPaymentFailedListener {
 
     private final GroupBuyService groupBuyService;
 
-    @EventListener
+    // @EventListener
     public void onOrderPaymentFailed(OrderPaymentFailedEvent event) {
         event.participationSeqs().forEach(groupBuyService::cancelPendingPayment);
     }

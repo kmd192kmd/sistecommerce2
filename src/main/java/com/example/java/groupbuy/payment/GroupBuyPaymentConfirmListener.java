@@ -18,13 +18,13 @@ import lombok.RequiredArgsConstructor;
  * @EventListener는 동기라 발행 지점(confirmPayment)의 트랜잭션 안에서 실행된다.
  * 따라서 확정이 실패하면 결제까지 함께 롤백돼 "결제완료 = 참여확정"이 원자적으로 보장된다(NFR-003).
  */
-@Component
+// @Component
 @RequiredArgsConstructor
 public class GroupBuyPaymentConfirmListener {
 
     private final GroupBuyService groupBuyService;
 
-    @EventListener
+    // @EventListener
     public void onOrderPaid(OrderPaidEvent event) {
         event.participationSeqs().forEach(groupBuyService::confirmAfterPayment);
     }
