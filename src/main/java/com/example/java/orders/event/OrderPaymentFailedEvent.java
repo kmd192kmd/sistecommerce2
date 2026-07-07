@@ -11,5 +11,9 @@ import java.util.List;
  *
  * @param participationSeqs 결제 실패한 공구 참여 seq 목록 (order_item.participation_seq != null 인 건들)
  */
-public record OrderPaymentFailedEvent(List<Long> participationSeqs) {
+public record OrderPaymentFailedEvent(String eventId, List<Long> participationSeqs) {
+    
+    public OrderPaymentFailedEvent(List<Long> participationSeqs) {
+        this(java.util.UUID.randomUUID().toString(), participationSeqs);
+    }
 }

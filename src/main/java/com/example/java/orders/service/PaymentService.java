@@ -1,6 +1,5 @@
 package com.example.java.orders.service;
 
-import com.example.java.cart.repository.CartRepository;
 import com.example.java.delivery.entity.Delivery;
 import com.example.java.delivery.repository.DeliveryRepository;
 import com.example.java.delivery.service.DeliveryService;
@@ -73,7 +72,6 @@ public class PaymentService {
     private final OrdersRepository ordersRepository;
     private final PaymentRepository paymentRepository;
     private final MemberCouponRepository memberCouponRepository;
-    private final CartRepository cartRepository;
     private final OrderItemRepository orderItemRepository;
     private final DeliveryRepository deliveryRepository;
     private final RefundRepository refundRepository;
@@ -215,70 +213,50 @@ public class PaymentService {
         ordersRepository.save(order);
 
         /*
-            결제 완료 후 배송 정보(Delivery, DeliveryHistory) 생성.
-            단, 공구 주문(participation_seq != null)은 배송이 '마감 확정 후 발주→입고→배송' 흐름이라
-            결제(참여) 시점엔 배송을 만들지 않는다. 일반 주문만 여기서 배송을 생성한다.
+            결제 완료 후 OrderPaidEvent를 Kafka로 발행한다.
+            배송 생성, 쿠폰 사용 처리, 장바구니 삭제는 모두 Kafka Consumer(PaymentKafkaConsumer)가 처리한다.
+            공구 주문이면 Consumer에서 참여 확정(confirmAfterPayment)도 함께 처리한다.
          */
         boolean isGroupBuyOrder = orderItems.stream()
                 .anyMatch(item -> item.getParticipationSeq() != null);
 
-        if (!isGroupBuyOrder) {
-            String field = order.getField();
-            String recipientName = "고객";
-            String recipientPhone = "010-0000-0000";
-            String requestMemo = "";
-            if (field != null && field.contains("|")) {
-                String[] parts = field.split("\\|", -1);
-                if (parts.length >= 1 && !parts[0].isBlank()) {
-                    recipientName = parts[0];
-                }
-                if (parts.length >= 2 && !parts[1].isBlank()) {
-                    recipientPhone = parts[1];
-                }
-                if (parts.length >= 3) {
-                    requestMemo = parts[2];
-                }
-            }
-
-            try {
-                deliveryService.createDelivery(order, recipientName, recipientPhone, requestMemo, "B2C");
-            } catch (Exception e) {
-                log.error("결제 승인 후 배송 정보 생성 중 에러 발생: ", e);
-            }
-        }
-
-        /*
-            공구 주문이면 '결제됨' 이벤트를 발행한다. 결제 도메인은 공구를 모른 채 방송만 하고,
-            groupbuy의 리스너가 이를 받아 participation을 PARTICIPATING으로 확정한다.
-            @EventListener는 동기 — 이 트랜잭션 안에서 실행되므로 결제와 확정이 원자적으로 묶인다(NFR-003).
-         */
         List<Long> participationSeqs = orderItems.stream()
                 .map(OrderItem::getParticipationSeq)
                 .filter(seq -> seq != null)
                 .toList();
 
-        if (!participationSeqs.isEmpty()) {
-            eventPublisher.publishEvent(new OrderPaidEvent(participationSeqs));
-        }
-
-        /*
-            결제 완료 후 사용한 회원 쿠폰을 사용완료 처리한다.
-         */
-        if (order.getMemberCouponSeq() != null) {
-            MemberCoupon memberCoupon = memberCouponRepository.findById(order.getMemberCouponSeq())
-                    .orElseThrow(() -> new IllegalStateException(
-                            "회원 쿠폰 정보를 찾을 수 없습니다. memberCouponSeq=" + order.getMemberCouponSeq()
-                    ));
-
-            if (memberCoupon.getStatus() != null && memberCoupon.getStatus() == 0) {
-                memberCoupon.use();
+        // field 파싱: CART|recipientName|phone|memo 형식
+        String field = order.getField();
+        String recipientName = "고객";
+        String recipientPhone = "010-0000-0000";
+        String requestMemo = "";
+        String orderSource = null;
+        if (field != null && field.contains("|")) {
+            String[] parts = field.split("\\|", -1);
+            orderSource = parts[0]; // "CART" 또는 "DIRECT"
+            if (parts.length >= 2 && !parts[1].isBlank()) {
+                recipientName = parts[1];
+            }
+            if (parts.length >= 3 && !parts[2].isBlank()) {
+                recipientPhone = parts[2];
+            }
+            if (parts.length >= 4) {
+                requestMemo = parts[3];
             }
         }
 
-        /*
-            결제 성공 후 주문에 포함된 상품만 장바구니에서 삭제한다.
-         */
-        deleteOrderedCartItems(order);
+        eventPublisher.publishEvent(new OrderPaidEvent(
+                java.util.UUID.randomUUID().toString(),
+                order.getSeq(),
+                order.getMemberSeq(),
+                order.getMemberCouponSeq(),
+                isGroupBuyOrder,
+                orderSource,
+                recipientName,
+                recipientPhone,
+                requestMemo,
+                participationSeqs
+        ));
     }
 
     /**
@@ -772,28 +750,6 @@ public class PaymentService {
                 .ifPresent(memberCoupon -> memberCoupon.updateStatus(0));
     }
 
-
-    private void deleteOrderedCartItems(Orders order) {
-    	
-    	if ("DIRECT".equals(order.getField())) {
-            return;
-        }
-    	
-        List<Long> orderedOptionsSeqList = orderItemRepository.findByOrderSeq(order.getSeq())
-                .stream()
-                .map(OrderItem::getOptionsSeq)
-                .distinct()
-                .toList();
-
-        if (orderedOptionsSeqList.isEmpty()) {
-            return;
-        }
-
-        cartRepository.deleteByMember_SeqAndOptions_SeqIn(
-                order.getMemberSeq(),
-                orderedOptionsSeqList
-        );
-    }
 
     private JsonNode requestTossConfirm(String paymentKey,
                                         String orderId,

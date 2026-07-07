@@ -20,12 +20,18 @@ public class PaymentKafkaProducer {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleOrderPaid(OrderPaidEvent event) {
         log.info("Publishing OrderPaidEvent to Kafka: {}", event);
-        kafkaTemplate.send(KafkaConfig.PAYMENT_SUCCESS_TOPIC, event);
+        String key = (event.participationSeqs() != null && !event.participationSeqs().isEmpty())
+                ? event.participationSeqs().get(0).toString()
+                : event.eventId();
+        kafkaTemplate.send(KafkaConfig.PAYMENT_SUCCESS_TOPIC, key, event);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleOrderPaymentFailed(OrderPaymentFailedEvent event) {
         log.info("Publishing OrderPaymentFailedEvent to Kafka: {}", event);
-        kafkaTemplate.send(KafkaConfig.PAYMENT_FAILED_TOPIC, event);
+        String key = (event.participationSeqs() != null && !event.participationSeqs().isEmpty())
+                ? event.participationSeqs().get(0).toString()
+                : event.eventId();
+        kafkaTemplate.send(KafkaConfig.PAYMENT_FAILED_TOPIC, key, event);
     }
 }
