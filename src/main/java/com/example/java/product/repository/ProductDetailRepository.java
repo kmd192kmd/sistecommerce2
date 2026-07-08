@@ -5,6 +5,9 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -32,6 +35,14 @@ public class ProductDetailRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+    
+    public void incrementViewCount(Long productId, long viewsToAdd) {
+        // JPQL 쿼리를 작성하여 직접 실행시킵니다.
+        entityManager.createQuery("UPDATE Product p SET p.viewCount = p.viewCount + :viewsToAdd WHERE p.seq = :productId")
+          .setParameter("viewsToAdd", viewsToAdd)
+          .setParameter("productId", productId)
+          .executeUpdate(); // 💡 영향을 받은 Row 수를 반환하며, DB에 즉시 반영하는 메서드
+    }
 
     /*
         상품 저장 / 수정

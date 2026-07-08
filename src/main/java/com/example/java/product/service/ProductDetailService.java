@@ -1,8 +1,10 @@
 package com.example.java.product.service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,7 @@ public class ProductDetailService {
         Controller → Service → Repository → DB
     */
     private final ProductDetailRepository productDetailRepository;
+    private final StringRedisTemplate redisTemplate;
 
     /*
         CategoryService
@@ -95,36 +98,46 @@ public class ProductDetailService {
     @Transactional
     public ProductDto getProductDetail(Long seq, Long memberSeq) {
 
-        /*
-            상품 리뷰 통계 갱신
-
-            review 테이블 기준으로 평균 별점과 리뷰 수를 다시 계산해서
-            product 테이블의 avg_rating, review_count에 저장합니다.
-
-            상품 상세 화면에서 별점과 리뷰 수가 최신 상태로 보이도록
-            상품 엔티티를 조회하기 전에 먼저 갱신합니다.
-        */
+        // 1. 상품 리뷰 통계 갱신 (기존 유지)
         productDetailRepository.updateProductReviewStats(seq);
 
         Product product = productDetailRepository.findById(seq)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다. 번호: " + seq));
 
         /*
-            상세 페이지에 들어왔으므로 조회수를 1 증가시킵니다.
+            💡 2. Redis를 이용한 조회수 중복 방지 및 카운트 증가 로직
         */
-        Long currentViewCount = product.getViewCount() == null ? 0L : product.getViewCount();
-        product.setViewCount(currentViewCount + 1);
+        String userKey = (memberSeq != null) ? memberSeq.toString() : "GUEST"; // 비로그인은 IP 등으로 대체 가능
+        String viewSetKey = "view:product:" + seq;       // 이 상품을 본 유저 Set
+        String countKey = "product:view:count:" + seq;   // 이 상품의 실제 조회수 카운트
 
-        Product updated = productDetailRepository.save(product);
+        // Redis Set에 유저 키 추가 시도 (기존에 없었으면 1 반환 -> 최초 조회)
+        Long addedCount = redisTemplate.opsForSet().add(viewSetKey, userKey);
+        
+        if (addedCount != null && addedCount > 0) {
+            // 처음 조회하는 유저라면 Redis 카운트 1 증가
+            redisTemplate.opsForValue().increment(countKey);
+            // Set의 만료시간 설정 (예: 24시간 후 소멸하여 다음날 재집계 가능하게 함)
+            redisTemplate.expire(viewSetKey, 24, TimeUnit.HOURS);
+        }
+
+        // ❌ 기존 DB의 viewCount를 직접 올리고 save하던 코드 삭제!
+        // Long currentViewCount = product.getViewCount() == null ? 0L : product.getViewCount();
+        // product.setViewCount(currentViewCount + 1);
+        // Product updated = productDetailRepository.save(product);
 
         /*
-            Product 엔티티를 화면용 ProductDto로 변환합니다.
-        */
-        ProductDto dto = convertToDtoWithDetails(updated);
+            💡 화면에 보여줄 조회수 계산
+            DB에 있던 기본 조회수 + 아직 DB에 반영 안 된 Redis의 증가분을 합쳐서 Dto에 세팅합니다.
+         */
+        String redisCount = redisTemplate.opsForValue().get(countKey);
+        long additionalViews = (redisCount != null) ? Long.parseLong(redisCount) : 0L;
+        long totalViewCount = (product.getViewCount() == null ? 0L : product.getViewCount()) + additionalViews;
 
-        /*
-            로그인한 회원인 경우에만 찜 여부를 확인합니다.
-        */
+        ProductDto dto = convertToDtoWithDetails(product);
+        dto.setViewCount(totalViewCount); // Dto에 최종 합산 조회수 바인딩
+
+        // 3. 찜 여부 확인 (기존 유지)
         if (memberSeq != null) {
             dto.setWished(productWishService.isWished(memberSeq, seq));
         } else {
