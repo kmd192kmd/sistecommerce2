@@ -19,9 +19,12 @@ import com.example.java.orders.entity.Returns;
 import com.example.java.orders.repository.RefundReasonRepository;
 import com.example.java.orders.repository.ReturnRequestRepository;
 import com.example.java.orders.repository.ReturnsRepository;
+import com.example.java.outbox.OutboxEvent;
+import com.example.java.outbox.OutboxEventRepository;
 import com.example.java.orders.repository.RefundRepository;
 import com.example.java.orders.event.OrderPaidEvent;
 import com.example.java.orders.event.OrderPaymentFailedEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.java.product.entity.Options;
@@ -61,6 +64,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -88,6 +92,7 @@ public class PaymentService {
     private final OrdersQueryRepository ordersQueryRepository;
     private final com.example.java.product.service.OptionsService optionsService;
     private final EntityManager entityManager;
+    private final OutboxEventRepository outboxEventRepository;
     
     @Value("${toss.secret-key}")
     private String tossSecretKey;
@@ -245,18 +250,55 @@ public class PaymentService {
             }
         }
 
-        eventPublisher.publishEvent(new OrderPaidEvent(
-                java.util.UUID.randomUUID().toString(),
-                order.getSeq(),
-                order.getMemberSeq(),
-                order.getMemberCouponSeq(),
-                isGroupBuyOrder,
-                orderSource,
-                recipientName,
-                recipientPhone,
-                requestMemo,
-                participationSeqs
-        ));
+//        eventPublisher.publishEvent(new OrderPaidEvent(
+//                java.util.UUID.randomUUID().toString(),
+//                order.getSeq(),
+//                order.getMemberSeq(),
+//                order.getMemberCouponSeq(),
+//                isGroupBuyOrder,
+//                orderSource,
+//                recipientName,
+//                recipientPhone,
+//                requestMemo,
+//                participationSeqs
+//        ));
+        
+
+     // 💡 변경 코드: Outbox 테이블에 저장 (동일한 DB 트랜잭션 내에 묶임)
+     OrderPaidEvent eventPayload = new OrderPaidEvent(
+             java.util.UUID.randomUUID().toString(),
+             order.getSeq(),
+             order.getMemberSeq(),
+             order.getMemberCouponSeq(),
+             isGroupBuyOrder,
+             orderSource,
+             recipientName,
+             recipientPhone,
+             requestMemo,
+             participationSeqs
+     );
+
+     // ObjectMapper를 주입받아 사용 (JSON 파싱용)
+     String jsonPayload;
+	try {
+		jsonPayload = objectMapper.writeValueAsString(eventPayload);
+	} catch (JsonProcessingException e) {
+		log.error("치명적 오류: Event 객체를 JSON으로 변환하는 데 실패했습니다. orderSeq: {}", order.getSeq(), e);
+	    throw new IllegalStateException("결제 완료 이벤트 생성 중 서버 오류가 발생했습니다.", e);
+	}
+
+     OutboxEvent outbox = OutboxEvent.builder()
+             .eventId(UUID.randomUUID().toString())
+             .eventType("OrderPaidEvent")
+             .aggregateType("ORDER")
+             .aggregateId(order.getSeq())
+             .payload(jsonPayload)
+             .status("READY")
+             .createdAt(LocalDateTime.now())
+             .build();
+
+     outboxEventRepository.save(outbox);
+        
     }
 
     /**
