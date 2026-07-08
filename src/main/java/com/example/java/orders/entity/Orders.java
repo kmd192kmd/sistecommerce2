@@ -9,7 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
-
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -128,4 +128,7 @@ public class Orders {
 
     @Column(name = "curr_longitude", nullable = false)
     private Double currLongitude;
+    
+    @Version
+    private Long version;
 }

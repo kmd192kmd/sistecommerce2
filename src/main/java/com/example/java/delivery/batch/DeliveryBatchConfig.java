@@ -14,6 +14,9 @@ import com.example.java.orders.repository.OrderItemRepository;
 import com.example.java.orders.repository.OrdersRepository;
 import com.example.java.product.repository.OptionsRepository;
 import com.example.java.product.repository.SellerRepository;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,13 +26,14 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 
-
+@Slf4j
 @Configuration
 public class DeliveryBatchConfig {
 
@@ -107,41 +111,46 @@ public class DeliveryBatchConfig {
             for (Delivery delivery : readyDeliveries) {
                 Orders order = delivery.getOrders();
                 if (order != null) {
-                    // 비관적 락으로 조회하여 주문 취소 로직과 줄을 서게 함
-                    Orders lockedOrder = ordersRepository.findBySeqForUpdate(order.getSeq())
-                            .orElse(order);
+                    try {
+                        // 1. 일반 조회 (엔티티의 @Version을 통해 낙관적 락 자동 발동)
+                        Orders lockedOrder = ordersRepository.findById(order.getSeq())
+                                .orElse(order);
 
-                    // 대기 중 이미 취소된 주문(9)인 경우 배송을 진행하지 않고 CANCELED 처리
-                    if (lockedOrder.getOrderStatus() != null && lockedOrder.getOrderStatus() == 9) {
-                        delivery.setStatus("CANCELED");
-                        deliveryRepository.save(delivery);
-                        continue;
-                    }
-
-                    // 본사 출발 (지연 없음)
-                    delivery.setStatus("SHIPPING");
-                    delivery.setDelayHours(0);
-                    deliveryRepository.save(delivery);
-
-                    lockedOrder.setOrderStatus(5);
-                    ordersRepository.save(lockedOrder);
-
-                    List<OrderItem> items = orderItemRepository.findByOrderSeq(lockedOrder.getSeq());
-                    for (OrderItem item : items) {
-                        // 이미 취소된 주문상품(6)은 배송중으로 상태를 변경하지 않음
-                        if (item.getItemStatus() != null && item.getItemStatus() == 6) {
+                        if (lockedOrder.getOrderStatus() != null && lockedOrder.getOrderStatus() == 9) {
+                            delivery.setStatus("CANCELED");
+                            deliveryRepository.save(delivery);
                             continue;
                         }
-                        item.setItemStatus(2); // 배송중
+
+                        delivery.setStatus("SHIPPING");
+                        delivery.setDelayHours(0);
+                        deliveryRepository.save(delivery);
+
+                        lockedOrder.setOrderStatus(5);
+                        ordersRepository.save(lockedOrder); // 👈 여기서 버전 체크 후 다르면 예외 터짐
+
+                        List<OrderItem> items = orderItemRepository.findByOrderSeq(lockedOrder.getSeq());
+                        for (OrderItem item : items) {
+                            if (item.getItemStatus() != null && item.getItemStatus() == 6) {
+                                continue;
+                            }
+                            item.setItemStatus(2); 
+                        }
+                        orderItemRepository.saveAll(items);
+
+                    } catch (ObjectOptimisticLockingFailureException e) {
+                        // 2. 다른 트랜잭션(예: 유저의 주문취소)이 먼저 데이터를 수정해서 버전이 안 맞을 때 예외 처리
+                        // 배치(Tasklet) 특성상 해당 건은 스킵하고 다음 루프로 넘어가거나 재시도 로직을 태워야 합니다.
+                        log.warn("낙관적 락 충돌 발생 - 주문번호: {}, 다음 배치에서 재처리합니다.", order.getSeq());
+                        continue; 
                     }
-                    orderItemRepository.saveAll(items);
                 } else {
                     delivery.setStatus("SHIPPING");
                     delivery.setDelayHours(0);
                     deliveryRepository.save(delivery);
                 }
 
-                // Add delivery history: 본사 허브 도착 기록
+                // 배송 이력 저장
                 DeliveryHistory hqHistory = DeliveryHistory.builder()
                         .location("HUB")
                         .currLatitude(hqHub.getLatitude())
@@ -183,8 +192,8 @@ public class DeliveryBatchConfig {
                 Orders order = delivery.getOrders();
                 if (order == null || midHubs.isEmpty() || delivery.getDispatch_at() == null) continue;
 
-                // 비관적 락으로 조회하여 주문 취소 로직과 줄을 서게 함
-                Orders lockedOrder = ordersRepository.findBySeqForUpdate(order.getSeq())
+                // 낙관적 락으로 조회
+                Orders lockedOrder = ordersRepository.findBySeq(order.getSeq())
                         .orElse(order);
 
                 // 대기 중 이미 취소된 주문(9)인 경우 더 배송 진행을 하지 않고 CANCELED 처리

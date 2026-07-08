@@ -14,10 +14,13 @@ public interface OrdersRepository extends JpaRepository<Orders, Long> {
 
     Optional<Orders> findByOrderUid(String orderUid);
 
-    /**
-     * 주문 상태 변경 및 취소 시 동시성 경쟁을 제어하기 위한 비관적 락 조회
-     */
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select o from Orders o where o.seq = :seq")
-    Optional<Orders> findBySeqForUpdate(@Param("seq") Long seq);
+//    /**
+//     * 주문 상태 변경 및 취소 시 동시성 경쟁을 제어하기 위한 비관적 락 조회
+//     */
+//    @Lock(LockModeType.PESSIMISTIC_WRITE)
+//    @Query("select o from Orders o where o.seq = :seq")
+//    Optional<Orders> findBySeqForUpdate(@Param("seq") Long seq);
+    
+    @Lock(LockModeType.OPTIMISTIC) // 또는 OPTIMISTIC_FORCE_INCREMENT
+    Optional<Orders> findBySeq(Long seq);
 }
