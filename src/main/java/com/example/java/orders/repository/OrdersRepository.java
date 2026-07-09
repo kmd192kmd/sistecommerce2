@@ -23,6 +23,7 @@ public interface OrdersRepository extends JpaRepository<Orders, Long> {
     
     @Lock(LockModeType.OPTIMISTIC) // 또는 OPTIMISTIC_FORCE_INCREMENT
     Optional<Orders> findBySeq(Long seq);
-
+    
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
 	Optional<Orders> findBySeqForUpdate(Long orderSeq);
 }
